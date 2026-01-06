@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../src/db';
-import { tenants } from '../src/db/schema';
+import { db } from '../src/db/index.js';
+import { tenants } from '../src/db/schema.js';
 import { eq } from 'drizzle-orm';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
