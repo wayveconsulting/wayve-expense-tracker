@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, boolean, integer, uniqueIndex } from 'drizzle-orm/pg-core';
 
 // ============================================
 // TENANTS (Organizations/Businesses)
@@ -15,8 +15,14 @@ export const tenants = pgTable('tenants', {
   primaryColor: varchar('primary_color', { length: 7 }).default('#2A9D8F'), // hex color
   appName: varchar('app_name', { length: 255 }), // custom app name, falls back to global default
   
+  // White-label custom domain (future)
+  customDomain: varchar('custom_domain', { length: 255 }), // e.g., "expenses.sarahcpa.com"
+  
   // Settings
   isActive: boolean('is_active').default(true).notNull(),
+  
+  // Billing attribution - who created this tenant?
+  createdBy: uuid('created_by'), // references users.id, but can't use FK due to circular dependency
   
   // Audit fields
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -28,19 +34,29 @@ export const tenants = pgTable('tenants', {
 // ============================================
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  tenantId: uuid('tenant_id').references(() => tenants.id), // nullable for super admins who exist outside tenants
   
   // Auth
   email: varchar('email', { length: 255 }).notNull(),
-  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }), // nullable - OAuth users won't have one
   emailVerified: boolean('email_verified').default(false).notNull(),
+  
+  // OAuth providers (store provider's user ID for linking)
+  googleId: varchar('google_id', { length: 255 }),
+  appleId: varchar('apple_id', { length: 255 }),
   
   // Profile
   firstName: varchar('first_name', { length: 100 }),
   lastName: varchar('last_name', { length: 100 }),
   
   // Role: 'owner' | 'admin' | 'editor' | 'data_entry' | 'viewer' | 'accountant'
+  // NOTE: This is the user's role within their PRIMARY tenant (tenantId above)
+  // For multi-tenant access, see user_tenant_access table
   role: varchar('role', { length: 50 }).default('viewer').notNull(),
+  
+  // Special user types (exist above tenant level)
+  isSuperAdmin: boolean('is_super_admin').default(false).notNull(), // Amber - can see/do everything
+  isAccountant: boolean('is_accountant').default(false).notNull(), // CPAs - can access multiple tenants
   
   // Preferences
   theme: varchar('theme', { length: 50 }).default('teal-tide'),
