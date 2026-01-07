@@ -1,6 +1,7 @@
 import { useTenant } from './hooks/useTenant'
 import { useAuth } from './hooks/useAuth'
 import { LoginPage } from './pages/LoginPage'
+import { Layout } from './components/Layout'
 
 function App() {
   const { tenant, isLoading: tenantLoading, error: tenantError, subdomain } = useTenant()
@@ -35,90 +36,57 @@ function App() {
 
   // Main app (authenticated)
   return (
-    <div className="container">
-      <div className="card" style={{ marginTop: 'var(--spacing-2xl)' }}>
-        {/* Tenant branding - logo would go here */}
-        {tenant?.logoUrl && (
-          <img 
-            src={tenant.logoUrl} 
-            alt={tenant.name} 
-            style={{ maxHeight: '60px', marginBottom: 'var(--spacing-md)' }} 
-          />
-        )}
-        
-        <h1>{tenant?.appName || tenant?.name || 'Wayve Expense Tracker'}</h1>
+    <Layout>
+      <DashboardPlaceholder 
+        tenant={tenant} 
+        tenantError={tenantError} 
+        subdomain={subdomain} 
+        user={user} 
+      />
+    </Layout>
+  )
+}
 
-        {tenantError && (
-          <p style={{ color: 'var(--color-error)', marginTop: 'var(--spacing-sm)' }}>
-            {tenantError}
-          </p>
-        )}
+// Temporary placeholder - will be replaced with real dashboard
+function DashboardPlaceholder({ tenant, tenantError, subdomain, user }: any) {
+  return (
+    <div className="card">
+      <h2 style={{ marginTop: 0 }}>Dashboard</h2>
+      
+      {tenantError && (
+        <p style={{ color: 'var(--color-error)' }}>
+          {tenantError}
+        </p>
+      )}
 
-        {!tenantError && !subdomain && (
-          <p style={{ color: 'var(--color-text-secondary)', marginTop: 'var(--spacing-sm)' }}>
-            Welcome! Use a subdomain to access your business portal.
-          </p>
-        )}
+      {!tenantError && !subdomain && (
+        <p style={{ color: 'var(--color-text-secondary)' }}>
+          Welcome! Use a subdomain to access your business portal.
+        </p>
+      )}
 
-        {/* User info */}
-        {user && (
-          <div style={{ 
-            marginTop: 'var(--spacing-lg)', 
-            padding: 'var(--spacing-md)', 
-            background: 'var(--color-bg-tertiary)', 
-            borderRadius: 'var(--radius-md)',
-          }}>
-            <p style={{ margin: 0 }}>
-              Logged in as: <strong>{user.email}</strong>
-            </p>
-            {user.isSuperAdmin && (
-              <span style={{ 
-                display: 'inline-block',
-                marginTop: 'var(--spacing-xs)',
-                padding: '2px 8px',
-                background: 'var(--color-primary)',
-                color: 'white',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.75rem',
-              }}>
-                Super Admin
-              </span>
-            )}
-            {user.isAccountant && !user.isSuperAdmin && (
-              <span style={{ 
-                display: 'inline-block',
-                marginTop: 'var(--spacing-xs)',
-                padding: '2px 8px',
-                background: 'var(--color-secondary)',
-                color: 'white',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.75rem',
-              }}>
-                Accountant
-              </span>
-            )}
-          </div>
-        )}
+      {tenant && (
+        <p style={{ color: 'var(--color-text-secondary)' }}>
+          You're viewing <strong>{tenant.name}</strong>
+        </p>
+      )}
 
-        {/* Logout button */}
-        <LogoutButton />
-
-        {/* Debug info - remove later */}
-        <div style={{ 
-          marginTop: 'var(--spacing-xl)', 
+      {/* Debug info - remove later */}
+      <details style={{ marginTop: 'var(--spacing-lg)' }}>
+        <summary style={{ cursor: 'pointer', color: 'var(--color-text-secondary)' }}>
+          Debug Info
+        </summary>
+        <pre style={{ 
+          marginTop: 'var(--spacing-sm)',
           padding: 'var(--spacing-md)', 
           background: 'var(--color-bg-secondary)', 
           borderRadius: 'var(--radius-md)',
-          fontSize: '0.85rem',
-          textAlign: 'left'
+          fontSize: '0.8rem',
+          overflow: 'auto'
         }}>
-          <strong>Debug Info:</strong>
-          <pre style={{ margin: 'var(--spacing-sm) 0 0 0', whiteSpace: 'pre-wrap' }}>
 {JSON.stringify({ 
   subdomain, 
-  tenantLoading, 
-  tenantError, 
-  tenant,
+  tenant: tenant ? { id: tenant.id, name: tenant.name, subdomain: tenant.subdomain } : null,
   user: user ? { 
     id: user.id, 
     email: user.email, 
@@ -128,31 +96,9 @@ function App() {
     tenantAccess: user.tenantAccess?.length || 0,
   } : null 
 }, null, 2)}
-          </pre>
-        </div>
-      </div>
+        </pre>
+      </details>
     </div>
-  )
-}
-
-function LogoutButton() {
-  const { logout } = useAuth()
-
-  return (
-    <button
-      onClick={logout}
-      style={{
-        marginTop: 'var(--spacing-lg)',
-        padding: 'var(--spacing-sm) var(--spacing-lg)',
-        background: 'transparent',
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-md)',
-        cursor: 'pointer',
-        fontSize: '0.9rem',
-      }}
-    >
-      Sign Out
-    </button>
   )
 }
 
