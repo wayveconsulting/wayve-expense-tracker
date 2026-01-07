@@ -42,7 +42,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .select({
         id: users.id,
         email: users.email,
-        name: users.name,
+        firstName: users.firstName,
+        lastName: users.lastName,
         tenantId: users.tenantId,
         role: users.role,
         isSuperAdmin: users.isSuperAdmin,
@@ -88,7 +89,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           subdomain: tenants.subdomain,
           logoUrl: tenants.logoUrl,
           primaryColor: tenants.primaryColor,
-          secondaryColor: tenants.secondaryColor,
           appName: tenants.appName,
         })
         .from(tenants)
