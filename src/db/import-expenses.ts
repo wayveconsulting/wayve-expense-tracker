@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, and } from 'drizzle-orm';
+import { eq, } from 'drizzle-orm';
 import * as schema from './schema.js';
 import { tenants, categories, expenses } from './schema.js';
 import XLSX from 'xlsx';

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, boolean, integer, unique } from 'drizzle-orm/pg-core';
 
 // ============================================
 // TENANTS (Organizations/Businesses)
@@ -66,6 +66,31 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   lastLoginAt: timestamp('last_login_at'),
 });
+
+// ============================================
+// USER TENANT ACCESS (Junction table for multi-tenant access)
+// ============================================
+export const userTenantAccess = pgTable('user_tenant_access', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  
+  // Role within THIS tenant: 'owner' | 'admin' | 'editor' | 'data_entry' | 'viewer' | 'accountant'
+  role: varchar('role', { length: 50 }).notNull(),
+  
+  // For accountants: can they edit expenses? (default: no, read-only)
+  canEdit: boolean('can_edit').default(false).notNull(),
+  
+  // Who invited this user to this tenant?
+  invitedBy: uuid('invited_by').references(() => users.id),
+  
+  // Audit fields
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  // Each user can only have one access record per tenant
+  unique('user_tenant_unique').on(table.userId, table.tenantId),
+]);
 
 // ============================================
 // CATEGORIES

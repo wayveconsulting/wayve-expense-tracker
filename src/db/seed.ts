@@ -26,11 +26,10 @@ async function seed() {
   const [user] = await db.insert(users).values({
     tenantId: tenant.id,
     email: 'zenroomgrooming@gmail.com',
-    passwordHash: '', // Will be set when user first logs in
+    // passwordHash is null - will use OAuth
     role: 'owner',
-    isActive: true,
   }).returning();
-  console.log(`  ✓ User created: ${user.id}\n`);
+  console.log(`  âœ" User created: ${user.id}\n`);
 
   // 3. Create categories
   console.log('Creating categories...');
