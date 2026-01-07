@@ -82,11 +82,11 @@ export function Layout({ children }: LayoutProps) {
         <div className="drawer__profile">
           <div className="drawer__profile-info">
             <div className="drawer__avatar">
-              {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || '?'}
+              {user?.name?.[0] || user?.email?.[0]?.toUpperCase() || '?'}
             </div>
             <div className="drawer__profile-text">
               <span className="drawer__profile-name">
-                {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.email}
+                {user?.name || user?.email}
               </span>
               <span className="drawer__profile-role">{user?.role || 'User'}</span>
             </div>
