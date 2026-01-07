@@ -267,7 +267,7 @@ export const recurringExpenses = pgTable('recurring_expenses', {
 export const sessions = pgTable('sessions', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  tenantId: uuid('tenant_id').references(() => tenants.id), // nullable for super admins/accountants
   
   // Session token (stored in HTTP-only cookie)
   token: varchar('token', { length: 255 }).notNull().unique(),
