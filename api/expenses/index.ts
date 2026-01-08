@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { db } from '../../src/db/index.js'
-import { expenses, categories, sessions, users, userTenantAccess } from '../../src/db/schema.js'
+import { expenses, categories, sessions, users, userTenantAccess, tenants } from '../../src/db/schema.js'
 import { eq, and, desc } from 'drizzle-orm'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -37,24 +37,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: 'User not found' })
     }
 
-    // Determine tenant from query param or user's access
+    // Determine tenant from query param
     let tenantId: string | null = null
     const tenantSubdomain = req.query.tenant as string | undefined
 
     if (tenantSubdomain) {
-      // Verify user has access to this tenant
-      const access = await db
-        .select({ tenantId: userTenantAccess.tenantId })
-        .from(userTenantAccess)
-        .innerJoin(
-          db.select().from(require('../../src/db/schema.js').tenants).as('t'),
-          eq(userTenantAccess.tenantId, require('../../src/db/schema.js').tenants.id)
-        )
-        .where(eq(userTenantAccess.userId, user.id))
-        .limit(1)
-      
-      // Simpler approach - just get tenant by subdomain and verify access
-      const { tenants } = require('../../src/db/schema.js')
+      // Get tenant by subdomain
       const [tenant] = await db
         .select()
         .from(tenants)
@@ -62,6 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .limit(1)
 
       if (tenant) {
+        // Verify user has access to this tenant
         const [hasAccess] = await db
           .select()
           .from(userTenantAccess)
