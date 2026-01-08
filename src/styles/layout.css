@@ -733,3 +733,106 @@
   white-space: nowrap;
 }
 
+/* ============================================
+   CATEGORIES PAGE
+   ============================================ */
+
+.categories-page__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.categories-page__dot {
+  color: var(--color-border);
+}
+
+.category-grid {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.category-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.category-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.category-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.category-card__emoji {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.category-card__name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.category-card__stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--spacing-sm);
+}
+
+.category-card__total {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.category-card__count {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.category-card__bar-container {
+  height: 6px;
+  background: var(--color-bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: var(--spacing-sm);
+}
+
+.category-card__bar {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.category-card__percent {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+@media (min-width: 640px) {
+  .category-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .category-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
