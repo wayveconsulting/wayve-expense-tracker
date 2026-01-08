@@ -11,8 +11,8 @@ import ReportsPage from './pages/ReportsPage'
 import SettingsPage from './pages/SettingsPage'
 
 function App() {
-  const { tenant, isLoading: tenantLoading, error: tenantError, subdomain } = useTenant()
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth()
+  const { isLoading: tenantLoading } = useTenant()
+  const { isLoading: authLoading, isAuthenticated } = useAuth()
 
   // Simple routing based on path - login doesn't need Layout
   const path = window.location.pathname
