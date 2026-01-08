@@ -17,7 +17,6 @@ export default function MileagePage() {
   const { year } = useYear()
   const [trips, setTrips] = useState<MileageTrip[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchMileage() {
