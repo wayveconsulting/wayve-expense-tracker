@@ -55,7 +55,9 @@ function getSubdomainFromHost(hostname: string): string | null {
     return subdomain;
   }
 
-  return null;
+  // Fallback: check query param for root domain (e.g., wayveconsulting.app?tenant=sandbox)
+  const params = new URLSearchParams(window.location.search);
+  return params.get('tenant');
 }
 
 interface TenantProviderProps {
