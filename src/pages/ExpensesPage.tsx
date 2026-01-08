@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTenant } from '../hooks/useTenant'
+import { useYear } from '../hooks/useYear'
 
 interface Expense {
   id: string
@@ -14,6 +15,7 @@ interface Expense {
 
 export default function ExpensesPage() {
   const { subdomain } = useTenant()
+  const { year } = useYear()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -25,7 +27,7 @@ export default function ExpensesPage() {
         setLoading(true)
         const params = new URLSearchParams()
         if (subdomain) params.set('tenant', subdomain)
-        params.set('year', '2025')
+        params.set('year', String(year))
         params.set('limit', '1000')
 
         const response = await fetch(`/api/expenses?${params}`)
@@ -44,7 +46,7 @@ export default function ExpensesPage() {
     }
 
     fetchExpenses()
-  }, [subdomain])
+  }, [subdomain, year])
 
   // Format cents to dollars
   const formatMoney = (cents: number) => {

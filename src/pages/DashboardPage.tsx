@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTenant } from '../hooks/useTenant'
+import { useYear } from '../hooks/useYear'
 
 interface Expense {
   id: string
@@ -32,6 +33,7 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const { subdomain } = useTenant()
+  const { year } = useYear()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +44,7 @@ export default function DashboardPage() {
         setLoading(true)
         const params = new URLSearchParams()
         if (subdomain) params.set('tenant', subdomain)
-        params.set('year', '2025')
+        params.set('year', String(year))
         params.set('limit', '500')
 
         const response = await fetch(`/api/expenses?${params}`)
@@ -61,7 +63,7 @@ export default function DashboardPage() {
     }
 
     fetchDashboard()
-  }, [subdomain])
+  }, [subdomain, year])
 
   if (loading) {
     return (

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation } from 'wouter'
 import { useTenant } from '../hooks/useTenant'
 import { useAuth } from '../hooks/useAuth'
+import { useYear } from '../hooks/useYear'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -12,6 +13,8 @@ export function Layout({ children }: LayoutProps) {
   const { tenant } = useTenant()
   const { user, logout } = useAuth()
   const [location] = useLocation()
+  const { year, nextYear, prevYear } = useYear()
+  const currentYear = new Date().getFullYear()
 
   const appName = tenant?.appName || tenant?.name || 'Wayve Expense Tracker'
 
@@ -59,14 +62,25 @@ export function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Year Selector - TODO: Make functional */}
+        {/* Year Selector */}
         <div className="drawer__year-selector">
-          <button className="year-selector__btn year-selector__btn--prev" aria-label="Previous year">
+          <button 
+            className="year-selector__btn year-selector__btn--prev" 
+            aria-label="Previous year"
+            onClick={prevYear}
+            disabled={year <= 2020}
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
-          <span className="year-selector__year">2025</span>
-          <button className="year-selector__btn year-selector__btn--next" aria-label="Next year">
+          <span className="year-selector__year">{year}</span>
+          <button 
+            className="year-selector__btn year-selector__btn--next" 
+            aria-label="Next year"
+            onClick={nextYear}
+            disabled={year >= currentYear}
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="9 18 15 12 9 6" />
             </svg>
