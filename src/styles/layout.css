@@ -836,3 +836,132 @@
   }
 }
 
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-2xl) var(--spacing-lg);
+  min-height: 60vh;
+}
+
+.empty-state__icon {
+  font-size: 4rem;
+  line-height: 1;
+  margin-bottom: var(--spacing-lg);
+}
+
+.empty-state__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.empty-state__description {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  max-width: 320px;
+  margin: 0 0 var(--spacing-xl) 0;
+  line-height: 1.5;
+}
+
+.empty-state__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: white;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.empty-state__btn:hover:not(:disabled) {
+  background: var(--color-primary-dark, #238579);
+  transform: translateY(-1px);
+}
+
+.empty-state__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   MILEAGE PAGE
+   ============================================ */
+
+.mileage-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.trip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.trip-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.trip-list__item:last-child {
+  border-bottom: none;
+}
+
+.trip-list__icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.trip-list__details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trip-list__route {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trip-list__meta {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.trip-list__miles {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .mileage-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
