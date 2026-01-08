@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link, useLocation } from 'wouter'
 import { useTenant } from '../hooks/useTenant'
 import { useAuth } from '../hooks/useAuth'
 
@@ -10,8 +11,11 @@ export function Layout({ children }: LayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const { tenant } = useTenant()
   const { user, logout } = useAuth()
+  const [location] = useLocation()
 
   const appName = tenant?.appName || tenant?.name || 'Wayve Expense Tracker'
+
+  const closeDrawer = () => setDrawerOpen(false)
 
   return (
     <div className="layout">
@@ -38,7 +42,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Navigation Drawer Overlay */}
       <div 
         className={`drawer-overlay ${drawerOpen ? 'drawer-overlay--open' : ''}`}
-        onClick={() => setDrawerOpen(false)}
+        onClick={closeDrawer}
       />
 
       {/* Navigation Drawer */}
@@ -71,11 +75,11 @@ export function Layout({ children }: LayoutProps) {
 
         {/* Navigation Links */}
         <ul className="drawer__nav">
-          <NavItem icon="dashboard" label="Dashboard" href="/" active />
-          <NavItem icon="receipt" label="Expenses" href="/expenses" />
-          <NavItem icon="car" label="Mileage" href="/mileage" />
-          <NavItem icon="folder" label="Categories" href="/categories" />
-          <NavItem icon="chart" label="Reports" href="/reports" />
+          <NavItem icon="dashboard" label="Dashboard" href="/" currentPath={location} onClick={closeDrawer} />
+          <NavItem icon="receipt" label="Expenses" href="/expenses" currentPath={location} onClick={closeDrawer} />
+          <NavItem icon="car" label="Mileage" href="/mileage" currentPath={location} onClick={closeDrawer} />
+          <NavItem icon="folder" label="Categories" href="/categories" currentPath={location} onClick={closeDrawer} />
+          <NavItem icon="chart" label="Reports" href="/reports" currentPath={location} onClick={closeDrawer} />
         </ul>
 
         {/* Profile Section */}
@@ -113,10 +117,13 @@ interface NavItemProps {
   icon: 'dashboard' | 'receipt' | 'car' | 'folder' | 'chart'
   label: string
   href: string
-  active?: boolean
+  currentPath: string
+  onClick: () => void
 }
 
-function NavItem({ icon, label, href, active }: NavItemProps) {
+function NavItem({ icon, label, href, currentPath, onClick }: NavItemProps) {
+  const isActive = href === '/' ? currentPath === '/' : currentPath.startsWith(href)
+
   const icons = {
     dashboard: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -158,13 +165,14 @@ function NavItem({ icon, label, href, active }: NavItemProps) {
 
   return (
     <li>
-      <a 
+      <Link 
         href={href} 
-        className={`drawer__nav-item ${active ? 'drawer__nav-item--active' : ''}`}
+        className={`drawer__nav-item ${isActive ? 'drawer__nav-item--active' : ''}`}
+        onClick={onClick}
       >
         {icons[icon]}
         <span>{label}</span>
-      </a>
+      </Link>
     </li>
   )
 }

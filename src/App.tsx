@@ -1,16 +1,21 @@
+import { Route, Switch } from 'wouter'
 import { useTenant } from './hooks/useTenant'
 import { useAuth } from './hooks/useAuth'
 import { LoginPage } from './pages/LoginPage'
 import { Layout } from './components/Layout'
+import DashboardPage from './pages/DashboardPage'
+import ExpensesPage from './pages/ExpensesPage'
+import MileagePage from './pages/MileagePage'
+import CategoriesPage from './pages/CategoriesPage'
+import ReportsPage from './pages/ReportsPage'
+import SettingsPage from './pages/SettingsPage'
 
 function App() {
   const { tenant, isLoading: tenantLoading, error: tenantError, subdomain } = useTenant()
   const { user, isLoading: authLoading, isAuthenticated } = useAuth()
 
-  // Simple routing based on path
+  // Simple routing based on path - login doesn't need Layout
   const path = window.location.pathname
-
-  // Show login page at /login
   if (path === '/login') {
     return <LoginPage />
   }
@@ -34,71 +39,24 @@ function App() {
     return null
   }
 
-  // Main app (authenticated)
+  // Main app (authenticated) with routing
   return (
     <Layout>
-      <DashboardPlaceholder 
-        tenant={tenant} 
-        tenantError={tenantError} 
-        subdomain={subdomain} 
-        user={user} 
-      />
+      <Switch>
+        <Route path="/" component={DashboardPage} />
+        <Route path="/expenses" component={ExpensesPage} />
+        <Route path="/mileage" component={MileagePage} />
+        <Route path="/categories" component={CategoriesPage} />
+        <Route path="/reports" component={ReportsPage} />
+        <Route path="/settings" component={SettingsPage} />
+        <Route>
+          <div className="page">
+            <h1>404</h1>
+            <p>Page not found</p>
+          </div>
+        </Route>
+      </Switch>
     </Layout>
-  )
-}
-
-// Temporary placeholder - will be replaced with real dashboard
-function DashboardPlaceholder({ tenant, tenantError, subdomain, user }: any) {
-  return (
-    <div className="card">
-      <h2 style={{ marginTop: 0 }}>Dashboard</h2>
-      
-      {tenantError && (
-        <p style={{ color: 'var(--color-error)' }}>
-          {tenantError}
-        </p>
-      )}
-
-      {!tenantError && !subdomain && (
-        <p style={{ color: 'var(--color-text-secondary)' }}>
-          Welcome! Use a subdomain to access your business portal.
-        </p>
-      )}
-
-      {tenant && (
-        <p style={{ color: 'var(--color-text-secondary)' }}>
-          You're viewing <strong>{tenant.name}</strong>
-        </p>
-      )}
-
-      {/* Debug info - remove later */}
-      <details style={{ marginTop: 'var(--spacing-lg)' }}>
-        <summary style={{ cursor: 'pointer', color: 'var(--color-text-secondary)' }}>
-          Debug Info
-        </summary>
-        <pre style={{ 
-          marginTop: 'var(--spacing-sm)',
-          padding: 'var(--spacing-md)', 
-          background: 'var(--color-bg-secondary)', 
-          borderRadius: 'var(--radius-md)',
-          fontSize: '0.8rem',
-          overflow: 'auto'
-        }}>
-{JSON.stringify({ 
-  subdomain, 
-  tenant: tenant ? { id: tenant.id, name: tenant.name, subdomain: tenant.subdomain } : null,
-  user: user ? { 
-    id: user.id, 
-    email: user.email, 
-    role: user.role,
-    isSuperAdmin: user.isSuperAdmin,
-    isAccountant: user.isAccountant,
-    tenantAccess: user.tenantAccess?.length || 0,
-  } : null 
-}, null, 2)}
-        </pre>
-      </details>
-    </div>
   )
 }
 
