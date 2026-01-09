@@ -88,12 +88,14 @@ export function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Navigation Links */}
+        {/* Navigation Links */}
         <ul className="drawer__nav">
           <NavItem icon="dashboard" label="Dashboard" href="/" currentPath={location} onClick={closeDrawer} />
           <NavItem icon="receipt" label="Expenses" href="/expenses" currentPath={location} onClick={closeDrawer} />
           <NavItem icon="car" label="Mileage" href="/mileage" currentPath={location} onClick={closeDrawer} />
           <NavItem icon="folder" label="Categories" href="/categories" currentPath={location} onClick={closeDrawer} />
           <NavItem icon="chart" label="Reports" href="/reports" currentPath={location} onClick={closeDrawer} />
+          <NavItem icon="settings" label="Settings" href="/settings" currentPath={location} onClick={closeDrawer} />
         </ul>
 
         {/* Profile Section */}
@@ -128,7 +130,7 @@ export function Layout({ children }: LayoutProps) {
 }
 
 interface NavItemProps {
-  icon: 'dashboard' | 'receipt' | 'car' | 'folder' | 'chart'
+  icon: 'dashboard' | 'receipt' | 'car' | 'folder' | 'chart' | 'settings'
   label: string
   href: string
   currentPath: string
@@ -173,6 +175,12 @@ function NavItem({ icon, label, href, currentPath, onClick }: NavItemProps) {
         <line x1="18" y1="20" x2="18" y2="10" />
         <line x1="12" y1="20" x2="12" y2="4" />
         <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+    ),
+    settings: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
       </svg>
     ),
   }
