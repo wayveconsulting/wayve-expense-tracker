@@ -89,6 +89,7 @@
   width: 280px;
   max-width: 85vw;
   height: 100vh;
+  height: 100dvh; /* Dynamic viewport height - respects mobile browser chrome */
   background: var(--color-bg-primary);
   box-shadow: var(--shadow-lg);
   transform: translateX(-100%);
@@ -181,10 +182,10 @@
 
 .drawer__nav {
   flex: 1;
-  list-style: none;
-  margin: 0;
-  padding: var(--spacing-md) 0;
   overflow-y: auto;
+  padding: var(--spacing-md) 0;
+  margin: 0;
+  list-style: none;
 }
 
 .drawer__nav-item {
@@ -230,6 +231,8 @@
   padding: var(--spacing-md) var(--spacing-lg);
   border-top: 1px solid var(--color-border);
   background: var(--color-bg-secondary);
+  margin-top: auto; /* Push to bottom */
+  flex-shrink: 0; /* Don't let it shrink */
 }
 
 .drawer__profile-info {

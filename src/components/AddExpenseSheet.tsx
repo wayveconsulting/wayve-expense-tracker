@@ -195,7 +195,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
-                autoFocus
+                autoFocus={isOpen}
               />
             </div>
           </div>
