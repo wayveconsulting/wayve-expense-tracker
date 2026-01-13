@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTenant } from '../hooks/useTenant'
 import { useYear } from '../hooks/useYear'
+import { AddExpenseSheet } from '../components/AddExpenseSheet'
 
 interface Expense {
   id: string
@@ -37,33 +38,39 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+
+  const fetchDashboard = useCallback(async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams()
+      if (subdomain) params.set('tenant', subdomain)
+      params.set('year', String(year))
+      params.set('limit', '500')
+
+      const response = await fetch(`/api/expenses?${params}`)
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || 'Failed to fetch expenses')
+      }
+
+      const result = await response.json()
+      setData(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setLoading(false)
+    }
+  }, [subdomain, year])
 
   useEffect(() => {
-    async function fetchDashboard() {
-      try {
-        setLoading(true)
-        const params = new URLSearchParams()
-        if (subdomain) params.set('tenant', subdomain)
-        params.set('year', String(year))
-        params.set('limit', '500')
-
-        const response = await fetch(`/api/expenses?${params}`)
-        if (!response.ok) {
-          const err = await response.json()
-          throw new Error(err.error || 'Failed to fetch expenses')
-        }
-
-        const result = await response.json()
-        setData(result)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchDashboard()
-  }, [subdomain, year])
+  }, [fetchDashboard])
+
+  // Handle successful expense creation
+  const handleExpenseAdded = () => {
+    fetchDashboard()
+  }
 
   if (loading) {
     return (
@@ -140,7 +147,7 @@ export default function DashboardPage() {
               {recentExpenses.map((expense) => (
                 <li key={expense.id} className="expense-list__item">
                   <div className="expense-list__icon">
-                    {expense.categoryEmoji || '📝'}
+                    {expense.categoryEmoji || '📁'}
                   </div>
                   <div className="expense-list__details">
                     <span className="expense-list__vendor">
@@ -188,6 +195,25 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* FAB - TODO: Make visibility controlled by settings */}
+      <button 
+        className="fab" 
+        onClick={() => setSheetOpen(true)}
+        aria-label="Add expense"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+
+      {/* Add Expense Bottom Sheet */}
+      <AddExpenseSheet
+        isOpen={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        onSuccess={handleExpenseAdded}
+      />
     </div>
   )
 }
