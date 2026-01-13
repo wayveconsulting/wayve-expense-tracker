@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useLocation } from 'wouter'
 import { useTenant } from '../hooks/useTenant'
 import { useYear } from '../hooks/useYear'
 import { AddExpenseSheet } from '../components/AddExpenseSheet'
@@ -35,6 +36,7 @@ interface DashboardData {
 export default function DashboardPage() {
   const { subdomain } = useTenant()
   const { year } = useYear()
+  const [, setLocation] = useLocation()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -70,6 +72,11 @@ export default function DashboardPage() {
   // Handle successful expense creation
   const handleExpenseAdded = () => {
     fetchDashboard()
+  }
+
+  // Navigate to expenses filtered by category
+  const handleCategoryClick = (categoryName: string) => {
+    setLocation(`/expenses?category=${encodeURIComponent(categoryName)}`)
   }
 
   if (loading) {
@@ -174,7 +181,19 @@ export default function DashboardPage() {
           ) : (
             <ul className="category-list">
               {categoryBreakdown.slice(0, 8).map((cat) => (
-                <li key={cat.name} className="category-list__item">
+                <li 
+                  key={cat.name} 
+                  className="category-list__item category-list__item--clickable"
+                  onClick={() => handleCategoryClick(cat.name)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleCategoryClick(cat.name)
+                    }
+                  }}
+                >
                   <div className="category-list__info">
                     <span className="category-list__emoji">{cat.emoji || '📁'}</span>
                     <span className="category-list__name">{cat.name}</span>
