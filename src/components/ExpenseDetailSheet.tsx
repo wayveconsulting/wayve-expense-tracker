@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useTenant } from '../hooks/useTenant'
 
+// Get saved preference from localStorage
+function getDefaultMode(): 'view' | 'edit' {
+  if (typeof window === 'undefined') return 'view'
+  return (localStorage.getItem('expenseDetailMode') as 'view' | 'edit') || 'view'
+}
+
 interface Category {
   id: string
   name: string
@@ -30,8 +36,14 @@ interface ExpenseDetailSheetProps {
 export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelete }: ExpenseDetailSheetProps) {
   const { subdomain } = useTenant()
   
-  // Mode: 'view' or 'edit'
-  const [mode, setMode] = useState<'view' | 'edit'>('view')
+  // Mode: 'view' or 'edit' (persisted to localStorage)
+  const [mode, setMode] = useState<'view' | 'edit'>(getDefaultMode)
+  
+  // Persist mode changes to localStorage
+  const handleModeChange = (newMode: 'view' | 'edit') => {
+    setMode(newMode)
+    localStorage.setItem('expenseDetailMode', newMode)
+  }
   
   // Edit form state
   const [amount, setAmount] = useState('')
@@ -58,7 +70,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
       setDate(new Date(expense.date).toISOString().split('T')[0])
       setCategoryId(expense.categoryId || '')
       setExpenseType((expense.expenseType as 'operating' | 'cogs' | 'home_office') || 'operating')
-      setMode('view')
+      setMode(getDefaultMode())
       setError(null)
       setShowDeleteConfirm(false)
     }
@@ -219,15 +231,42 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
           <h2 className="bottom-sheet__title">
             {mode === 'view' ? 'Expense Details' : 'Edit Expense'}
           </h2>
-          <button 
-            className="bottom-sheet__close"
-            onClick={onClose}
-            aria-label="Close"
-          >
+          <div className="bottom-sheet__header-actions">
+            {/* View/Edit Toggle */}
+            <div className="mode-toggle">
+              <button
+                className={`mode-toggle__btn ${mode === 'view' ? 'mode-toggle__btn--active' : ''}`}
+                onClick={() => handleModeChange('view')}
+                aria-label="View mode"
+                title="View mode"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+              <button
+                className={`mode-toggle__btn ${mode === 'edit' ? 'mode-toggle__btn--active' : ''}`}
+                onClick={() => handleModeChange('edit')}
+                aria-label="Edit mode"
+                title="Edit mode"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+            </div>
+            <button 
+              className="bottom-sheet__close"
+              onClick={onClose}
+              aria-label="Close"
+            >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6 6 18M6 6l12 12" />
             </svg>
           </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -313,7 +352,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
               <div className="detail-actions">
                 <button 
                   className="btn btn--secondary btn--full"
-                  onClick={() => setMode('edit')}
+                  onClick={() => handleModeChange('edit')}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -460,7 +499,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
               <div className="edit-actions">
                 <button 
                   className="btn btn--secondary"
-                  onClick={() => setMode('view')}
+                  onClick={() => handleModeChange('view')}
                   disabled={submitting}
                 >
                   Cancel
