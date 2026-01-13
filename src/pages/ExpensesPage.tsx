@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTenant } from '../hooks/useTenant'
 import { useYear } from '../hooks/useYear'
+import { AddExpenseSheet } from '../components/AddExpenseSheet'
 
 interface Expense {
   id: string
@@ -20,33 +21,34 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [sheetOpen, setSheetOpen] = useState(false)
+
+  const fetchExpenses = useCallback(async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams()
+      if (subdomain) params.set('tenant', subdomain)
+      params.set('year', String(year))
+      params.set('limit', '1000')
+
+      const response = await fetch(`/api/expenses?${params}`)
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || 'Failed to fetch expenses')
+      }
+
+      const result = await response.json()
+      setExpenses(result.expenses)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setLoading(false)
+    }
+  }, [subdomain, year])
 
   useEffect(() => {
-    async function fetchExpenses() {
-      try {
-        setLoading(true)
-        const params = new URLSearchParams()
-        if (subdomain) params.set('tenant', subdomain)
-        params.set('year', String(year))
-        params.set('limit', '1000')
-
-        const response = await fetch(`/api/expenses?${params}`)
-        if (!response.ok) {
-          const err = await response.json()
-          throw new Error(err.error || 'Failed to fetch expenses')
-        }
-
-        const result = await response.json()
-        setExpenses(result.expenses)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchExpenses()
-  }, [subdomain, year])
+  }, [fetchExpenses])
 
   // Format cents to dollars
   const formatMoney = (cents: number) => {
@@ -92,6 +94,11 @@ export default function ExpensesPage() {
 
   // Sort months descending (newest first)
   const sortedMonths = Object.entries(expensesByMonth).sort((a, b) => b[0].localeCompare(a[0]))
+
+  // Handle successful expense creation
+  const handleExpenseAdded = () => {
+    fetchExpenses() // Refresh the list
+  }
 
   if (loading) {
     return (
@@ -150,10 +157,25 @@ export default function ExpensesPage() {
 
       {/* Expense List by Month */}
       {sortedMonths.length === 0 ? (
-        <div className="card">
-          <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>
-            {searchTerm ? 'No expenses match your search.' : 'No expenses yet.'}
+        <div className="empty-state">
+          <div className="empty-state__icon">🧾</div>
+          <h2 className="empty-state__title">
+            {searchTerm ? 'No matches found' : 'No expenses yet'}
+          </h2>
+          <p className="empty-state__description">
+            {searchTerm 
+              ? `No expenses match "${searchTerm}". Try a different search term.`
+              : 'Start tracking your business expenses by adding your first one.'}
           </p>
+          {!searchTerm && (
+            <button className="empty-state__btn" onClick={() => setSheetOpen(true)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Add Expense
+            </button>
+          )}
         </div>
       ) : (
         sortedMonths.map(([monthKey, { label, expenses: monthExpenses, total }]) => (
@@ -166,7 +188,7 @@ export default function ExpensesPage() {
               {monthExpenses.map((expense) => (
                 <div key={expense.id} className="expense-row">
                   <div className="expense-row__icon">
-                    {expense.categoryEmoji || '📝'}
+                    {expense.categoryEmoji || '📁'}
                   </div>
                   <div className="expense-row__details">
                     <span className="expense-row__vendor">
@@ -185,6 +207,25 @@ export default function ExpensesPage() {
           </div>
         ))
       )}
+
+      {/* FAB - TODO: Make visibility controlled by settings */}
+      <button 
+        className="fab" 
+        onClick={() => setSheetOpen(true)}
+        aria-label="Add expense"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+
+      {/* Add Expense Bottom Sheet */}
+      <AddExpenseSheet
+        isOpen={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        onSuccess={handleExpenseAdded}
+      />
     </div>
   )
 }
