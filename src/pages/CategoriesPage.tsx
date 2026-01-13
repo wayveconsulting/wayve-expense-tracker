@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLocation } from 'wouter'
 import { useTenant } from '../hooks/useTenant'
 import { useYear } from '../hooks/useYear'
+import { useRefresh } from '../hooks/useRefresh'
 
 interface Category {
   name: string
@@ -13,6 +14,7 @@ interface Category {
 export default function CategoriesPage() {
   const { subdomain } = useTenant()
   const { year } = useYear()
+  const { refreshKey } = useRefresh()
   const [, setLocation] = useLocation()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,7 +45,7 @@ export default function CategoriesPage() {
     }
 
     fetchCategories()
-  }, [subdomain, year])
+  }, [subdomain, year, refreshKey])
 
   // Format cents to dollars
   const formatMoney = (cents: number) => {

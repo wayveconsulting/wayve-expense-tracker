@@ -5,6 +5,7 @@ import './styles/layout.css'
 import { TenantProvider } from './hooks/useTenant.tsx'
 import { AuthProvider } from './hooks/useAuth.tsx'
 import { YearProvider } from './hooks/useYear.tsx'
+import { RefreshProvider } from './hooks/useRefresh.tsx'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
@@ -12,7 +13,9 @@ createRoot(document.getElementById('root')!).render(
     <AuthProvider>
       <TenantProvider>
         <YearProvider>
-          <App />
+          <RefreshProvider>
+            <App />
+          </RefreshProvider>
         </YearProvider>
       </TenantProvider>
     </AuthProvider>

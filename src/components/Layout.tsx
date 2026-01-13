@@ -3,6 +3,8 @@ import { Link, useLocation } from 'wouter'
 import { useTenant } from '../hooks/useTenant'
 import { useAuth } from '../hooks/useAuth'
 import { useYear } from '../hooks/useYear'
+import { useRefresh } from '../hooks/useRefresh'
+import { AddExpenseSheet } from './AddExpenseSheet'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -10,15 +12,21 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const { tenant } = useTenant()
   const { user, logout } = useAuth()
   const [location] = useLocation()
   const { year, nextYear, prevYear } = useYear()
+  const { triggerRefresh } = useRefresh()
   const currentYear = new Date().getFullYear()
 
   const appName = tenant?.appName || tenant?.name || 'Wayve Expense Tracker'
 
   const closeDrawer = () => setDrawerOpen(false)
+
+  const handleExpenseAdded = () => {
+    triggerRefresh()
+  }
 
   return (
     <div className="layout">
@@ -61,7 +69,6 @@ export function Layout({ children }: LayoutProps) {
           <span className="drawer__app-name">{appName}</span>
         </div>
 
-        {/* Year Selector - TODO: Make functional */}
         {/* Year Selector */}
         <div className="drawer__year-selector">
           <button 
@@ -87,7 +94,6 @@ export function Layout({ children }: LayoutProps) {
           </button>
         </div>
 
-        {/* Navigation Links */}
         {/* Navigation Links */}
         <ul className="drawer__nav">
           <NavItem icon="dashboard" label="Dashboard" href="/" currentPath={location} onClick={closeDrawer} />
@@ -125,6 +131,25 @@ export function Layout({ children }: LayoutProps) {
       <main className="main-content">
         {children}
       </main>
+
+      {/* Global FAB */}
+      <button 
+        className="fab" 
+        onClick={() => setSheetOpen(true)}
+        aria-label="Add expense"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+
+      {/* Global Add Expense Sheet */}
+      <AddExpenseSheet
+        isOpen={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        onSuccess={handleExpenseAdded}
+      />
     </div>
   )
 }

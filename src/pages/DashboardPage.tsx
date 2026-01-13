@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useLocation } from 'wouter'
 import { useTenant } from '../hooks/useTenant'
 import { useYear } from '../hooks/useYear'
-import { AddExpenseSheet } from '../components/AddExpenseSheet'
+import { useRefresh } from '../hooks/useRefresh'
 
 interface Expense {
   id: string
@@ -36,11 +36,11 @@ interface DashboardData {
 export default function DashboardPage() {
   const { subdomain } = useTenant()
   const { year } = useYear()
+  const { refreshKey } = useRefresh()
   const [, setLocation] = useLocation()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [sheetOpen, setSheetOpen] = useState(false)
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -67,12 +67,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboard()
-  }, [fetchDashboard])
-
-  // Handle successful expense creation
-  const handleExpenseAdded = () => {
-    fetchDashboard()
-  }
+  }, [fetchDashboard, refreshKey])
 
   // Navigate to expenses filtered by category
   const handleCategoryClick = (categoryName: string) => {
@@ -214,25 +209,6 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
-
-      {/* FAB - TODO: Make visibility controlled by settings */}
-      <button 
-        className="fab" 
-        onClick={() => setSheetOpen(true)}
-        aria-label="Add expense"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
-
-      {/* Add Expense Bottom Sheet */}
-      <AddExpenseSheet
-        isOpen={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        onSuccess={handleExpenseAdded}
-      />
     </div>
   )
 }

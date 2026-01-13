@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSearch } from 'wouter'
 import { useTenant } from '../hooks/useTenant'
 import { useYear } from '../hooks/useYear'
-import { AddExpenseSheet } from '../components/AddExpenseSheet'
+import { useRefresh } from '../hooks/useRefresh'
 import { ExpenseDetailSheet } from '../components/ExpenseDetailSheet'
 
 interface Expense {
@@ -20,6 +20,7 @@ interface Expense {
 export default function ExpensesPage() {
   const { subdomain } = useTenant()
   const { year } = useYear()
+  const { refreshKey, triggerRefresh } = useRefresh()
   const searchString = useSearch()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,7 +32,6 @@ export default function ExpensesPage() {
   const categoryFilter = urlParams.get('category')
   
   // Sheet states
-  const [addSheetOpen, setAddSheetOpen] = useState(false)
   const [detailSheetOpen, setDetailSheetOpen] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
 
@@ -60,7 +60,7 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     fetchExpenses()
-  }, [fetchExpenses])
+  }, [fetchExpenses, refreshKey])
 
   // Format cents to dollars
   const formatMoney = (cents: number) => {
@@ -119,25 +119,19 @@ export default function ExpensesPage() {
     setDetailSheetOpen(true)
   }
 
-  // Handle successful expense creation
-  const handleExpenseAdded = () => {
-    fetchExpenses()
-  }
-
   // Handle successful expense update
   const handleExpenseUpdated = () => {
-    fetchExpenses()
+    triggerRefresh()
   }
 
   // Handle successful expense deletion
   const handleExpenseDeleted = () => {
-    fetchExpenses()
+    triggerRefresh()
   }
 
   // Clear category filter
   const clearCategoryFilter = () => {
     window.history.replaceState({}, '', '/expenses')
-    // Force re-render by updating a dummy state or just reload
     window.location.href = '/expenses'
   }
 
@@ -230,15 +224,6 @@ export default function ExpensesPage() {
               ? `No expenses in "${categoryFilter}" for ${year}.`
               : 'Start tracking your business expenses by adding your first one.'}
           </p>
-          {!searchTerm && !categoryFilter && (
-            <button className="empty-state__btn" onClick={() => setAddSheetOpen(true)}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Add Expense
-            </button>
-          )}
         </div>
       ) : (
         sortedMonths.map(([monthKey, { label, expenses: monthExpenses, total }]) => (
@@ -282,25 +267,6 @@ export default function ExpensesPage() {
           </div>
         ))
       )}
-
-      {/* FAB - TODO: Make visibility controlled by settings */}
-      <button 
-        className="fab" 
-        onClick={() => setAddSheetOpen(true)}
-        aria-label="Add expense"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
-
-      {/* Add Expense Bottom Sheet */}
-      <AddExpenseSheet
-        isOpen={addSheetOpen}
-        onClose={() => setAddSheetOpen(false)}
-        onSuccess={handleExpenseAdded}
-      />
 
       {/* Expense Detail Bottom Sheet */}
       <ExpenseDetailSheet
