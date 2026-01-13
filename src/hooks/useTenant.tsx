@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useAuth } from './useAuth';
 
 interface Tenant {
   id: string;
@@ -50,7 +51,9 @@ function getSubdomainFromHost(hostname: string): string | null {
     const subdomain = parts[0];
     // Ignore 'www' as a subdomain
     if (subdomain === 'www') {
-      return null;
+      // Check query param as fallback
+      const params = new URLSearchParams(window.location.search);
+      return params.get('tenant');
     }
     return subdomain;
   }
@@ -65,17 +68,31 @@ interface TenantProviderProps {
 }
 
 export function TenantProvider({ children }: TenantProviderProps) {
+  const { user, isLoading: authLoading } = useAuth();
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subdomain, setSubdomain] = useState<string | null>(null);
 
   useEffect(() => {
-    const detectedSubdomain = getSubdomainFromHost(window.location.hostname);
+    // Wait for auth to finish loading first
+    if (authLoading) {
+      return;
+    }
+
+    let detectedSubdomain = getSubdomainFromHost(window.location.hostname);
+    
+    // If no subdomain in URL, try to get it from user's tenant access
+    if (!detectedSubdomain && user?.tenantAccess?.length === 1) {
+      // User has access to exactly one tenant — use that
+      detectedSubdomain = user.tenantAccess[0].tenant.subdomain;
+    }
+    
     setSubdomain(detectedSubdomain);
 
     if (!detectedSubdomain) {
       // No subdomain = root domain (marketing site or login redirect)
+      // Or user has access to multiple tenants (need a picker - TODO)
       setIsLoading(false);
       return;
     }
@@ -118,7 +135,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
     }
 
     fetchTenant();
-  }, []);
+  }, [authLoading, user]);
 
   return (
     <TenantContext.Provider value={{ tenant, isLoading, error, subdomain }}>

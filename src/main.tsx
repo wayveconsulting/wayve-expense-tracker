@@ -9,12 +9,12 @@ import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <TenantProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <TenantProvider>
         <YearProvider>
           <App />
         </YearProvider>
-      </AuthProvider>
-    </TenantProvider>
+      </TenantProvider>
+    </AuthProvider>
   </StrictMode>,
 )
