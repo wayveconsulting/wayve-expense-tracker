@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useSearch } from 'wouter'
 import { useTenant } from '../hooks/useTenant'
 import { useYear } from '../hooks/useYear'
 import { AddExpenseSheet } from '../components/AddExpenseSheet'
@@ -19,10 +20,15 @@ interface Expense {
 export default function ExpensesPage() {
   const { subdomain } = useTenant()
   const { year } = useYear()
+  const searchString = useSearch()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  
+  // Category filter from URL
+  const urlParams = new URLSearchParams(searchString)
+  const categoryFilter = urlParams.get('category')
   
   // Sheet states
   const [addSheetOpen, setAddSheetOpen] = useState(false)
@@ -73,8 +79,14 @@ export default function ExpensesPage() {
     })
   }
 
-  // Filter expenses by search term
+  // Filter expenses by search term AND category filter
   const filteredExpenses = expenses.filter(expense => {
+    // First apply category filter from URL
+    if (categoryFilter && expense.categoryName !== categoryFilter) {
+      return false
+    }
+    
+    // Then apply search term
     if (!searchTerm) return true
     const term = searchTerm.toLowerCase()
     return (
@@ -122,6 +134,13 @@ export default function ExpensesPage() {
     fetchExpenses()
   }
 
+  // Clear category filter
+  const clearCategoryFilter = () => {
+    window.history.replaceState({}, '', '/expenses')
+    // Force re-render by updating a dummy state or just reload
+    window.location.href = '/expenses'
+  }
+
   if (loading) {
     return (
       <div className="page">
@@ -143,6 +162,25 @@ export default function ExpensesPage() {
 
   return (
     <div className="page expenses-page">
+      {/* Category Filter Banner */}
+      {categoryFilter && (
+        <div className="filter-banner">
+          <span className="filter-banner__text">
+            Showing: <strong>{categoryFilter}</strong>
+          </span>
+          <button 
+            className="filter-banner__clear"
+            onClick={clearCategoryFilter}
+            aria-label="Clear filter"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* Search Bar */}
       <div className="search-bar">
         <svg className="search-bar__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -172,6 +210,7 @@ export default function ExpensesPage() {
       {/* Results Summary */}
       <p className="expenses-page__summary">
         {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? 's' : ''}
+        {categoryFilter && ` in ${categoryFilter}`}
         {searchTerm && ` matching "${searchTerm}"`}
         {' · '}
         {formatMoney(filteredExpenses.reduce((sum, e) => sum + e.amount, 0))} total
@@ -182,14 +221,16 @@ export default function ExpensesPage() {
         <div className="empty-state">
           <div className="empty-state__icon">🧾</div>
           <h2 className="empty-state__title">
-            {searchTerm ? 'No matches found' : 'No expenses yet'}
+            {searchTerm || categoryFilter ? 'No matches found' : 'No expenses yet'}
           </h2>
           <p className="empty-state__description">
             {searchTerm 
               ? `No expenses match "${searchTerm}". Try a different search term.`
+              : categoryFilter
+              ? `No expenses in "${categoryFilter}" for ${year}.`
               : 'Start tracking your business expenses by adding your first one.'}
           </p>
-          {!searchTerm && (
+          {!searchTerm && !categoryFilter && (
             <button className="empty-state__btn" onClick={() => setAddSheetOpen(true)}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="5" x2="12" y2="19" />

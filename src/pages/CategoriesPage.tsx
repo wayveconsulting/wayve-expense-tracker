@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'wouter'
 import { useTenant } from '../hooks/useTenant'
 import { useYear } from '../hooks/useYear'
 
@@ -12,6 +13,7 @@ interface Category {
 export default function CategoriesPage() {
   const { subdomain } = useTenant()
   const { year } = useYear()
+  const [, setLocation] = useLocation()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -49,6 +51,11 @@ export default function CategoriesPage() {
       style: 'currency',
       currency: 'USD',
     }).format(cents / 100)
+  }
+
+  // Navigate to expenses filtered by category
+  const handleCategoryClick = (categoryName: string) => {
+    setLocation(`/expenses?category=${encodeURIComponent(categoryName)}`)
   }
 
   const totalSpent = categories.reduce((sum, cat) => sum + cat.total, 0)
@@ -94,7 +101,19 @@ export default function CategoriesPage() {
       ) : (
         <div className="category-grid">
           {categories.map((category) => (
-            <div key={category.name} className="category-card">
+            <div 
+              key={category.name} 
+              className="category-card category-card--clickable"
+              onClick={() => handleCategoryClick(category.name)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  handleCategoryClick(category.name)
+                }
+              }}
+            >
               <div className="category-card__header">
                 <span className="category-card__emoji">{category.emoji || '📁'}</span>
                 <span className="category-card__name">{category.name}</span>
