@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTenant } from '../hooks/useTenant'
 import { useYear } from '../hooks/useYear'
 import { AddExpenseSheet } from '../components/AddExpenseSheet'
+import { ExpenseDetailSheet } from '../components/ExpenseDetailSheet'
 
 interface Expense {
   id: string
@@ -12,6 +13,7 @@ interface Expense {
   categoryId: string | null
   categoryName: string | null
   categoryEmoji: string | null
+  expenseType?: string
 }
 
 export default function ExpensesPage() {
@@ -21,7 +23,11 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [sheetOpen, setSheetOpen] = useState(false)
+  
+  // Sheet states
+  const [addSheetOpen, setAddSheetOpen] = useState(false)
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false)
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
 
   const fetchExpenses = useCallback(async () => {
     try {
@@ -95,9 +101,25 @@ export default function ExpensesPage() {
   // Sort months descending (newest first)
   const sortedMonths = Object.entries(expensesByMonth).sort((a, b) => b[0].localeCompare(a[0]))
 
+  // Handle expense click
+  const handleExpenseClick = (expense: Expense) => {
+    setSelectedExpense(expense)
+    setDetailSheetOpen(true)
+  }
+
   // Handle successful expense creation
   const handleExpenseAdded = () => {
-    fetchExpenses() // Refresh the list
+    fetchExpenses()
+  }
+
+  // Handle successful expense update
+  const handleExpenseUpdated = () => {
+    fetchExpenses()
+  }
+
+  // Handle successful expense deletion
+  const handleExpenseDeleted = () => {
+    fetchExpenses()
   }
 
   if (loading) {
@@ -168,7 +190,7 @@ export default function ExpensesPage() {
               : 'Start tracking your business expenses by adding your first one.'}
           </p>
           {!searchTerm && (
-            <button className="empty-state__btn" onClick={() => setSheetOpen(true)}>
+            <button className="empty-state__btn" onClick={() => setAddSheetOpen(true)}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -186,7 +208,19 @@ export default function ExpensesPage() {
             </div>
             <div className="card expense-month__list">
               {monthExpenses.map((expense) => (
-                <div key={expense.id} className="expense-row">
+                <div 
+                  key={expense.id} 
+                  className="expense-row expense-row--clickable"
+                  onClick={() => handleExpenseClick(expense)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleExpenseClick(expense)
+                    }
+                  }}
+                >
                   <div className="expense-row__icon">
                     {expense.categoryEmoji || '📁'}
                   </div>
@@ -211,7 +245,7 @@ export default function ExpensesPage() {
       {/* FAB - TODO: Make visibility controlled by settings */}
       <button 
         className="fab" 
-        onClick={() => setSheetOpen(true)}
+        onClick={() => setAddSheetOpen(true)}
         aria-label="Add expense"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -222,9 +256,18 @@ export default function ExpensesPage() {
 
       {/* Add Expense Bottom Sheet */}
       <AddExpenseSheet
-        isOpen={sheetOpen}
-        onClose={() => setSheetOpen(false)}
+        isOpen={addSheetOpen}
+        onClose={() => setAddSheetOpen(false)}
         onSuccess={handleExpenseAdded}
+      />
+
+      {/* Expense Detail Bottom Sheet */}
+      <ExpenseDetailSheet
+        expense={selectedExpense}
+        isOpen={detailSheetOpen}
+        onClose={() => setDetailSheetOpen(false)}
+        onUpdate={handleExpenseUpdated}
+        onDelete={handleExpenseDeleted}
       />
     </div>
   )
