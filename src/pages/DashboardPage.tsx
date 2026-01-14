@@ -120,7 +120,18 @@ export default function DashboardPage() {
     <div className="page dashboard">
       {/* Summary Cards */}
       <div className="dashboard__summary">
-        <div className="summary-card">
+        <div 
+          className="summary-card summary-card--clickable"
+          onClick={() => setLocation('/reports')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setLocation('/reports')
+            }
+          }}
+        >
           <span className="summary-card__label">Total Spent</span>
           <span className="summary-card__value">{formatMoney(summary.totalAmount)}</span>
           <span className="summary-card__sub">{summary.year}</span>
@@ -152,7 +163,20 @@ export default function DashboardPage() {
       <div className="dashboard__grid">
         {/* Recent Expenses */}
         <div className="card">
-          <h2 className="card__title">Recent Expenses</h2>
+          <h2 
+            className="card__title card__title--clickable"
+            onClick={() => setLocation('/expenses')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setLocation('/expenses')
+              }
+            }}
+          >
+            Recent Expenses →
+          </h2>
           {recentExpenses.length === 0 ? (
             <p style={{ color: 'var(--color-text-secondary)' }}>No expenses yet</p>
           ) : (

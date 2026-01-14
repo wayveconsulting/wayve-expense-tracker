@@ -2001,3 +2001,16 @@
   transform: translateY(0);
 }
 
+/* ============================================
+   CARD TITLE CLICKABLE
+   ============================================ */
+
+.card__title--clickable {
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.card__title--clickable:hover {
+  color: var(--color-primary);
+}
+
