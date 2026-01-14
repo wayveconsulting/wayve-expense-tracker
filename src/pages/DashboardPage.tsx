@@ -125,7 +125,18 @@ export default function DashboardPage() {
           <span className="summary-card__value">{formatMoney(summary.totalAmount)}</span>
           <span className="summary-card__sub">{summary.year}</span>
         </div>
-        <div className="summary-card">
+        <div 
+          className="summary-card summary-card--clickable"
+          onClick={() => setLocation('/expenses')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setLocation('/expenses')
+            }
+          }}
+        >
           <span className="summary-card__label">Expenses</span>
           <span className="summary-card__value">{summary.expenseCount}</span>
           <span className="summary-card__sub">transactions</span>

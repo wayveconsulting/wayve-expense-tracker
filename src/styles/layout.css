@@ -1983,3 +1983,21 @@
   cursor: not-allowed;
 }
 
+/* ============================================
+   SUMMARY CARD CLICKABLE
+   ============================================ */
+
+.summary-card--clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.summary-card--clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.summary-card--clickable:active {
+  transform: translateY(0);
+}
+
