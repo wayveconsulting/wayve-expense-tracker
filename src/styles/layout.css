@@ -1834,3 +1834,101 @@
 .category-list__item--clickable:active {
   background: var(--color-bg-tertiary);
 }
+
+/* ============================================
+   DATE RANGE CARD
+   ============================================ */
+
+.date-range-card__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.date-range-card__inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.date-range-card__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.preset-btn {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preset-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+/* ============================================
+   EXPORT CARD
+   ============================================ */
+
+.export-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.export-card__icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.export-card__content {
+  flex: 1;
+}
+
+.export-card__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.export-card__description {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ============================================
+   REPORTS PAGE ADDITIONS
+   ============================================ */
+
+.reports-page__section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+@media (max-width: 480px) {
+  .export-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .export-card .btn {
+    width: 100%;
+  }
+}
+
