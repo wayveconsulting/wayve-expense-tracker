@@ -1,15 +1,23 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useYear } from '../hooks/useYear'
 import { useTenant } from '../hooks/useTenant'
 
 export default function ReportsPage() {
-  const { year } = useYear()
+  const { year, nextYear, prevYear } = useYear()
   const { subdomain } = useTenant()
   
-  // Date range state
+  // Date range state - initialize based on current year
   const [startDate, setStartDate] = useState(`${year}-01-01`)
   const [endDate, setEndDate] = useState(`${year}-12-31`)
   const [exporting, setExporting] = useState<string | null>(null)
+
+  // Update date range when year changes
+  useEffect(() => {
+    setStartDate(`${year}-01-01`)
+    setEndDate(`${year}-12-31`)
+  }, [year])
+
+  const currentYear = new Date().getFullYear()
 
   // Handle CSV export
   const handleCsvExport = async () => {
@@ -50,32 +58,36 @@ export default function ReportsPage() {
   // Quick date range presets
   const setPreset = (preset: 'ytd' | 'year' | 'q1' | 'q2' | 'q3' | 'q4' | 'last30' | 'last90') => {
     const now = new Date()
-    const currentYear = year
     
     switch (preset) {
       case 'ytd':
-        setStartDate(`${currentYear}-01-01`)
-        setEndDate(now.toISOString().split('T')[0])
+        setStartDate(`${year}-01-01`)
+        // If viewing past year, YTD = full year
+        if (year < currentYear) {
+          setEndDate(`${year}-12-31`)
+        } else {
+          setEndDate(now.toISOString().split('T')[0])
+        }
         break
       case 'year':
-        setStartDate(`${currentYear}-01-01`)
-        setEndDate(`${currentYear}-12-31`)
+        setStartDate(`${year}-01-01`)
+        setEndDate(`${year}-12-31`)
         break
       case 'q1':
-        setStartDate(`${currentYear}-01-01`)
-        setEndDate(`${currentYear}-03-31`)
+        setStartDate(`${year}-01-01`)
+        setEndDate(`${year}-03-31`)
         break
       case 'q2':
-        setStartDate(`${currentYear}-04-01`)
-        setEndDate(`${currentYear}-06-30`)
+        setStartDate(`${year}-04-01`)
+        setEndDate(`${year}-06-30`)
         break
       case 'q3':
-        setStartDate(`${currentYear}-07-01`)
-        setEndDate(`${currentYear}-09-30`)
+        setStartDate(`${year}-07-01`)
+        setEndDate(`${year}-09-30`)
         break
       case 'q4':
-        setStartDate(`${currentYear}-10-01`)
-        setEndDate(`${currentYear}-12-31`)
+        setStartDate(`${year}-10-01`)
+        setEndDate(`${year}-12-31`)
         break
       case 'last30': {
         const thirtyAgo = new Date(now)
@@ -131,7 +143,6 @@ export default function ReportsPage() {
     <div className="page reports-page">
       <div className="reports-page__header">
         <h1 className="reports-page__title">Reports</h1>
-        <span className="reports-page__year">{year}</span>
       </div>
 
       <p className="reports-page__description">
@@ -140,7 +151,32 @@ export default function ReportsPage() {
 
       {/* Date Range Selector */}
       <div className="card date-range-card">
-        <h2 className="date-range-card__title">Date Range</h2>
+        <div className="date-range-card__header">
+          <h2 className="date-range-card__title">Date Range</h2>
+          <div className="date-range-card__year-selector">
+            <button 
+              className="year-nav-btn"
+              onClick={prevYear}
+              disabled={year <= 2020}
+              aria-label="Previous year"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <span className="date-range-card__year">{year}</span>
+            <button 
+              className="year-nav-btn"
+              onClick={nextYear}
+              disabled={year >= currentYear}
+              aria-label="Next year"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+        </div>
         
         <div className="date-range-card__inputs">
           <div className="form-group">
