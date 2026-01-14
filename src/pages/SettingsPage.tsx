@@ -1,9 +1,11 @@
 import { useAuth } from '../hooks/useAuth'
 import { useTenant } from '../hooks/useTenant'
+import { useSettings } from '../hooks/useSettings'
 
 export default function SettingsPage() {
   const { user, logout } = useAuth()
   const { tenant } = useTenant()
+  const { darkMode, setDarkMode, showFab, setShowFab } = useSettings()
 
   return (
     <div className="page settings-page">
@@ -58,7 +60,12 @@ export default function SettingsPage() {
               <span className="settings-row__title">Dark Mode</span>
               <span className="settings-row__description">Use dark theme throughout the app</span>
             </div>
-            <button className="toggle toggle--disabled" disabled>
+            <button 
+              className={`toggle ${darkMode ? 'toggle--active' : ''}`}
+              onClick={() => setDarkMode(!darkMode)}
+              role="switch"
+              aria-checked={darkMode}
+            >
               <span className="toggle__slider" />
             </button>
           </div>
@@ -76,12 +83,16 @@ export default function SettingsPage() {
               <span className="settings-row__title">Quick Add Button</span>
               <span className="settings-row__description">Show floating button to add expenses</span>
             </div>
-            <button className="toggle toggle--disabled" disabled>
+            <button 
+              className={`toggle ${showFab ? 'toggle--active' : ''}`}
+              onClick={() => setShowFab(!showFab)}
+              role="switch"
+              aria-checked={showFab}
+            >
               <span className="toggle__slider" />
             </button>
           </div>
         </div>
-        <p className="settings-section__note">Preferences coming soon</p>
       </section>
 
       {/* Danger Zone */}

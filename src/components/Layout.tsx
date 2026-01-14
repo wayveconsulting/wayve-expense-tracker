@@ -4,6 +4,7 @@ import { useTenant } from '../hooks/useTenant'
 import { useAuth } from '../hooks/useAuth'
 import { useYear } from '../hooks/useYear'
 import { useRefresh } from '../hooks/useRefresh'
+import { useSettings } from '../hooks/useSettings'
 import { AddExpenseSheet } from './AddExpenseSheet'
 
 interface LayoutProps {
@@ -18,6 +19,7 @@ export function Layout({ children }: LayoutProps) {
   const [location] = useLocation()
   const { year, nextYear, prevYear } = useYear()
   const { triggerRefresh } = useRefresh()
+  const { showFab } = useSettings()
   const currentYear = new Date().getFullYear()
 
   const appName = tenant?.appName || tenant?.name || 'Wayve Expense Tracker'
@@ -133,16 +135,18 @@ export function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Global FAB */}
-      <button 
-        className="fab" 
-        onClick={() => setSheetOpen(true)}
-        aria-label="Add expense"
-      >
+      {showFab && (
+        <button 
+          className="fab" 
+          onClick={() => setSheetOpen(true)}
+          aria-label="Add expense"
+        >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
-      </button>
+        </button>
+      )}
 
       {/* Global Add Expense Sheet */}
       <AddExpenseSheet
