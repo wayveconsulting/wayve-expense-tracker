@@ -26,7 +26,8 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   // Initialize from localStorage (with defaults)
   const [darkMode, setDarkModeState] = useState(() => {
     const saved = localStorage.getItem('settings:darkMode')
-    return saved === 'true'
+    if (saved !== null) return saved === 'true'
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
 
   const [showFab, setShowFabState] = useState(() => {
