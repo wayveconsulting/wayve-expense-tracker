@@ -22,7 +22,7 @@ export function Layout({ children }: LayoutProps) {
   const { showFab } = useSettings()
   const currentYear = new Date().getFullYear()
 
-  const appName = tenant?.appName || tenant?.name || 'Wayve Expense Tracker'
+  const appName = tenant?.name || 'Expense Tracker'
 
   const closeDrawer = () => setDrawerOpen(false)
 
