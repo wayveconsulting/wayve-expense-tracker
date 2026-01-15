@@ -1197,7 +1197,8 @@
   flex-shrink: 0;
 }
 
-.toggle--active {
+.toggle--active,
+.toggle--on {
   background: var(--color-primary);
 }
 
@@ -1218,7 +1219,8 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.toggle--active .toggle__slider {
+.toggle--active .toggle__slider,
+.toggle--on .toggle__slider {
   transform: translateX(20px);
 }
 
