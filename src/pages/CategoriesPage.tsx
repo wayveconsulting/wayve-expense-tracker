@@ -14,7 +14,7 @@ interface Category {
 export default function CategoriesPage() {
   const { subdomain } = useTenant()
   const { year } = useYear()
-  const { refreshKey } = useRefresh()
+  const { expenseKey } = useRefresh()
   const [, setLocation] = useLocation()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,7 +45,7 @@ export default function CategoriesPage() {
     }
 
     fetchCategories()
-  }, [subdomain, year, refreshKey])
+  }, [subdomain, year, expenseKey])
 
   // Format cents to dollars
   const formatMoney = (cents: number) => {

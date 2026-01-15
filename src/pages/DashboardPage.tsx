@@ -36,7 +36,7 @@ interface DashboardData {
 export default function DashboardPage() {
   const { subdomain } = useTenant()
   const { year } = useYear()
-  const { refreshKey } = useRefresh()
+  const { expenseKey } = useRefresh()
   const [, setLocation] = useLocation()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -67,7 +67,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboard()
-  }, [fetchDashboard, refreshKey])
+  }, [fetchDashboard, expenseKey])
 
   // Navigate to expenses filtered by category
   const handleCategoryClick = (categoryName: string) => {

@@ -1,15 +1,24 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 
 interface RefreshContextType {
-  /** Increments every time a refresh is triggered */
-  refreshKey: number
-  /** Call this to trigger a refresh across all subscribed components */
-  triggerRefresh: () => void
+  /** Increments every time expenses refresh is triggered */
+  expenseKey: number
+  /** Increments every time mileage refresh is triggered */
+  mileageKey: number
+  /** Call this to trigger expense refresh across all subscribed components */
+  refreshExpenses: () => void
+  /** Call this to trigger mileage refresh across all subscribed components */
+  refreshMileage: () => void
+  /** Call this to trigger all refreshes */
+  refreshAll: () => void
 }
 
 const RefreshContext = createContext<RefreshContextType>({
-  refreshKey: 0,
-  triggerRefresh: () => {},
+  expenseKey: 0,
+  mileageKey: 0,
+  refreshExpenses: () => {},
+  refreshMileage: () => {},
+  refreshAll: () => {},
 })
 
 export function useRefresh() {
@@ -21,14 +30,30 @@ interface RefreshProviderProps {
 }
 
 export function RefreshProvider({ children }: RefreshProviderProps) {
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [expenseKey, setExpenseKey] = useState(0)
+  const [mileageKey, setMileageKey] = useState(0)
 
-  const triggerRefresh = useCallback(() => {
-    setRefreshKey(prev => prev + 1)
+  const refreshExpenses = useCallback(() => {
+    setExpenseKey(prev => prev + 1)
+  }, [])
+
+  const refreshMileage = useCallback(() => {
+    setMileageKey(prev => prev + 1)
+  }, [])
+
+  const refreshAll = useCallback(() => {
+    setExpenseKey(prev => prev + 1)
+    setMileageKey(prev => prev + 1)
   }, [])
 
   return (
-    <RefreshContext.Provider value={{ refreshKey, triggerRefresh }}>
+    <RefreshContext.Provider value={{ 
+      expenseKey, 
+      mileageKey, 
+      refreshExpenses, 
+      refreshMileage, 
+      refreshAll 
+    }}>
       {children}
     </RefreshContext.Provider>
   )

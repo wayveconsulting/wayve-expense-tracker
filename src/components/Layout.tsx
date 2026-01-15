@@ -18,7 +18,7 @@ export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth()
   const [location] = useLocation()
   const { year, nextYear, prevYear } = useYear()
-  const { triggerRefresh } = useRefresh()
+  const { refreshExpenses } = useRefresh()
   const { showFab } = useSettings()
   const currentYear = new Date().getFullYear()
 
@@ -27,7 +27,7 @@ export function Layout({ children }: LayoutProps) {
   const closeDrawer = () => setDrawerOpen(false)
 
   const handleExpenseAdded = () => {
-    triggerRefresh()
+    refreshExpenses()
   }
 
   return (

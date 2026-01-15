@@ -20,7 +20,7 @@ interface Expense {
 export default function ExpensesPage() {
   const { subdomain } = useTenant()
   const { year } = useYear()
-  const { refreshKey, triggerRefresh } = useRefresh()
+  const { expenseKey, refreshExpenses } = useRefresh()
   const searchString = useSearch()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,7 +60,7 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     fetchExpenses()
-  }, [fetchExpenses, refreshKey])
+  }, [fetchExpenses, expenseKey])
 
   // Format cents to dollars
   const formatMoney = (cents: number) => {
@@ -121,12 +121,12 @@ export default function ExpensesPage() {
 
   // Handle successful expense update
   const handleExpenseUpdated = () => {
-    triggerRefresh()
+    refreshExpenses()
   }
 
   // Handle successful expense deletion
   const handleExpenseDeleted = () => {
-    triggerRefresh()
+    refreshExpenses()
   }
 
   // Clear category filter

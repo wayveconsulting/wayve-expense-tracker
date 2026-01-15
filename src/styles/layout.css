@@ -2014,3 +2014,236 @@
   color: var(--color-primary);
 }
 
+/* ============================================
+   MILEAGE PAGE ADDITIONS
+   ============================================ */
+
+.mileage-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+@media (max-width: 480px) {
+  .mileage-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+.trip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.trip-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.trip-list__item:last-child {
+  border-bottom: none;
+}
+
+.trip-list__icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.trip-list__details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trip-list__route {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trip-list__meta {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.trip-list__miles {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+/* Card header with subtitle */
+.card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--spacing-sm);
+}
+
+.card__subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+/* ============================================
+   ADD MILEAGE SHEET ADDITIONS
+   ============================================ */
+
+/* Distance calculating spinner */
+.distance-calculating {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  padding: var(--spacing-sm) 0;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Distance display with edit button */
+.distance-display {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+}
+
+.distance-value {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.distance-round-trip {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.distance-edit-btn {
+  margin-left: auto;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.distance-edit-btn:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+/* Input with suffix (miles) */
+.input-with-suffix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.form-input--with-suffix {
+  padding-right: 60px;
+}
+
+.input-suffix {
+  position: absolute;
+  right: var(--spacing-md);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+
+/* Horizontal form group (for toggle) */
+.form-group--horizontal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-group--horizontal .form-label {
+  margin-bottom: 0;
+}
+
+/* Google Places Autocomplete dropdown styling */
+.pac-container {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-family: inherit;
+  z-index: 10000;
+}
+
+.pac-item {
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  border-top: 1px solid var(--color-border);
+}
+
+.pac-item:first-child {
+  border-top: none;
+}
+
+.pac-item:hover,
+.pac-item-selected {
+  background-color: var(--color-bg-secondary);
+}
+
+.pac-item-query {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.pac-matched {
+  font-weight: 600;
+}
+
+/* Dark mode overrides for Google Places */
+[data-theme="dark"] .pac-container {
+  background-color: var(--color-bg-primary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .pac-item {
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .pac-item:hover,
+[data-theme="dark"] .pac-item-selected {
+  background-color: var(--color-bg-secondary);
+}
+
+[data-theme="dark"] .pac-item-query {
+  color: var(--color-text-primary);
+}
+
