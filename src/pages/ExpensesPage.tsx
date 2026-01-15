@@ -4,6 +4,7 @@ import { useTenant } from '../hooks/useTenant'
 import { useYear } from '../hooks/useYear'
 import { useRefresh } from '../hooks/useRefresh'
 import { ExpenseDetailSheet } from '../components/ExpenseDetailSheet'
+import { AddExpenseSheet } from '../components/AddExpenseSheet'
 
 interface Expense {
   id: string
@@ -34,6 +35,7 @@ export default function ExpensesPage() {
   // Sheet states
   const [detailSheetOpen, setDetailSheetOpen] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
+  const [addSheetOpen, setAddSheetOpen] = useState(false)
 
   const fetchExpenses = useCallback(async () => {
     try {
@@ -202,6 +204,10 @@ export default function ExpensesPage() {
         )}
       </div>
 
+      <button className="add-link" onClick={() => setAddSheetOpen(true)}>
+        + Add Expense
+      </button>
+
       {/* Results Summary */}
       <p className="expenses-page__summary">
         {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? 's' : ''}
@@ -277,6 +283,16 @@ export default function ExpensesPage() {
         onUpdate={handleExpenseUpdated}
         onDelete={handleExpenseDeleted}
       />
+
+      <AddExpenseSheet
+        isOpen={addSheetOpen}
+        onClose={() => setAddSheetOpen(false)}
+        onSuccess={() => {
+          setAddSheetOpen(false)
+          refreshExpenses()
+        }}
+      />
+
     </div>
   )
 }

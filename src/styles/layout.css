@@ -2259,3 +2259,23 @@
   color: var(--color-text-primary);
 }
 
+/* ============================================
+   ADD LINK (below search)
+   ============================================ */
+.add-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.5rem 0;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  text-align: left;
+  display: block;
+}
+
+.add-link:hover {
+  text-decoration: underline;
+}
+
