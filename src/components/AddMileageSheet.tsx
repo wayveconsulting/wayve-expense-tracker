@@ -89,7 +89,7 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
           startContainerRef.current.appendChild(startAutocomplete)
           startAutocompleteRef.current = startAutocomplete
 
-          startAutocomplete.addEventListener('gmp-placeselect', async (event: any) => {
+          startAutocomplete.addEventListener('gmp-select', async (event: any) => {
             const placePrediction = event.placePrediction
             if (placePrediction) {
               const place = placePrediction.toPlace()
@@ -111,7 +111,7 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
           endContainerRef.current.appendChild(endAutocomplete)
           endAutocompleteRef.current = endAutocomplete
 
-          endAutocomplete.addEventListener('gmp-placeselect', async (event: any) => {
+          endAutocomplete.addEventListener('gmp-select', async (event: any) => {
             const placePrediction = event.placePrediction
             if (placePrediction) {
               const place = placePrediction.toPlace()
