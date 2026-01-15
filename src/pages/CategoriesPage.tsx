@@ -84,6 +84,7 @@ export default function CategoriesPage() {
 
   return (
     <div className="page categories-page">
+      <h1 className="page__title">Categories</h1>
       {/* Summary */}
       <div className="categories-page__summary">
         <span>{categories.length} categories</span>
