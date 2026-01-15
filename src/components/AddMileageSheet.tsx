@@ -7,12 +7,9 @@ interface AddMileageSheetProps {
   onSuccess: () => void
 }
 
-// Declare google types
-declare global {
-  interface Window {
-    google: typeof google
-    initGoogleMaps: () => void
-  }
+interface PlaceData {
+  address: string
+  location: { lat: number; lng: number } | null
 }
 
 export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetProps) {
@@ -21,8 +18,8 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
   // Form state
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [description, setDescription] = useState('')
-  const [startLocation, setStartLocation] = useState('')
-  const [endLocation, setEndLocation] = useState('')
+  const [startLocation, setStartLocation] = useState<PlaceData>({ address: '', location: null })
+  const [endLocation, setEndLocation] = useState<PlaceData>({ address: '', location: null })
   const [distanceMiles, setDistanceMiles] = useState<number | null>(null)
   const [isRoundTrip, setIsRoundTrip] = useState(false)
   const [manualDistance, setManualDistance] = useState('')
@@ -34,26 +31,24 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
   const [calculatingDistance, setCalculatingDistance] = useState(false)
   const [googleLoaded, setGoogleLoaded] = useState(false)
   
-  // Refs for autocomplete
-  const startInputRef = useRef<HTMLInputElement>(null)
-  const endInputRef = useRef<HTMLInputElement>(null)
-  const startAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
-  const endAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
-  const startPlaceRef = useRef<google.maps.places.PlaceResult | null>(null)
-  const endPlaceRef = useRef<google.maps.places.PlaceResult | null>(null)
+  // Refs for the autocomplete containers
+  const startContainerRef = useRef<HTMLDivElement>(null)
+  const endContainerRef = useRef<HTMLDivElement>(null)
+  const startAutocompleteRef = useRef<HTMLElement | null>(null)
+  const endAutocompleteRef = useRef<HTMLElement | null>(null)
 
-  // Load Google Maps script
+  // Load Google Maps script with beta channel for new Places API
   useEffect(() => {
-    if (window.google?.maps?.places) {
+    // Check if already loaded
+    if (window.google?.maps?.importLibrary) {
       setGoogleLoaded(true)
       return
     }
 
     // Check if script is already loading
     if (document.querySelector('script[src*="maps.googleapis.com"]')) {
-      // Wait for it to load
       const checkLoaded = setInterval(() => {
-        if (window.google?.maps?.places) {
+        if (window.google?.maps?.importLibrary) {
           setGoogleLoaded(true)
           clearInterval(checkLoaded)
         }
@@ -61,9 +56,9 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
       return () => clearInterval(checkLoaded)
     }
 
-    // Load the script
+    // Load the script with beta channel for PlaceAutocompleteElement
     const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&v=beta`
     script.async = true
     script.defer = true
     script.onload = () => {
@@ -72,51 +67,78 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
     script.onerror = () => {
       console.error('Failed to load Google Maps')
       setError('Failed to load Google Maps. You can enter addresses manually.')
+      setUseManualDistance(true)
     }
     document.head.appendChild(script)
   }, [])
 
-  // Initialize autocomplete when Google is loaded and sheet is open
+  // Initialize autocomplete elements when Google is loaded and sheet is open
   useEffect(() => {
     if (!googleLoaded || !isOpen) return
 
-    // Small delay to ensure inputs are rendered
-    const timer = setTimeout(() => {
-      if (startInputRef.current && !startAutocompleteRef.current) {
-        startAutocompleteRef.current = new window.google.maps.places.Autocomplete(
-          startInputRef.current,
-          { types: ['address'], fields: ['formatted_address', 'geometry', 'place_id'] }
-        )
-        startAutocompleteRef.current.addListener('place_changed', () => {
-          const place = startAutocompleteRef.current?.getPlace()
-          if (place?.formatted_address) {
-            setStartLocation(place.formatted_address)
-            startPlaceRef.current = place
-          }
-        })
-      }
+    const initAutocomplete = async () => {
+      try {
+        // Import the places library
+        const { PlaceAutocompleteElement } = await window.google.maps.importLibrary('places') as google.maps.PlacesLibrary
 
-      if (endInputRef.current && !endAutocompleteRef.current) {
-        endAutocompleteRef.current = new window.google.maps.places.Autocomplete(
-          endInputRef.current,
-          { types: ['address'], fields: ['formatted_address', 'geometry', 'place_id'] }
-        )
-        endAutocompleteRef.current.addListener('place_changed', () => {
-          const place = endAutocompleteRef.current?.getPlace()
-          if (place?.formatted_address) {
-            setEndLocation(place.formatted_address)
-            endPlaceRef.current = place
-          }
-        })
-      }
-    }, 100)
+        // Create start location autocomplete
+        if (startContainerRef.current && !startAutocompleteRef.current) {
+          const startAutocomplete = new PlaceAutocompleteElement({})
+          startAutocomplete.style.width = '100%'
+          startContainerRef.current.innerHTML = ''
+          startContainerRef.current.appendChild(startAutocomplete)
+          startAutocompleteRef.current = startAutocomplete
 
+          startAutocomplete.addEventListener('gmp-placeselect', async (event: any) => {
+            const placePrediction = event.placePrediction
+            if (placePrediction) {
+              const place = placePrediction.toPlace()
+              await place.fetchFields({ fields: ['formattedAddress', 'location'] })
+              const location = place.location
+              setStartLocation({
+                address: place.formattedAddress || '',
+                location: location ? { lat: location.lat(), lng: location.lng() } : null
+              })
+            }
+          })
+        }
+
+        // Create end location autocomplete
+        if (endContainerRef.current && !endAutocompleteRef.current) {
+          const endAutocomplete = new PlaceAutocompleteElement({})
+          endAutocomplete.style.width = '100%'
+          endContainerRef.current.innerHTML = ''
+          endContainerRef.current.appendChild(endAutocomplete)
+          endAutocompleteRef.current = endAutocomplete
+
+          endAutocomplete.addEventListener('gmp-placeselect', async (event: any) => {
+            const placePrediction = event.placePrediction
+            if (placePrediction) {
+              const place = placePrediction.toPlace()
+              await place.fetchFields({ fields: ['formattedAddress', 'location'] })
+              const location = place.location
+              setEndLocation({
+                address: place.formattedAddress || '',
+                location: location ? { lat: location.lat(), lng: location.lng() } : null
+              })
+            }
+          })
+        }
+      } catch (err) {
+        console.error('Error initializing autocomplete:', err)
+        setError('Failed to initialize address search. You can enter addresses manually.')
+        setUseManualDistance(true)
+      }
+    }
+
+    // Small delay to ensure containers are rendered
+    const timer = setTimeout(initAutocomplete, 100)
     return () => clearTimeout(timer)
   }, [googleLoaded, isOpen])
 
   // Calculate distance when both locations are set
   const calculateDistance = useCallback(async () => {
-    if (!startPlaceRef.current?.geometry?.location || !endPlaceRef.current?.geometry?.location) {
+    if (!startLocation.location || !endLocation.location) {
       return
     }
 
@@ -124,24 +146,14 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
     setError(null)
 
     try {
-      const service = new window.google.maps.DistanceMatrixService()
+      const { DistanceMatrixService } = await window.google.maps.importLibrary('routes') as google.maps.RoutesLibrary
+      const service = new DistanceMatrixService()
       
-      const response = await new Promise<google.maps.DistanceMatrixResponse>((resolve, reject) => {
-        service.getDistanceMatrix(
-          {
-            origins: [startPlaceRef.current!.geometry!.location!],
-            destinations: [endPlaceRef.current!.geometry!.location!],
-            travelMode: google.maps.TravelMode.DRIVING,
-            unitSystem: google.maps.UnitSystem.IMPERIAL,
-          },
-          (response, status) => {
-            if (status === 'OK' && response) {
-              resolve(response)
-            } else {
-              reject(new Error(`Distance calculation failed: ${status}`))
-            }
-          }
-        )
+      const response = await service.getDistanceMatrix({
+        origins: [startLocation.location],
+        destinations: [endLocation.location],
+        travelMode: google.maps.TravelMode.DRIVING,
+        unitSystem: google.maps.UnitSystem.IMPERIAL,
       })
 
       const element = response.rows[0]?.elements[0]
@@ -161,29 +173,37 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
     } finally {
       setCalculatingDistance(false)
     }
-  }, [])
+  }, [startLocation.location, endLocation.location])
 
   // Trigger distance calculation when both places are selected
   useEffect(() => {
-    if (startPlaceRef.current?.geometry?.location && endPlaceRef.current?.geometry?.location && !useManualDistance) {
+    if (startLocation.location && endLocation.location && !useManualDistance) {
       calculateDistance()
     }
-  }, [startLocation, endLocation, calculateDistance, useManualDistance])
+  }, [startLocation.location, endLocation.location, calculateDistance, useManualDistance])
 
   // Reset form when sheet closes
   useEffect(() => {
     if (!isOpen) {
       setDate(new Date().toISOString().split('T')[0])
       setDescription('')
-      setStartLocation('')
-      setEndLocation('')
+      setStartLocation({ address: '', location: null })
+      setEndLocation({ address: '', location: null })
       setDistanceMiles(null)
       setIsRoundTrip(false)
       setManualDistance('')
       setUseManualDistance(false)
       setError(null)
-      startPlaceRef.current = null
-      endPlaceRef.current = null
+      
+      // Clear autocomplete elements
+      if (startContainerRef.current) {
+        startContainerRef.current.innerHTML = ''
+      }
+      if (endContainerRef.current) {
+        endContainerRef.current.innerHTML = ''
+      }
+      startAutocompleteRef.current = null
+      endAutocompleteRef.current = null
     }
   }, [isOpen])
 
@@ -203,13 +223,15 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
     setError(null)
 
     const effectiveDistance = getEffectiveDistance()
+    const startAddr = startLocation.address || (startContainerRef.current?.querySelector('input') as HTMLInputElement)?.value || ''
+    const endAddr = endLocation.address || (endContainerRef.current?.querySelector('input') as HTMLInputElement)?.value || ''
 
     // Client-side validation
-    if (!startLocation.trim()) {
+    if (!startAddr.trim()) {
       setError('Start location is required')
       return
     }
-    if (!endLocation.trim()) {
+    if (!endAddr.trim()) {
       setError('End location is required')
       return
     }
@@ -227,8 +249,8 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
         body: JSON.stringify({
           date,
           description: description.trim() || null,
-          startLocation: startLocation.trim(),
-          endLocation: endLocation.trim(),
+          startLocation: startAddr.trim(),
+          endLocation: endAddr.trim(),
           distanceMiles: effectiveDistance,
           isRoundTrip,
         }),
@@ -311,34 +333,36 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
 
           {/* Start Location */}
           <div className="form-group">
-            <label htmlFor="start-location" className="form-label">Start Location *</label>
-            <input
-              ref={startInputRef}
-              type="text"
-              id="start-location"
-              className="form-input"
-              placeholder="Enter starting address"
-              value={startLocation}
-              onChange={(e) => setStartLocation(e.target.value)}
-              autoComplete="off"
-              required
-            />
+            <label className="form-label">Start Location *</label>
+            {googleLoaded && !useManualDistance ? (
+              <div ref={startContainerRef} className="autocomplete-container" />
+            ) : (
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Enter starting address"
+                value={startLocation.address}
+                onChange={(e) => setStartLocation({ address: e.target.value, location: null })}
+                required
+              />
+            )}
           </div>
 
           {/* End Location */}
           <div className="form-group">
-            <label htmlFor="end-location" className="form-label">End Location *</label>
-            <input
-              ref={endInputRef}
-              type="text"
-              id="end-location"
-              className="form-input"
-              placeholder="Enter destination address"
-              value={endLocation}
-              onChange={(e) => setEndLocation(e.target.value)}
-              autoComplete="off"
-              required
-            />
+            <label className="form-label">End Location *</label>
+            {googleLoaded && !useManualDistance ? (
+              <div ref={endContainerRef} className="autocomplete-container" />
+            ) : (
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Enter destination address"
+                value={endLocation.address}
+                onChange={(e) => setEndLocation({ address: e.target.value, location: null })}
+                required
+              />
+            )}
           </div>
 
           {/* Distance Display / Manual Entry */}
