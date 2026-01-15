@@ -2249,3 +2249,13 @@
   color: var(--color-text-primary);
 }
 
+/* ============================================
+   PAGE TITLES
+   ============================================ */
+.page__title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: var(--color-text-primary);
+}
+

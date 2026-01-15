@@ -156,6 +156,7 @@ export default function ExpensesPage() {
 
   return (
     <div className="page expenses-page">
+      <h1 className="page__title">Expenses</h1>
       {/* Category Filter Banner */}
       {categoryFilter && (
         <div className="filter-banner">

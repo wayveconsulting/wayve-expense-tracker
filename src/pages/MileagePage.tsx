@@ -112,6 +112,7 @@ export default function MileagePage() {
 
   return (
     <div className="page mileage-page">
+      <h1 className="page__title">Mileage</h1>
       {trips.length === 0 ? (
         /* Empty State */
         <div className="empty-state">

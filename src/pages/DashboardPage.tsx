@@ -118,6 +118,7 @@ export default function DashboardPage() {
 
   return (
     <div className="page dashboard">
+      <h1 className="page__title">Dashboard</h1>
       {/* Summary Cards */}
       <div className="dashboard__summary">
         <div 
