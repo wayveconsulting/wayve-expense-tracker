@@ -40,7 +40,7 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
   // Load Google Maps script with beta channel for new Places API
   useEffect(() => {
     // Check if already loaded
-    if (window.google?.maps?.importLibrary) {
+    if (typeof window.google?.maps?.importLibrary === 'function') {
       setGoogleLoaded(true)
       return
     }
@@ -48,7 +48,7 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
     // Check if script is already loading
     if (document.querySelector('script[src*="maps.googleapis.com"]')) {
       const checkLoaded = setInterval(() => {
-        if (window.google?.maps?.importLibrary) {
+        if (typeof window.google?.maps?.importLibrary === 'function') {
           setGoogleLoaded(true)
           clearInterval(checkLoaded)
         }
