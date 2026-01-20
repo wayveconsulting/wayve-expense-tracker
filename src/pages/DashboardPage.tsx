@@ -5,6 +5,7 @@ import { useYear } from '../hooks/useYear'
 import { useRefresh } from '../hooks/useRefresh'
 import { ExpenseDetailSheet } from '../components/ExpenseDetailSheet'
 import { MileageDetailSheet } from '../components/MileageDetailSheet'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
 interface Expense {
   id: string
@@ -56,6 +57,22 @@ interface MileageData {
     year: number
   }
 }
+
+// Color palette for donut chart (colorblind-friendly)
+const CHART_COLORS = [
+  '#2A9D8F', // teal (primary)
+  '#E9C46A', // gold
+  '#F4A261', // orange
+  '#E76F51', // coral
+  '#264653', // dark blue
+  '#8AB17D', // sage
+  '#A06CD5', // purple
+  '#6B9AC4', // sky blue
+  '#D4A5A5', // dusty rose
+  '#9DC183', // olive
+  '#F0B5B3', // blush
+  '#7EB6C4', // teal light
+]
 
 export default function DashboardPage() {
   const { subdomain } = useTenant()
@@ -176,9 +193,111 @@ export default function DashboardPage() {
   // Get recent trips (last 5)
   const recentTrips = mileageData?.trips.slice(0, 5) || []
 
+  // Prepare donut chart data (top 6 categories + "Other")
+  const prepareChartData = () => {
+    if (categoryBreakdown.length === 0) return []
+    
+    const topCategories = categoryBreakdown.slice(0, 6)
+    const otherCategories = categoryBreakdown.slice(6)
+    
+    const chartData = topCategories.map((cat, index) => ({
+      name: cat.name,
+      value: cat.total,
+      emoji: cat.emoji,
+      color: CHART_COLORS[index % CHART_COLORS.length],
+    }))
+    
+    if (otherCategories.length > 0) {
+      const otherTotal = otherCategories.reduce((sum, cat) => sum + cat.total, 0)
+      chartData.push({
+        name: 'Other',
+        value: otherTotal,
+        emoji: '📁',
+        color: CHART_COLORS[6],
+      })
+    }
+    
+    return chartData
+  }
+
+  const chartData = prepareChartData()
+
+  // Custom tooltip for donut chart
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; emoji: string } }> }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload
+      return (
+        <div className="donut-tooltip">
+          <span className="donut-tooltip__emoji">{data.emoji}</span>
+          <span className="donut-tooltip__name">{data.name}</span>
+          <span className="donut-tooltip__value">{formatMoney(data.value)}</span>
+        </div>
+      )
+    }
+    return null
+  }
+
   return (
     <div className="page dashboard">
       <h1 className="page__title">Dashboard</h1>
+
+      {/* ==================== DONUT CHART ==================== */}
+      {chartData.length > 0 && (
+        <div className="card donut-card">
+          <h2 className="card__title">Spending by Category</h2>
+          <div className="donut-container">
+            <div className="donut-chart">
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="donut-center">
+                <span className="donut-center__amount">{formatMoney(summary.totalAmount)}</span>
+                <span className="donut-center__label">Total</span>
+              </div>
+            </div>
+            <ul className="donut-legend">
+              {chartData.map((entry, index) => (
+                <li 
+                  key={index} 
+                  className="donut-legend__item"
+                  onClick={() => entry.name !== 'Other' && handleCategoryClick(entry.name)}
+                  role={entry.name !== 'Other' ? 'button' : undefined}
+                  tabIndex={entry.name !== 'Other' ? 0 : undefined}
+                  onKeyDown={(e) => {
+                    if (entry.name !== 'Other' && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault()
+                      handleCategoryClick(entry.name)
+                    }
+                  }}
+                >
+                  <span 
+                    className="donut-legend__color" 
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span className="donut-legend__emoji">{entry.emoji}</span>
+                  <span className="donut-legend__name">{entry.name}</span>
+                  <span className="donut-legend__value">{formatMoney(entry.value)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* ==================== EXPENSES SECTION ==================== */}
       
