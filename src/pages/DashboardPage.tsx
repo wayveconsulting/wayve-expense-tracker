@@ -33,12 +33,34 @@ interface DashboardData {
   categoryBreakdown: CategoryBreakdown[]
 }
 
+interface MileageTrip {
+  id: string
+  date: string
+  description: string | null
+  startLocation: string
+  endLocation: string
+  distanceMiles: number
+  displayMiles: number
+  isRoundTrip: boolean
+}
+
+interface MileageData {
+  trips: MileageTrip[]
+  summary: {
+    totalMiles: number
+    tripCount: number
+    estimatedDeduction: number
+    year: number
+  }
+}
+
 export default function DashboardPage() {
   const { subdomain } = useTenant()
   const { year } = useYear()
-  const { expenseKey } = useRefresh()
+  const { expenseKey, mileageKey } = useRefresh()
   const [, setLocation] = useLocation()
   const [data, setData] = useState<DashboardData | null>(null)
+  const [mileageData, setMileageData] = useState<MileageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -50,14 +72,25 @@ export default function DashboardPage() {
       params.set('year', String(year))
       params.set('limit', '500')
 
-      const response = await fetch(`/api/expenses?${params}`)
-      if (!response.ok) {
-        const err = await response.json()
+      // Fetch expenses and mileage in parallel
+      const [expenseResponse, mileageResponse] = await Promise.all([
+        fetch(`/api/expenses?${params}`),
+        fetch(`/api/mileage?${params}`)
+      ])
+
+      if (!expenseResponse.ok) {
+        const err = await expenseResponse.json()
         throw new Error(err.error || 'Failed to fetch expenses')
       }
 
-      const result = await response.json()
-      setData(result)
+      const expenseResult = await expenseResponse.json()
+      setData(expenseResult)
+
+      // Mileage is optional - don't fail if it errors
+      if (mileageResponse.ok) {
+        const mileageResult = await mileageResponse.json()
+        setMileageData(mileageResult)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
@@ -67,7 +100,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboard()
-  }, [fetchDashboard, expenseKey])
+  }, [fetchDashboard, expenseKey, mileageKey])
 
   // Navigate to expenses filtered by category
   const handleCategoryClick = (categoryName: string) => {
@@ -105,6 +138,9 @@ export default function DashboardPage() {
     }).format(cents / 100)
   }
 
+  // Format miles (stored as miles * 100)
+  const formatMiles = (miles: number) => (miles / 100).toFixed(1)
+
   // Format date
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -115,6 +151,9 @@ export default function DashboardPage() {
 
   // Get recent expenses (last 10)
   const recentExpenses = expenses.slice(0, 10)
+
+  // Get recent trips (last 5)
+  const recentTrips = mileageData?.trips.slice(0, 5) || []
 
   return (
     <div className="page dashboard">
@@ -153,10 +192,23 @@ export default function DashboardPage() {
           <span className="summary-card__value">{summary.expenseCount}</span>
           <span className="summary-card__sub">transactions</span>
         </div>
-        <div className="summary-card">
-          <span className="summary-card__label">Average</span>
-          <span className="summary-card__value">{formatMoney(summary.averageAmount)}</span>
-          <span className="summary-card__sub">per expense</span>
+        <div 
+          className="summary-card summary-card--clickable"
+          onClick={() => setLocation('/mileage')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setLocation('/mileage')
+            }
+          }}
+        >
+          <span className="summary-card__label">Mileage</span>
+          <span className="summary-card__value">
+            {mileageData?.summary ? formatMiles(mileageData.summary.totalMiles) : '0'}
+          </span>
+          <span className="summary-card__sub">miles tracked</span>
         </div>
       </div>
 
@@ -244,7 +296,60 @@ export default function DashboardPage() {
             </ul>
           )}
         </div>
+
+        {/* Recent Trips */}
+        <div className="card">
+          <h2 
+            className="card__title card__title--clickable"
+            onClick={() => setLocation('/mileage')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setLocation('/mileage')
+              }
+            }}
+          >
+            Recent Trips →
+          </h2>
+          {recentTrips.length === 0 ? (
+            <p style={{ color: 'var(--color-text-secondary)' }}>No trips logged yet</p>
+          ) : (
+            <ul className="trip-list">
+              {recentTrips.map((trip) => (
+                <li key={trip.id} className="trip-list__item">
+                  <div className="trip-list__icon">
+                    {trip.isRoundTrip ? '🔄' : '📍'}
+                  </div>
+                  <div className="trip-list__details">
+                    <span className="trip-list__route">
+                      {trip.description || `${truncateLocation(trip.startLocation)} → ${truncateLocation(trip.endLocation)}`}
+                    </span>
+                    <span className="trip-list__meta">
+                      {formatDate(trip.date)}
+                      {trip.isRoundTrip && ' · Round trip'}
+                    </span>
+                  </div>
+                  <span className="trip-list__miles">
+                    {formatMiles(trip.displayMiles)} mi
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   )
+}
+
+// Helper to truncate long addresses
+function truncateLocation(location: string, maxLength = 20): string {
+  if (location.length <= maxLength) return location
+  const commaIndex = location.indexOf(',')
+  if (commaIndex > 0 && commaIndex <= maxLength) {
+    return location.substring(0, commaIndex)
+  }
+  return location.substring(0, maxLength) + '...'
 }
