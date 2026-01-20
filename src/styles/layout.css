@@ -2095,6 +2095,24 @@
   white-space: nowrap;
 }
 
+/* Clickable trip list items */
+.trip-list__item--clickable {
+  cursor: pointer;
+  margin: 0 calc(var(--spacing-sm) * -1);
+  padding-left: var(--spacing-sm);
+  padding-right: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  transition: background-color 0.15s ease;
+}
+
+.trip-list__item--clickable:hover {
+  background: var(--color-bg-secondary);
+}
+
+.trip-list__item--clickable:active {
+  background: var(--color-bg-tertiary);
+}
+
 /* Card header with subtitle */
 .card__header {
   display: flex;
