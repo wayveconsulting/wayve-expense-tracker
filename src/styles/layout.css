@@ -1281,6 +1281,15 @@
   height: 24px;
 }
 
+/* FAB Mileage Variant (blue) */
+.fab--mileage {
+  background: var(--color-info, #3b82f6);
+}
+
+.fab--mileage:hover {
+  background: var(--color-info-dark, #2563eb);
+}
+
 /* ============================================
    BOTTOM SHEET
    ============================================ */
