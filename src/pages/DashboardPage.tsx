@@ -158,8 +158,11 @@ export default function DashboardPage() {
   return (
     <div className="page dashboard">
       <h1 className="page__title">Dashboard</h1>
-      {/* Summary Cards */}
-      <div className="dashboard__summary">
+
+      {/* ==================== EXPENSES SECTION ==================== */}
+      
+      {/* Expense Summary Cards */}
+      <div className="dashboard__summary dashboard__summary--half">
         <div 
           className="summary-card summary-card--clickable"
           onClick={() => setLocation('/reports')}
@@ -192,27 +195,9 @@ export default function DashboardPage() {
           <span className="summary-card__value">{summary.expenseCount}</span>
           <span className="summary-card__sub">transactions</span>
         </div>
-        <div 
-          className="summary-card summary-card--clickable"
-          onClick={() => setLocation('/mileage')}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              setLocation('/mileage')
-            }
-          }}
-        >
-          <span className="summary-card__label">Mileage</span>
-          <span className="summary-card__value">
-            {mileageData?.summary ? formatMiles(mileageData.summary.totalMiles) : '0'}
-          </span>
-          <span className="summary-card__sub">miles tracked</span>
-        </div>
       </div>
 
-      {/* Two Column Layout */}
+      {/* Expense Details Grid */}
       <div className="dashboard__grid">
         {/* Recent Expenses */}
         <div className="card">
@@ -296,7 +281,55 @@ export default function DashboardPage() {
             </ul>
           )}
         </div>
+      </div>
 
+      {/* Section Divider */}
+      <div className="dashboard__divider" />
+
+      {/* ==================== MILEAGE SECTION ==================== */}
+      
+      {/* Mileage Summary Cards */}
+      <div className="dashboard__summary dashboard__summary--half">
+        <div 
+          className="summary-card summary-card--clickable"
+          onClick={() => setLocation('/mileage')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setLocation('/mileage')
+            }
+          }}
+        >
+          <span className="summary-card__label">Total Miles</span>
+          <span className="summary-card__value">
+            {mileageData?.summary ? formatMiles(mileageData.summary.totalMiles) : '0'}
+          </span>
+          <span className="summary-card__sub">{year}</span>
+        </div>
+        <div 
+          className="summary-card summary-card--clickable"
+          onClick={() => setLocation('/mileage')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setLocation('/mileage')
+            }
+          }}
+        >
+          <span className="summary-card__label">Trips</span>
+          <span className="summary-card__value">
+            {mileageData?.summary?.tripCount || 0}
+          </span>
+          <span className="summary-card__sub">logged</span>
+        </div>
+      </div>
+
+      {/* Mileage Details Grid */}
+      <div className="dashboard__grid">
         {/* Recent Trips */}
         <div className="card">
           <h2 
@@ -338,6 +371,20 @@ export default function DashboardPage() {
               ))}
             </ul>
           )}
+        </div>
+
+        {/* Estimated Deduction Card */}
+        <div className="card">
+          <h2 className="card__title">Est. Tax Deduction</h2>
+          <div className="deduction-display">
+            <span className="deduction-display__value">
+              {mileageData?.summary ? formatMoney(mileageData.summary.estimatedDeduction) : '$0.00'}
+            </span>
+            <span className="deduction-display__rate">@ 70¢/mile (2025 IRS rate)</span>
+            <p className="deduction-display__note">
+              This is an estimate based on IRS standard mileage rates. Consult a tax professional for actual deductions.
+            </p>
+          </div>
         </div>
       </div>
     </div>
