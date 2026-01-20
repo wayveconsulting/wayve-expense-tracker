@@ -3,6 +3,8 @@ import { useLocation } from 'wouter'
 import { useTenant } from '../hooks/useTenant'
 import { useYear } from '../hooks/useYear'
 import { useRefresh } from '../hooks/useRefresh'
+import { ExpenseDetailSheet } from '../components/ExpenseDetailSheet'
+import { MileageDetailSheet } from '../components/MileageDetailSheet'
 
 interface Expense {
   id: string
@@ -13,6 +15,7 @@ interface Expense {
   categoryId: string | null
   categoryName: string | null
   categoryEmoji: string | null
+  expenseType?: string
 }
 
 interface CategoryBreakdown {
@@ -57,12 +60,18 @@ interface MileageData {
 export default function DashboardPage() {
   const { subdomain } = useTenant()
   const { year } = useYear()
-  const { expenseKey, mileageKey } = useRefresh()
+  const { expenseKey, mileageKey, refreshExpenses, refreshMileage } = useRefresh()
   const [, setLocation] = useLocation()
   const [data, setData] = useState<DashboardData | null>(null)
   const [mileageData, setMileageData] = useState<MileageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Detail sheet state
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
+  const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
+  const [selectedTrip, setSelectedTrip] = useState<MileageTrip | null>(null)
+  const [tripSheetOpen, setTripSheetOpen] = useState(false)
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -105,6 +114,18 @@ export default function DashboardPage() {
   // Navigate to expenses filtered by category
   const handleCategoryClick = (categoryName: string) => {
     setLocation(`/expenses?category=${encodeURIComponent(categoryName)}`)
+  }
+
+  // Open expense detail sheet
+  const handleExpenseClick = (expense: Expense) => {
+    setSelectedExpense(expense)
+    setExpenseSheetOpen(true)
+  }
+
+  // Open trip detail sheet
+  const handleTripClick = (trip: MileageTrip) => {
+    setSelectedTrip(trip)
+    setTripSheetOpen(true)
   }
 
   if (loading) {
@@ -220,7 +241,19 @@ export default function DashboardPage() {
           ) : (
             <ul className="expense-list">
               {recentExpenses.map((expense) => (
-                <li key={expense.id} className="expense-list__item">
+                <li 
+                  key={expense.id} 
+                  className="expense-list__item expense-list__item--clickable"
+                  onClick={() => handleExpenseClick(expense)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleExpenseClick(expense)
+                    }
+                  }}
+                >
                   <div className="expense-list__icon">
                     {expense.categoryEmoji || '📁'}
                   </div>
@@ -351,7 +384,19 @@ export default function DashboardPage() {
           ) : (
             <ul className="trip-list">
               {recentTrips.map((trip) => (
-                <li key={trip.id} className="trip-list__item">
+                <li 
+                  key={trip.id} 
+                  className="trip-list__item trip-list__item--clickable"
+                  onClick={() => handleTripClick(trip)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleTripClick(trip)
+                    }
+                  }}
+                >
                   <div className="trip-list__icon">
                     {trip.isRoundTrip ? '🔄' : '📍'}
                   </div>
@@ -387,6 +432,24 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Expense Detail Sheet */}
+      <ExpenseDetailSheet
+        expense={selectedExpense}
+        isOpen={expenseSheetOpen}
+        onClose={() => setExpenseSheetOpen(false)}
+        onUpdate={refreshExpenses}
+        onDelete={refreshExpenses}
+      />
+
+      {/* Mileage Detail Sheet */}
+      <MileageDetailSheet
+        trip={selectedTrip}
+        isOpen={tripSheetOpen}
+        onClose={() => setTripSheetOpen(false)}
+        onUpdate={refreshMileage}
+        onDelete={refreshMileage}
+      />
     </div>
   )
 }
