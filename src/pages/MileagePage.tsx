@@ -3,6 +3,7 @@ import { useTenant } from '../hooks/useTenant'
 import { useYear } from '../hooks/useYear'
 import { useRefresh } from '../hooks/useRefresh'
 import { AddMileageSheet } from '../components/AddMileageSheet'
+import { MileageDetailSheet } from '../components/MileageDetailSheet'
 
 interface MileageTrip {
   id: string
@@ -31,6 +32,8 @@ export default function MileagePage() {
   const [summary, setSummary] = useState<MileageSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [selectedTrip, setSelectedTrip] = useState<MileageTrip | null>(null)
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false)
 
   useEffect(() => {
     async function fetchMileage() {
@@ -99,6 +102,19 @@ export default function MileagePage() {
   const sortedMonths = Object.entries(tripsByMonth).sort(([a], [b]) => b.localeCompare(a))
 
   function handleTripAdded() {
+    refreshMileage()
+  }
+
+  function handleTripClick(trip: MileageTrip) {
+    setSelectedTrip(trip)
+    setDetailSheetOpen(true)
+  }
+
+  function handleTripUpdated() {
+    refreshMileage()
+  }
+
+  function handleTripDeleted() {
     refreshMileage()
   }
 
@@ -171,7 +187,11 @@ export default function MileagePage() {
               </div>
               <ul className="trip-list">
                 {monthTrips.map((trip) => (
-                  <li key={trip.id} className="trip-list__item">
+                  <li 
+                    key={trip.id} 
+                    className="trip-list__item trip-list__item--clickable"
+                    onClick={() => handleTripClick(trip)}
+                  >
                     <div className="trip-list__icon">
                       {trip.isRoundTrip ? '🔄' : '📍'}
                     </div>
@@ -200,6 +220,15 @@ export default function MileagePage() {
         isOpen={sheetOpen}
         onClose={() => setSheetOpen(false)}
         onSuccess={handleTripAdded}
+      />
+
+      {/* Mileage Detail Sheet */}
+      <MileageDetailSheet
+        trip={selectedTrip}
+        isOpen={detailSheetOpen}
+        onClose={() => setDetailSheetOpen(false)}
+        onUpdate={handleTripUpdated}
+        onDelete={handleTripDeleted}
       />
     </div>
   )
