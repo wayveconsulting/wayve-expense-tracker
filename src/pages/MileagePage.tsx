@@ -16,24 +16,17 @@ interface MileageTrip {
   isRoundTrip: boolean
 }
 
-interface MileageSummary {
-  totalMiles: number
-  tripCount: number
-  estimatedDeduction: number
-  year: number
-}
-
 export default function MileagePage() {
   const { subdomain } = useTenant()
   const { year } = useYear()
   const { mileageKey, refreshMileage } = useRefresh()
   
   const [trips, setTrips] = useState<MileageTrip[]>([])
-  const [summary, setSummary] = useState<MileageSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selectedTrip, setSelectedTrip] = useState<MileageTrip | null>(null)
   const [detailSheetOpen, setDetailSheetOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     async function fetchMileage() {
@@ -53,11 +46,9 @@ export default function MileagePage() {
 
         const data = await response.json()
         setTrips(data.trips || [])
-        setSummary(data.summary || null)
       } catch (err) {
         console.error('Error fetching mileage:', err)
         setTrips([])
-        setSummary(null)
       } finally {
         setLoading(false)
       }
@@ -69,14 +60,6 @@ export default function MileagePage() {
   // Format miles (stored as miles * 100)
   const formatMiles = (miles: number) => (miles / 100).toFixed(1)
 
-  // Format money (stored as cents)
-  const formatMoney = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(cents / 100)
-  }
-
   // Format date
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -85,8 +68,19 @@ export default function MileagePage() {
     })
   }
 
+  // Filter trips by search query
+  const filteredTrips = trips.filter((trip) => {
+    if (!searchQuery.trim()) return true
+    const query = searchQuery.toLowerCase()
+    return (
+      trip.startLocation.toLowerCase().includes(query) ||
+      trip.endLocation.toLowerCase().includes(query) ||
+      (trip.description?.toLowerCase().includes(query) ?? false)
+    )
+  })
+
   // Group trips by month
-  const tripsByMonth = trips.reduce((acc, trip) => {
+  const tripsByMonth = filteredTrips.reduce((acc, trip) => {
     const date = new Date(trip.date)
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
     const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -100,6 +94,9 @@ export default function MileagePage() {
   }, {} as Record<string, { name: string; trips: MileageTrip[]; totalMiles: number }>)
 
   const sortedMonths = Object.entries(tripsByMonth).sort(([a], [b]) => b.localeCompare(a))
+
+  // Calculate totals for filtered results
+  const totalFilteredMiles = filteredTrips.reduce((sum, trip) => sum + trip.displayMiles, 0)
 
   function handleTripAdded() {
     refreshMileage()
@@ -129,9 +126,7 @@ export default function MileagePage() {
   return (
     <div className="page mileage-page">
       <h1 className="page__title">Mileage</h1>
-      <button className="add-link" onClick={() => setSheetOpen(true)}>
-        + Log Trip
-      </button>
+      
       {trips.length === 0 ? (
         /* Empty State */
         <div className="empty-state">
@@ -153,65 +148,82 @@ export default function MileagePage() {
         </div>
       ) : (
         <>
-          {/* Summary Cards */}
-          <div className="mileage-summary">
-            <div className="summary-card">
-              <span className="summary-card__label">Total Miles</span>
-              <span className="summary-card__value">
-                {summary ? formatMiles(summary.totalMiles) : '0'}
-              </span>
-              <span className="summary-card__sub">{year}</span>
-            </div>
-            <div className="summary-card">
-              <span className="summary-card__label">Trips</span>
-              <span className="summary-card__value">
-                {summary?.tripCount || 0}
-              </span>
-              <span className="summary-card__sub">logged</span>
-            </div>
-            <div className="summary-card">
-              <span className="summary-card__label">Est. Deduction</span>
-              <span className="summary-card__value">
-                {summary ? formatMoney(summary.estimatedDeduction) : '$0.00'}
-              </span>
-              <span className="summary-card__sub">@ 70¢/mile</span>
-            </div>
+          {/* Search Bar */}
+          <div className="search-bar">
+            <svg className="search-bar__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              type="text"
+              className="search-bar__input"
+              placeholder="Search trips..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button 
+                className="search-bar__clear"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
 
+          <button className="add-link" onClick={() => setSheetOpen(true)}>
+            + Log Trip
+          </button>
+
+          {/* Summary line */}
+          <p className="mileage-page__summary">
+            {filteredTrips.length} trip{filteredTrips.length !== 1 ? 's' : ''} · {formatMiles(totalFilteredMiles)} miles
+            {searchQuery && ` matching "${searchQuery}"`}
+          </p>
+
           {/* Trips by Month */}
-          {sortedMonths.map(([monthKey, { name, trips: monthTrips, totalMiles }]) => (
-            <div key={monthKey} className="card">
-              <div className="card__header">
-                <h2 className="card__title">{name}</h2>
-                <span className="card__subtitle">{formatMiles(totalMiles)} mi</span>
+          {filteredTrips.length === 0 ? (
+            <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: 'var(--spacing-xl)' }}>
+              No trips match your search
+            </p>
+          ) : (
+            sortedMonths.map(([monthKey, { name, trips: monthTrips, totalMiles }]) => (
+              <div key={monthKey} className="card">
+                <div className="card__header">
+                  <h2 className="card__title">{name}</h2>
+                  <span className="card__subtitle">{formatMiles(totalMiles)} mi</span>
+                </div>
+                <ul className="trip-list">
+                  {monthTrips.map((trip) => (
+                    <li 
+                      key={trip.id} 
+                      className="trip-list__item trip-list__item--clickable"
+                      onClick={() => handleTripClick(trip)}
+                    >
+                      <div className="trip-list__icon">
+                        {trip.isRoundTrip ? '🔄' : '📍'}
+                      </div>
+                      <div className="trip-list__details">
+                        <span className="trip-list__route">
+                          {trip.description || `${truncateLocation(trip.startLocation)} → ${truncateLocation(trip.endLocation)}`}
+                        </span>
+                        <span className="trip-list__meta">
+                          {formatDate(trip.date)}
+                          {trip.isRoundTrip && ' · Round trip'}
+                        </span>
+                      </div>
+                      <span className="trip-list__miles">
+                        {formatMiles(trip.displayMiles)} mi
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="trip-list">
-                {monthTrips.map((trip) => (
-                  <li 
-                    key={trip.id} 
-                    className="trip-list__item trip-list__item--clickable"
-                    onClick={() => handleTripClick(trip)}
-                  >
-                    <div className="trip-list__icon">
-                      {trip.isRoundTrip ? '🔄' : '📍'}
-                    </div>
-                    <div className="trip-list__details">
-                      <span className="trip-list__route">
-                        {trip.description || `${truncateLocation(trip.startLocation)} → ${truncateLocation(trip.endLocation)}`}
-                      </span>
-                      <span className="trip-list__meta">
-                        {formatDate(trip.date)}
-                        {trip.isRoundTrip && ' · Round trip'}
-                      </span>
-                    </div>
-                    <span className="trip-list__miles">
-                      {formatMiles(trip.displayMiles)} mi
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            ))
+          )}
         </>
       )}
 
