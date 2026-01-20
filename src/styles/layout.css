@@ -1658,7 +1658,7 @@
 
 .delete-confirm__message {
   font-size: 0.9375rem;
-  color: var(--color-text-primary);
+  color: var(--color-error-dark, #991b1b);
   margin: 0 0 var(--spacing-md) 0;
   line-height: 1.5;
 }
