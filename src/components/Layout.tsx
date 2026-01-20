@@ -6,6 +6,7 @@ import { useYear } from '../hooks/useYear'
 import { useRefresh } from '../hooks/useRefresh'
 import { useSettings } from '../hooks/useSettings'
 import { AddExpenseSheet } from './AddExpenseSheet'
+import { AddMileageSheet } from './AddMileageSheet'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -13,21 +14,37 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [sheetOpen, setSheetOpen] = useState(false)
+  const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
+  const [mileageSheetOpen, setMileageSheetOpen] = useState(false)
   const { tenant } = useTenant()
   const { user, logout } = useAuth()
   const [location] = useLocation()
   const { year, nextYear, prevYear } = useYear()
-  const { refreshExpenses } = useRefresh()
+  const { refreshExpenses, refreshMileage } = useRefresh()
   const { showFab } = useSettings()
   const currentYear = new Date().getFullYear()
 
   const appName = tenant?.name || 'Expense Tracker'
+  
+  // Determine if we're on the mileage page
+  const isOnMileagePage = location === '/mileage' || location.startsWith('/mileage/')
 
   const closeDrawer = () => setDrawerOpen(false)
 
   const handleExpenseAdded = () => {
     refreshExpenses()
+  }
+
+  const handleMileageAdded = () => {
+    refreshMileage()
+  }
+
+  const handleFabClick = () => {
+    if (isOnMileagePage) {
+      setMileageSheetOpen(true)
+    } else {
+      setExpenseSheetOpen(true)
+    }
   }
 
   return (
@@ -134,25 +151,32 @@ export function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
-      {/* Global FAB */}
+      {/* Global FAB - Context Aware */}
       {showFab && (
         <button 
-          className="fab" 
-          onClick={() => setSheetOpen(true)}
-          aria-label="Add expense"
+          className={`fab ${isOnMileagePage ? 'fab--mileage' : ''}`}
+          onClick={handleFabClick}
+          aria-label={isOnMileagePage ? 'Add mileage' : 'Add expense'}
         >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
         </button>
       )}
 
       {/* Global Add Expense Sheet */}
       <AddExpenseSheet
-        isOpen={sheetOpen}
-        onClose={() => setSheetOpen(false)}
+        isOpen={expenseSheetOpen}
+        onClose={() => setExpenseSheetOpen(false)}
         onSuccess={handleExpenseAdded}
+      />
+
+      {/* Global Add Mileage Sheet */}
+      <AddMileageSheet
+        isOpen={mileageSheetOpen}
+        onClose={() => setMileageSheetOpen(false)}
+        onSuccess={handleMileageAdded}
       />
     </div>
   )
