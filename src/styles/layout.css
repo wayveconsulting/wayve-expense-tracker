@@ -2306,3 +2306,13 @@
   text-decoration: underline;
 }
 
+/* ============================================
+   MILEAGE PAGE SUMMARY
+   ============================================ */
+
+.mileage-page__summary {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
