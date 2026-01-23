@@ -403,6 +403,10 @@
     flex-direction: row;
     align-items: center;
   }
+  
+  .donut-chart {
+    width: 300px;
+  }
 }
 
 .donut-chart {
