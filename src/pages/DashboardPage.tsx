@@ -104,7 +104,6 @@ export default function DashboardPage() {
           // Map API response to component interface
           const mappedTrips = (mileageResult.trips || []).map((trip: any) => ({
             ...trip,
-            distanceMiles: trip.distance,
             isRoundTrip: trip.isRoundTrip || false
           }))
           setMileageTrips(mappedTrips)
