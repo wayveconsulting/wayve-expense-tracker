@@ -255,7 +255,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="dashboard__list-meta">
                         <div className="dashboard__list-amount">{formatCurrency(cat.total)}</div>
-                        <div className="dashboard__list-percentage">{cat.percentage.toFixed(1)}%</div>
+                        <div className="dashboard__list-percentage">{((cat.total / (summary?.totalAmount || 1)) * 100).toFixed(1)}%</div>
                       </div>
                     </li>
                   </Link>
