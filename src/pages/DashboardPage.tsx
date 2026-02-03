@@ -1,365 +1,584 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useLocation } from 'wouter'
 import { useTenant } from '../hooks/useTenant'
 import { useYear } from '../hooks/useYear'
 import { useRefresh } from '../hooks/useRefresh'
-import { Link } from 'wouter'
 import { ExpenseDetailSheet } from '../components/ExpenseDetailSheet'
 import { MileageDetailSheet } from '../components/MileageDetailSheet'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
 interface Expense {
   id: string
-  date: string
-  vendor: string
   amount: number
-  categoryId: string
-  categoryName: string
-  categoryEmoji: string
-  type: 'cogs' | 'operating' | 'home_office'
+  vendor: string | null
   description: string | null
-  receiptUrl: string | null
+  date: string
+  categoryId: string | null
+  categoryName: string | null
+  categoryEmoji: string | null
+  expenseType?: string
 }
 
 interface CategoryBreakdown {
   name: string
-  emoji: string
+  emoji: string | null
   total: number
   count: number
-  percentage: number
+}
+
+interface DashboardData {
+  expenses: Expense[]
+  summary: {
+    totalAmount: number
+    expenseCount: number
+    averageAmount: number
+    year: number
+  }
+  categoryBreakdown: CategoryBreakdown[]
 }
 
 interface MileageTrip {
   id: string
   date: string
+  description: string | null
   startLocation: string
   endLocation: string
   distanceMiles: number
+  displayMiles: number
   isRoundTrip: boolean
-  description: string | null
 }
 
-interface ExpenseSummary {
-  totalAmount: number
-  expenseCount: number
-  averageAmount: number
-  year: number
+interface MileageData {
+  trips: MileageTrip[]
+  summary: {
+    totalMiles: number
+    tripCount: number
+    estimatedDeduction: number
+    year: number
+  }
 }
 
-interface MileageSummary {
-  totalMiles: number
-  tripCount: number
-  year: number
-}
+// Color palette for donut chart (colorblind-friendly)
+const CHART_COLORS = [
+  '#2A9D8F', // teal (primary)
+  '#E9C46A', // gold
+  '#F4A261', // orange
+  '#E76F51', // coral
+  '#264653', // dark blue
+  '#8AB17D', // sage
+  '#A06CD5', // purple
+  '#6B9AC4', // sky blue
+  '#D4A5A5', // dusty rose
+  '#9DC183', // olive
+  '#F0B5B3', // blush
+  '#7EB6C4', // teal light
+]
 
 export default function DashboardPage() {
   const { subdomain } = useTenant()
   const { year } = useYear()
   const { expenseKey, mileageKey, refreshExpenses, refreshMileage } = useRefresh()
-  
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [categoryBreakdown, setCategoryBreakdown] = useState<CategoryBreakdown[]>([])
-  const [summary, setSummary] = useState<ExpenseSummary | null>(null)
-  const [mileageTrips, setMileageTrips] = useState<MileageTrip[]>([])
-  const [mileageSummary, setMileageSummary] = useState<MileageSummary | null>(null)
+  const [, setLocation] = useLocation()
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [mileageData, setMileageData] = useState<MileageData | null>(null)
   const [loading, setLoading] = useState(true)
-  
+  const [error, setError] = useState<string | null>(null)
+
   // Detail sheet state
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
-  const [selectedTrip, setSelectedTrip] = useState<MileageTrip | null>(null)
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
+  const [selectedTrip, setSelectedTrip] = useState<MileageTrip | null>(null)
   const [tripSheetOpen, setTripSheetOpen] = useState(false)
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!subdomain) return
+  const fetchDashboard = useCallback(async () => {
+    try {
       setLoading(true)
-      
-      const params = new URLSearchParams({
-        tenant: subdomain,
-        year: year.toString(),
-        limit: '500'
-      })
+      const params = new URLSearchParams()
+      if (subdomain) params.set('tenant', subdomain)
+      params.set('year', String(year))
+      params.set('limit', '500')
 
-      try {
-        const [expenseResponse, mileageResponse] = await Promise.all([
-          fetch(`/api/expenses?${params}`),
-          fetch(`/api/mileage?${params}`)
-        ])
+      // Fetch expenses and mileage in parallel
+      const [expenseResponse, mileageResponse] = await Promise.all([
+        fetch(`/api/expenses?${params}`),
+        fetch(`/api/mileage?${params}`)
+      ])
 
-        if (expenseResponse.ok) {
-          const result = await expenseResponse.json()
-          // Map API response to component interface
-          const mappedExpenses = (result.expenses || []).map((exp: any) => ({
-            ...exp,
-            categoryName: exp.category,
-            categoryEmoji: exp.emoji,
-            categoryId: exp.categoryId || ''
-          }))
-          setExpenses(mappedExpenses)
-          setCategoryBreakdown(result.categoryBreakdown || [])
-          setSummary(result.summary || null)
-        }
-
-        if (mileageResponse.ok) {
-          const mileageResult = await mileageResponse.json()
-          // Map API response to component interface
-          const mappedTrips = (mileageResult.trips || []).map((trip: any) => ({
-            ...trip,
-            isRoundTrip: trip.isRoundTrip || false
-          }))
-          setMileageTrips(mappedTrips)
-          setMileageSummary(mileageResult.summary || null)
-        }
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error)
-      } finally {
-        setLoading(false)
+      if (!expenseResponse.ok) {
+        const err = await expenseResponse.json()
+        throw new Error(err.error || 'Failed to fetch expenses')
       }
+
+      const expenseResult = await expenseResponse.json()
+      setData(expenseResult)
+
+      // Mileage is optional - don't fail if it errors
+      if (mileageResponse.ok) {
+        const mileageResult = await mileageResponse.json()
+        setMileageData(mileageResult)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setLoading(false)
     }
+  }, [subdomain, year])
 
-    fetchData()
-  }, [subdomain, year, expenseKey, mileageKey])
+  useEffect(() => {
+    fetchDashboard()
+  }, [fetchDashboard, expenseKey, mileageKey])
 
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(cents / 100)
+  // Navigate to expenses filtered by category
+  const handleCategoryClick = (categoryName: string) => {
+    setLocation(`/expenses?category=${encodeURIComponent(categoryName)}`)
   }
 
-  const formatMiles = (milesX100: number) => {
-    return (milesX100 / 100).toFixed(1)
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
-
-  const recentExpenses = expenses
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5)
-
-  const recentTrips = mileageTrips
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5)
-
-  const totalMiles = mileageSummary?.totalMiles || 0
-  const estimatedDeduction = Math.round((totalMiles / 100) * 0.70 * 100) // 70¢/mile, convert back to cents
-
+  // Open expense detail sheet
   const handleExpenseClick = (expense: Expense) => {
     setSelectedExpense(expense)
     setExpenseSheetOpen(true)
   }
 
+  // Open trip detail sheet
   const handleTripClick = (trip: MileageTrip) => {
     setSelectedTrip(trip)
     setTripSheetOpen(true)
   }
 
-  // Handlers for detail sheet callbacks
-  const handleExpenseUpdate = () => {
-    refreshExpenses()
-  }
-
-  const handleExpenseDelete = () => {
-    refreshExpenses()
-  }
-
-  const handleTripUpdate = () => {
-    refreshMileage()
-  }
-
-  const handleTripDelete = () => {
-    refreshMileage()
-  }
-
   if (loading) {
-    return <div className="page-loading">Loading dashboard...</div>
+    return (
+      <div className="page">
+        <p style={{ color: 'var(--color-text-secondary)' }}>Loading dashboard...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="page">
+        <div className="card" style={{ borderLeft: '4px solid var(--color-error)' }}>
+          <h2 style={{ margin: 0, color: 'var(--color-error)' }}>Error</h2>
+          <p style={{ marginBottom: 0 }}>{error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!data) return null
+
+  const { summary, categoryBreakdown, expenses } = data
+
+  // Format cents to dollars
+  const formatMoney = (cents: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(cents / 100)
+  }
+
+  // Format miles (stored as miles * 100)
+  const formatMiles = (miles: number) => (miles / 100).toFixed(1)
+
+  // Format date
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+
+  // Get recent expenses (last 10)
+  const recentExpenses = expenses.slice(0, 10)
+
+  // Get recent trips (last 5)
+  const recentTrips = mileageData?.trips.slice(0, 5) || []
+
+  // Prepare donut chart data (top 6 categories + "Other")
+  const prepareChartData = () => {
+    if (categoryBreakdown.length === 0) return []
+    
+    const topCategories = categoryBreakdown.slice(0, 6)
+    const otherCategories = categoryBreakdown.slice(6)
+    
+    const chartData = topCategories.map((cat, index) => ({
+      name: cat.name,
+      value: cat.total,
+      emoji: cat.emoji,
+      color: CHART_COLORS[index % CHART_COLORS.length],
+    }))
+    
+    if (otherCategories.length > 0) {
+      const otherTotal = otherCategories.reduce((sum, cat) => sum + cat.total, 0)
+      chartData.push({
+        name: 'Other',
+        value: otherTotal,
+        emoji: '📁',
+        color: CHART_COLORS[6],
+      })
+    }
+    
+    return chartData
+  }
+
+  const chartData = prepareChartData()
+
+  // Custom tooltip for donut chart
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; emoji: string } }> }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload
+      return (
+        <div className="donut-tooltip">
+          <span className="donut-tooltip__emoji">{data.emoji}</span>
+          <span className="donut-tooltip__name">{data.name}</span>
+          <span className="donut-tooltip__value">{formatMoney(data.value)}</span>
+        </div>
+      )
+    }
+    return null
   }
 
   return (
-    <div className="dashboard-page">
-      <h1 className="page-title">Dashboard</h1>
+    <div className="page dashboard">
+      <h1 className="page__title">Dashboard</h1>
 
-      {/* EXPENSES SECTION */}
-      <section className="dashboard__section">
-        <div className="dashboard__summary-row">
-          <Link href="/reports">
-            <div className="summary-card summary-card--clickable">
-              <div className="summary-card__label">Total Spent</div>
-              <div className="summary-card__value">
-                {formatCurrency(summary?.totalAmount || 0)}
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/expenses">
-            <div className="summary-card summary-card--clickable">
-              <div className="summary-card__label"># Transactions</div>
-              <div className="summary-card__value">
-                {summary?.expenseCount || 0}
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        <div className="dashboard__grid">
-          <div className="dashboard__card">
-            <Link href="/expenses">
-              <h2 className="dashboard__card-title dashboard__card-title--clickable">
-                Recent Expenses
-              </h2>
-            </Link>
-            {recentExpenses.length === 0 ? (
-              <p className="dashboard__empty">No expenses yet</p>
-            ) : (
-              <ul className="dashboard__list">
-                {recentExpenses.map((expense) => (
-                  <li 
-                    key={expense.id} 
-                    className="dashboard__list-item dashboard__list-item--clickable"
-                    onClick={() => handleExpenseClick(expense)}
+      {/* ==================== DONUT CHART ==================== */}
+      {chartData.length > 0 && (
+        <div className="card donut-card">
+          <h2 className="card__title">Spending by Category</h2>
+          <div className="donut-container">
+            <div className="donut-chart">
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
                   >
-                    <div className="dashboard__list-item-main">
-                      <span className="dashboard__list-emoji">{expense.categoryEmoji}</span>
-                      <div className="dashboard__list-details">
-                        <div className="dashboard__list-vendor">{expense.vendor}</div>
-                        <div className="dashboard__list-category">{expense.categoryName}</div>
-                      </div>
-                    </div>
-                    <div className="dashboard__list-meta">
-                      <div className="dashboard__list-amount">{formatCurrency(expense.amount)}</div>
-                      <div className="dashboard__list-date">{formatDate(expense.date)}</div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="dashboard__card">
-            <h2 className="dashboard__card-title">By Category</h2>
-            {categoryBreakdown.length === 0 ? (
-              <p className="dashboard__empty">No categories yet</p>
-            ) : (
-              <ul className="dashboard__list">
-                {categoryBreakdown.slice(0, 5).map((cat) => (
-                  <Link key={cat.name} href={`/expenses?category=${encodeURIComponent(cat.name)}`}>
-                    <li className="dashboard__list-item dashboard__list-item--clickable">
-                      <div className="dashboard__list-item-main">
-                        <span className="dashboard__list-emoji">{cat.emoji}</span>
-                        <div className="dashboard__list-details">
-                          <div className="dashboard__list-vendor">{cat.name}</div>
-                          <div className="dashboard__list-category">{cat.count} transactions</div>
-                        </div>
-                      </div>
-                      <div className="dashboard__list-meta">
-                        <div className="dashboard__list-amount">{formatCurrency(cat.total)}</div>
-                        <div className="dashboard__list-percentage">{((cat.total / (summary?.totalAmount || 1)) * 100).toFixed(1)}%</div>
-                      </div>
-                    </li>
-                  </Link>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <div className="dashboard__divider"></div>
-
-      {/* MILEAGE SECTION */}
-      <section className="dashboard__section">
-        <div className="dashboard__summary-row">
-          <div className="summary-card">
-            <div className="summary-card__label">Total Miles</div>
-            <div className="summary-card__value">
-              {formatMiles(totalMiles)}
-            </div>
-          </div>
-
-          <div className="summary-card">
-            <div className="summary-card__label"># Trips</div>
-            <div className="summary-card__value">
-              {mileageSummary?.tripCount || 0}
-            </div>
-          </div>
-        </div>
-
-        <div className="dashboard__grid">
-          <div className="dashboard__card">
-            <Link href="/mileage">
-              <h2 className="dashboard__card-title dashboard__card-title--clickable">
-                Recent Trips
-              </h2>
-            </Link>
-            {recentTrips.length === 0 ? (
-              <p className="dashboard__empty">No trips yet</p>
-            ) : (
-              <ul className="dashboard__list">
-                {recentTrips.map((trip) => (
-                  <li 
-                    key={trip.id} 
-                    className="dashboard__list-item dashboard__list-item--clickable"
-                    onClick={() => handleTripClick(trip)}
-                  >
-                    <div className="dashboard__list-item-main">
-                      <span className="dashboard__list-emoji">🚗</span>
-                      <div className="dashboard__list-details">
-                        <div className="dashboard__list-vendor">
-                          {trip.startLocation} → {trip.endLocation}
-                        </div>
-                        {trip.description && (
-                          <div className="dashboard__list-category">{trip.description}</div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="dashboard__list-meta">
-                      <div className="dashboard__list-amount">{formatMiles(trip.distanceMiles)} mi</div>
-                      <div className="dashboard__list-date">{formatDate(trip.date)}</div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="dashboard__card">
-            <h2 className="dashboard__card-title">Est. Tax Deduction</h2>
-            <div className="deduction-display">
-              <div className="deduction-display__amount">
-                {formatCurrency(estimatedDeduction)}
-              </div>
-              <div className="deduction-display__note">
-                Based on {formatMiles(totalMiles)} miles at $0.70/mile
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="donut-center">
+                <span className="donut-center__amount">{formatMoney(summary.totalAmount)}</span>
+                <span className="donut-center__label">Total</span>
               </div>
             </div>
+            <ul className="donut-legend">
+              {chartData.map((entry, index) => (
+                <li 
+                  key={index} 
+                  className="donut-legend__item"
+                  onClick={() => entry.name !== 'Other' && handleCategoryClick(entry.name)}
+                  role={entry.name !== 'Other' ? 'button' : undefined}
+                  tabIndex={entry.name !== 'Other' ? 0 : undefined}
+                  onKeyDown={(e) => {
+                    if (entry.name !== 'Other' && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault()
+                      handleCategoryClick(entry.name)
+                    }
+                  }}
+                >
+                  <span 
+                    className="donut-legend__color" 
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span className="donut-legend__emoji">{entry.emoji}</span>
+                  <span className="donut-legend__name">{entry.name}</span>
+                  <span className="donut-legend__value">{formatMoney(entry.value)}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-      </section>
+      )}
 
-      {/* Detail Sheets */}
+      {/* ==================== EXPENSES SECTION ==================== */}
+      
+      {/* Expense Summary Cards */}
+      <div className="dashboard__summary dashboard__summary--half">
+        <div 
+          className="summary-card summary-card--clickable"
+          onClick={() => setLocation('/reports')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setLocation('/reports')
+            }
+          }}
+        >
+          <span className="summary-card__label">Total Spent</span>
+          <span className="summary-card__value">{formatMoney(summary.totalAmount)}</span>
+          <span className="summary-card__sub">{summary.year}</span>
+        </div>
+        <div 
+          className="summary-card summary-card--clickable"
+          onClick={() => setLocation('/expenses')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setLocation('/expenses')
+            }
+          }}
+        >
+          <span className="summary-card__label">Expenses</span>
+          <span className="summary-card__value">{summary.expenseCount}</span>
+          <span className="summary-card__sub">transactions</span>
+        </div>
+      </div>
+
+      {/* Expense Details Grid */}
+      <div className="dashboard__grid">
+        {/* Recent Expenses */}
+        <div className="card">
+          <h2 
+            className="card__title card__title--clickable"
+            onClick={() => setLocation('/expenses')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setLocation('/expenses')
+              }
+            }}
+          >
+            Recent Expenses →
+          </h2>
+          {recentExpenses.length === 0 ? (
+            <p style={{ color: 'var(--color-text-secondary)' }}>No expenses yet</p>
+          ) : (
+            <ul className="expense-list">
+              {recentExpenses.map((expense) => (
+                <li 
+                  key={expense.id} 
+                  className="expense-list__item expense-list__item--clickable"
+                  onClick={() => handleExpenseClick(expense)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleExpenseClick(expense)
+                    }
+                  }}
+                >
+                  <div className="expense-list__icon">
+                    {expense.categoryEmoji || '📁'}
+                  </div>
+                  <div className="expense-list__details">
+                    <span className="expense-list__vendor">
+                      {expense.vendor || expense.description || 'Expense'}
+                    </span>
+                    <span className="expense-list__meta">
+                      {expense.categoryName || 'Uncategorized'} • {formatDate(expense.date)}
+                    </span>
+                  </div>
+                  <span className="expense-list__amount">
+                    {formatMoney(expense.amount)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Category Breakdown */}
+        <div className="card">
+          <h2 className="card__title">By Category</h2>
+          {categoryBreakdown.length === 0 ? (
+            <p style={{ color: 'var(--color-text-secondary)' }}>No categories yet</p>
+          ) : (
+            <ul className="category-list">
+              {categoryBreakdown.slice(0, 8).map((cat) => (
+                <li 
+                  key={cat.name} 
+                  className="category-list__item category-list__item--clickable"
+                  onClick={() => handleCategoryClick(cat.name)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleCategoryClick(cat.name)
+                    }
+                  }}
+                >
+                  <div className="category-list__info">
+                    <span className="category-list__emoji">{cat.emoji || '📁'}</span>
+                    <span className="category-list__name">{cat.name}</span>
+                    <span className="category-list__count">{cat.count}</span>
+                  </div>
+                  <div className="category-list__bar-container">
+                    <div 
+                      className="category-list__bar" 
+                      style={{ 
+                        width: `${(cat.total / categoryBreakdown[0].total) * 100}%` 
+                      }}
+                    />
+                  </div>
+                  <span className="category-list__total">{formatMoney(cat.total)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* Section Divider */}
+      <div className="dashboard__divider" />
+
+      {/* ==================== MILEAGE SECTION ==================== */}
+      
+      {/* Mileage Summary Cards */}
+      <div className="dashboard__summary dashboard__summary--half">
+        <div 
+          className="summary-card summary-card--clickable"
+          onClick={() => setLocation('/mileage')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setLocation('/mileage')
+            }
+          }}
+        >
+          <span className="summary-card__label">Total Miles</span>
+          <span className="summary-card__value">
+            {mileageData?.summary ? formatMiles(mileageData.summary.totalMiles) : '0'}
+          </span>
+          <span className="summary-card__sub">{year}</span>
+        </div>
+        <div 
+          className="summary-card summary-card--clickable"
+          onClick={() => setLocation('/mileage')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setLocation('/mileage')
+            }
+          }}
+        >
+          <span className="summary-card__label">Trips</span>
+          <span className="summary-card__value">
+            {mileageData?.summary?.tripCount || 0}
+          </span>
+          <span className="summary-card__sub">logged</span>
+        </div>
+      </div>
+
+      {/* Mileage Details Grid */}
+      <div className="dashboard__grid">
+        {/* Recent Trips */}
+        <div className="card">
+          <h2 
+            className="card__title card__title--clickable"
+            onClick={() => setLocation('/mileage')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setLocation('/mileage')
+              }
+            }}
+          >
+            Recent Trips →
+          </h2>
+          {recentTrips.length === 0 ? (
+            <p style={{ color: 'var(--color-text-secondary)' }}>No trips logged yet</p>
+          ) : (
+            <ul className="trip-list">
+              {recentTrips.map((trip) => (
+                <li 
+                  key={trip.id} 
+                  className="trip-list__item trip-list__item--clickable"
+                  onClick={() => handleTripClick(trip)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleTripClick(trip)
+                    }
+                  }}
+                >
+                  <div className="trip-list__icon">
+                    {trip.isRoundTrip ? '🔄' : '📍'}
+                  </div>
+                  <div className="trip-list__details">
+                    <span className="trip-list__route">
+                      {trip.description || `${truncateLocation(trip.startLocation)} → ${truncateLocation(trip.endLocation)}`}
+                    </span>
+                    <span className="trip-list__meta">
+                      {formatDate(trip.date)}
+                      {trip.isRoundTrip && ' · Round trip'}
+                    </span>
+                  </div>
+                  <span className="trip-list__miles">
+                    {formatMiles(trip.displayMiles)} mi
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Estimated Deduction Card */}
+        <div className="card">
+          <h2 className="card__title">Est. Tax Deduction</h2>
+          <div className="deduction-display">
+            <span className="deduction-display__value">
+              {mileageData?.summary ? formatMoney(mileageData.summary.estimatedDeduction) : '$0.00'}
+            </span>
+            <span className="deduction-display__rate">@ 70¢/mile (2025 IRS rate)</span>
+            <p className="deduction-display__note">
+              This is an estimate based on IRS standard mileage rates. Consult a tax professional for actual deductions.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Expense Detail Sheet */}
       <ExpenseDetailSheet
-        isOpen={expenseSheetOpen}
-        onClose={() => {
-          setExpenseSheetOpen(false)
-          setSelectedExpense(null)
-        }}
         expense={selectedExpense}
-        onUpdate={handleExpenseUpdate}
-        onDelete={handleExpenseDelete}
+        isOpen={expenseSheetOpen}
+        onClose={() => setExpenseSheetOpen(false)}
+        onUpdate={refreshExpenses}
+        onDelete={refreshExpenses}
       />
 
+      {/* Mileage Detail Sheet */}
       <MileageDetailSheet
-        isOpen={tripSheetOpen}
-        onClose={() => {
-          setTripSheetOpen(false)
-          setSelectedTrip(null)
-        }}
         trip={selectedTrip}
-        onUpdate={handleTripUpdate}
-        onDelete={handleTripDelete}
+        isOpen={tripSheetOpen}
+        onClose={() => setTripSheetOpen(false)}
+        onUpdate={refreshMileage}
+        onDelete={refreshMileage}
       />
     </div>
   )
+}
+
+// Helper to truncate long addresses
+function truncateLocation(location: string, maxLength = 20): string {
+  if (location.length <= maxLength) return location
+  const commaIndex = location.indexOf(',')
+  if (commaIndex > 0 && commaIndex <= maxLength) {
+    return location.substring(0, commaIndex)
+  }
+  return location.substring(0, maxLength) + '...'
 }
