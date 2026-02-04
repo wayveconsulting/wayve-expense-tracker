@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useYear } from '../hooks/useYear'
 import { useTenant } from '../hooks/useTenant'
+import { Link } from 'wouter'
 
 export default function ReportsPage() {
   const { year, nextYear, prevYear } = useYear()
@@ -112,30 +113,35 @@ export default function ReportsPage() {
       title: 'Annual Summary',
       description: 'Complete breakdown of expenses by category for the year',
       available: false,
+      href: '/reports/annual',
     },
     {
       icon: '📅',
       title: 'Quarterly Report',
-      description: 'Side-by-side comparison of Q1, Q2, Q3, Q4 spending',
-      available: false,
+      description: 'Side-by-side comparison of Q1, Q2, Q3, Q4 spending by category',
+      available: true,
+      href: '/reports/quarterly',
     },
     {
       icon: '🚗',
       title: 'Mileage Log',
       description: 'IRS-ready mileage report with dates, destinations, and totals',
       available: false,
+      href: '/reports/mileage',
     },
     {
       icon: '📎',
       title: 'Receipts Export',
       description: 'Download all receipts as a ZIP file organized by month',
       available: false,
+      href: '/reports/receipts',
     },
     {
       icon: '🧾',
       title: 'Tax Summary',
       description: 'Expenses grouped by tax category (COGS, Operating, Home Office)',
       available: false,
+      href: '/reports/tax',
     },
   ]
 
@@ -231,24 +237,37 @@ export default function ReportsPage() {
         </button>
       </div>
 
-      {/* Other Report Types - Coming Soon */}
+      {/* Other Report Types */}
       <h2 className="reports-page__section-title">More Reports</h2>
       <div className="report-grid">
         {reportTypes.map((report) => (
-          <button
-            key={report.title}
-            className="report-card"
-            disabled={!report.available}
-          >
-            <span className="report-card__icon">{report.icon}</span>
-            <div className="report-card__content">
-              <span className="report-card__title">{report.title}</span>
-              <span className="report-card__description">{report.description}</span>
-            </div>
-            {!report.available && (
+          report.available ? (
+            <Link
+              key={report.title}
+              href={report.href}
+              className="report-card report-card--available"
+            >
+              <span className="report-card__icon">{report.icon}</span>
+              <div className="report-card__content">
+                <span className="report-card__title">{report.title}</span>
+                <span className="report-card__description">{report.description}</span>
+              </div>
+              <span className="report-card__badge report-card__badge--live">View</span>
+            </Link>
+          ) : (
+            <button
+              key={report.title}
+              className="report-card"
+              disabled
+            >
+              <span className="report-card__icon">{report.icon}</span>
+              <div className="report-card__content">
+                <span className="report-card__title">{report.title}</span>
+                <span className="report-card__description">{report.description}</span>
+              </div>
               <span className="report-card__badge">Coming Soon</span>
-            )}
-          </button>
+            </button>
+          )
         ))}
       </div>
     </div>
