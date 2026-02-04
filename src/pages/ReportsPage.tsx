@@ -126,7 +126,7 @@ export default function ReportsPage() {
       icon: '🚗',
       title: 'Mileage Log',
       description: 'IRS-ready mileage report with dates, destinations, and totals',
-      available: false,
+      available: true,
       href: '/reports/mileage',
     },
     {

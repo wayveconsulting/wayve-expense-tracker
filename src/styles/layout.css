@@ -2746,3 +2746,300 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ============================================
+   MILEAGE REPORT PAGE
+   ============================================ */
+
+.mileage-report-page__nav {
+  margin-bottom: var(--spacing-md);
+}
+
+.mileage-report-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.mileage-report-page__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.mileage-report-page__year-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.mileage-report-page__year {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  min-width: 3.5rem;
+  text-align: center;
+}
+
+.mileage-report-page__description {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+/* Summary stat cards */
+.mileage-report__summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.mileage-report__stat-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-xs);
+}
+
+.mileage-report__stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.mileage-report__stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.mileage-report__stat-value--highlight {
+  color: var(--color-primary);
+}
+
+.mileage-report__stat-sub {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 480px) {
+  .mileage-report__summary {
+    grid-template-columns: 1fr;
+  }
+
+  .mileage-report__stat-card {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+  }
+
+  .mileage-report__stat-value {
+    font-size: 1.25rem;
+  }
+}
+
+/* Monthly breakdown */
+.mileage-report__monthly-card {
+  margin-bottom: var(--spacing-lg);
+}
+
+.mileage-report__monthly-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mileage-report__monthly-row {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.875rem;
+}
+
+.mileage-report__monthly-row:last-child {
+  border-bottom: none;
+}
+
+.mileage-report__monthly-label {
+  flex: 1;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.mileage-report__monthly-trips {
+  color: var(--color-text-secondary);
+  margin-right: var(--spacing-lg);
+  min-width: 60px;
+  text-align: right;
+}
+
+.mileage-report__monthly-miles {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  min-width: 70px;
+  text-align: right;
+}
+
+/* Trip log table */
+.mileage-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-primary);
+}
+
+.mileage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  min-width: 500px;
+}
+
+.mileage-table thead {
+  border-bottom: 2px solid var(--color-border);
+}
+
+.mileage-table th {
+  padding: var(--spacing-md);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-secondary);
+}
+
+.mileage-table__date-header {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mileage-table__dest-header {
+  text-align: left;
+}
+
+.mileage-table__purpose-header {
+  text-align: left;
+}
+
+.mileage-table__miles-header {
+  text-align: right;
+}
+
+.mileage-table__row {
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.15s ease;
+}
+
+.mileage-table__row:hover {
+  background: var(--color-bg-hover, rgba(0, 0, 0, 0.02));
+}
+
+.mileage-table__date-cell {
+  padding: var(--spacing-md);
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+.mileage-table__date-short {
+  display: none;
+}
+
+.mileage-table__dest-cell {
+  padding: var(--spacing-md);
+  color: var(--color-text-primary);
+  line-height: 1.4;
+}
+
+.mileage-table__dest-short {
+  display: none;
+}
+
+.mileage-table__round-trip-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-info, #3b82f6);
+  background: rgba(59, 130, 246, 0.1);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  margin-left: var(--spacing-sm);
+  vertical-align: middle;
+}
+
+.mileage-table__purpose-cell {
+  padding: var(--spacing-md);
+  color: var(--color-text-secondary);
+  max-width: 200px;
+}
+
+.mileage-table__miles-cell {
+  padding: var(--spacing-md);
+  text-align: right;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.mileage-table__miles-cell--total {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.mileage-table__totals-row {
+  background: var(--color-bg-secondary, var(--color-bg-primary));
+}
+
+.mileage-table tfoot {
+  border-top: 2px solid var(--color-border);
+}
+
+.mileage-table__totals-label {
+  padding: var(--spacing-md);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* Responsive: swap full addresses for short on mobile */
+@media (max-width: 600px) {
+  .mileage-table__date-full {
+    display: none;
+  }
+  .mileage-table__date-short {
+    display: inline;
+  }
+  .mileage-table__dest-full {
+    display: none;
+  }
+  .mileage-table__dest-short {
+    display: inline;
+  }
+}
+
+/* IRS disclaimer */
+.mileage-report__disclaimer {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  line-height: 1.5;
+}
+

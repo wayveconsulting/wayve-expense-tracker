@@ -9,6 +9,7 @@ import MileagePage from './pages/MileagePage'
 import CategoriesPage from './pages/CategoriesPage'
 import ReportsPage from './pages/ReportsPage'
 import QuarterlyReportPage from './pages/QuarterlyReportPage'
+import MileageReportPage from './pages/MileageReportPage'
 import SettingsPage from './pages/SettingsPage'
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
         <Route path="/expenses" component={ExpensesPage} />
         <Route path="/mileage" component={MileagePage} />
         <Route path="/categories" component={CategoriesPage} />
+        <Route path="/reports/mileage" component={MileageReportPage} />
         <Route path="/reports/quarterly" component={QuarterlyReportPage} />
         <Route path="/reports" component={ReportsPage} />
         <Route path="/settings" component={SettingsPage} />
