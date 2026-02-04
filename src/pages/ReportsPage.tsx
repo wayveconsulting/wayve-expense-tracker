@@ -112,7 +112,7 @@ export default function ReportsPage() {
       icon: '📊',
       title: 'Annual Summary',
       description: 'Complete breakdown of expenses by category for the year',
-      available: false,
+      available: true,
       href: '/reports/annual',
     },
     {

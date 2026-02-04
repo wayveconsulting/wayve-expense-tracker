@@ -3043,3 +3043,294 @@
   line-height: 1.5;
 }
 
+/* ============================================
+   ANNUAL SUMMARY REPORT PAGE
+   ============================================ */
+
+.annual-report-page__nav {
+  margin-bottom: var(--spacing-md);
+}
+
+.annual-report-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.annual-report-page__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.annual-report-page__year-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.annual-report-page__year {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  min-width: 3.5rem;
+  text-align: center;
+}
+
+.annual-report-page__description {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+/* Summary stat cards */
+.annual-report__summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.annual-report__stat-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-xs);
+}
+
+.annual-report__stat-card--primary {
+  border-color: var(--color-primary);
+  border-width: 2px;
+}
+
+.annual-report__stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.annual-report__stat-value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.annual-report__stat-card--primary .annual-report__stat-value {
+  color: var(--color-primary);
+}
+
+.annual-report__stat-sub {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 540px) {
+  .annual-report__summary {
+    grid-template-columns: 1fr;
+  }
+
+  .annual-report__stat-card {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    text-align: left;
+  }
+
+  .annual-report__stat-card--primary {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .annual-report__stat-value {
+    font-size: 1.25rem;
+  }
+}
+
+/* High / Low highlights */
+.annual-report__highlights {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.annual-report__highlight {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+}
+
+.annual-report__highlight-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.annual-report__highlight-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.annual-report__highlight-value {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 480px) {
+  .annual-report__highlights {
+    flex-direction: column;
+  }
+}
+
+/* Monthly chart */
+.annual-report__chart-card {
+  margin-bottom: var(--spacing-lg);
+}
+
+.annual-report__chart {
+  margin-top: var(--spacing-md);
+}
+
+.annual-chart-tooltip {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.annual-chart-tooltip__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.annual-chart-tooltip__value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 2px 0 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Category breakdown */
+.annual-report__category-card {
+  margin-bottom: var(--spacing-lg);
+}
+
+.annual-report__category-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.annual-report__category-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+  gap: var(--spacing-sm);
+}
+
+.annual-report__category-row:last-child {
+  border-bottom: none;
+}
+
+.annual-report__category-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 140px;
+  flex: 1;
+}
+
+.annual-report__category-emoji {
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+.annual-report__category-name {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+}
+
+.annual-report__category-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-left: auto;
+}
+
+.annual-report__category-count {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  min-width: 50px;
+  text-align: right;
+}
+
+.annual-report__category-pct {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  min-width: 40px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.annual-report__category-amount {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  min-width: 90px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Percentage bar */
+.annual-report__category-bar-track {
+  width: 100%;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.annual-report__category-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  min-width: 2px;
+}
+
+@media (max-width: 480px) {
+  .annual-report__category-stats {
+    width: 100%;
+    justify-content: flex-end;
+    padding-left: calc(1.125rem + var(--spacing-sm));
+  }
+}
+
