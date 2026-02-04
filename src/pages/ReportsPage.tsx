@@ -140,7 +140,7 @@ export default function ReportsPage() {
       icon: '🧾',
       title: 'Tax Summary',
       description: 'Expenses grouped by tax category (COGS, Operating, Home Office)',
-      available: false,
+      available: true,
       href: '/reports/tax',
     },
   ]
