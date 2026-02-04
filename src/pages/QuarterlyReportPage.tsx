@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react'
 import { useYear } from '../hooks/useYear'
 import { useTenant } from '../hooks/useTenant'
 import { Link } from 'wouter'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts'
 
 interface QuarterlyRow {
   categoryId: string
@@ -26,6 +36,22 @@ interface QuarterlyData {
   }
 }
 
+// Same color palette as dashboard donut chart
+const CHART_COLORS = [
+  '#2A9D8F', // teal (primary)
+  '#E9C46A', // gold
+  '#F4A261', // orange
+  '#E76F51', // coral
+  '#264653', // dark blue
+  '#8AB17D', // sage
+  '#A06CD5', // purple
+  '#6B9AC4', // sky blue
+  '#D4A5A5', // dusty rose
+  '#9DC183', // olive
+  '#F0B5B3', // blush
+  '#7EB6C4', // teal light
+]
+
 function formatDollars(cents: number): string {
   return (cents / 100).toLocaleString('en-US', {
     style: 'currency',
@@ -33,6 +59,41 @@ function formatDollars(cents: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   })
+}
+
+// Tooltip for the stacked bar chart
+function ChartTooltip({ active, payload, label }: {
+  active?: boolean
+  payload?: Array<{ name: string; value: number; color: string }>
+  label?: string
+}) {
+  if (!active || !payload || !payload.length) return null
+
+  // Filter out zero values and sort descending
+  const nonZero = payload.filter(p => p.value > 0).sort((a, b) => b.value - a.value)
+  if (nonZero.length === 0) return null
+
+  const total = nonZero.reduce((sum, p) => sum + p.value, 0)
+
+  return (
+    <div className="stacked-chart-tooltip">
+      <p className="stacked-chart-tooltip__label">{label}</p>
+      {nonZero.map((entry, i) => (
+        <div key={i} className="stacked-chart-tooltip__row">
+          <span
+            className="stacked-chart-tooltip__color"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="stacked-chart-tooltip__name">{entry.name}</span>
+          <span className="stacked-chart-tooltip__value">{formatDollars(entry.value)}</span>
+        </div>
+      ))}
+      <div className="stacked-chart-tooltip__total">
+        <span>Total</span>
+        <span>{formatDollars(total)}</span>
+      </div>
+    </div>
+  )
 }
 
 export default function QuarterlyReportPage() {
@@ -69,6 +130,44 @@ export default function QuarterlyReportPage() {
 
     fetchData()
   }, [subdomain, year])
+
+  // Prepare stacked bar chart data from quarterly rows
+  const prepareChartData = () => {
+    if (!data || data.rows.length === 0) return { chartBars: [], chartData: [] }
+
+    // Top 6 categories by total, rest grouped as "Other"
+    const topCategories = data.rows.slice(0, 6)
+    const otherCategories = data.rows.slice(6)
+
+    const quarters = ['Q1', 'Q2', 'Q3', 'Q4']
+    const qKeys: Array<'q1' | 'q2' | 'q3' | 'q4'> = ['q1', 'q2', 'q3', 'q4']
+
+    const chartData = quarters.map((label, qi) => {
+      const point: Record<string, string | number> = { quarter: label }
+      topCategories.forEach((row) => {
+        point[row.name] = row[qKeys[qi]]
+      })
+      if (otherCategories.length > 0) {
+        point['Other'] = otherCategories.reduce((sum, row) => sum + row[qKeys[qi]], 0)
+      }
+      return point
+    })
+
+    const chartBars = topCategories.map((row, i) => ({
+      key: row.name,
+      color: CHART_COLORS[i % CHART_COLORS.length],
+    }))
+    if (otherCategories.length > 0) {
+      chartBars.push({
+        key: 'Other',
+        color: CHART_COLORS[6],
+      })
+    }
+
+    return { chartBars, chartData }
+  }
+
+  const { chartBars, chartData } = prepareChartData()
 
   return (
     <div className="page quarterly-report-page">
@@ -132,65 +231,112 @@ export default function QuarterlyReportPage() {
               <p style={{ color: 'var(--color-text-secondary)' }}>No expenses recorded for {year}.</p>
             </div>
           ) : (
-            <div className="quarterly-table-wrapper">
-              <table className="quarterly-table">
-                <thead>
-                  <tr>
-                    <th className="quarterly-table__category-header">Category</th>
-                    <th className="quarterly-table__quarter-header">Q1</th>
-                    <th className="quarterly-table__quarter-header">Q2</th>
-                    <th className="quarterly-table__quarter-header">Q3</th>
-                    <th className="quarterly-table__quarter-header">Q4</th>
-                    <th className="quarterly-table__total-header">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.rows.map((row) => (
-                    <tr key={row.categoryId} className="quarterly-table__row">
-                      <td className="quarterly-table__category-cell">
-                        <span className="quarterly-table__emoji">{row.emoji}</span>
-                        <span className="quarterly-table__name">{row.name}</span>
-                      </td>
-                      <td className={`quarterly-table__amount-cell ${row.q1 === 0 ? 'quarterly-table__amount-cell--zero' : ''}`}>
-                        {row.q1 === 0 ? '—' : formatDollars(row.q1)}
-                      </td>
-                      <td className={`quarterly-table__amount-cell ${row.q2 === 0 ? 'quarterly-table__amount-cell--zero' : ''}`}>
-                        {row.q2 === 0 ? '—' : formatDollars(row.q2)}
-                      </td>
-                      <td className={`quarterly-table__amount-cell ${row.q3 === 0 ? 'quarterly-table__amount-cell--zero' : ''}`}>
-                        {row.q3 === 0 ? '—' : formatDollars(row.q3)}
-                      </td>
-                      <td className={`quarterly-table__amount-cell ${row.q4 === 0 ? 'quarterly-table__amount-cell--zero' : ''}`}>
-                        {row.q4 === 0 ? '—' : formatDollars(row.q4)}
+            <>
+              {/* Stacked Bar Chart */}
+              <div className="card stacked-chart-card">
+                <h2 className="card__title">Quarterly Comparison</h2>
+                <div className="stacked-chart">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="var(--color-border)"
+                      />
+                      <XAxis
+                        dataKey="quarter"
+                        tick={{ fill: 'var(--color-text-secondary)', fontSize: 13 }}
+                        axisLine={{ stroke: 'var(--color-border)' }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tickFormatter={(value: number) => formatDollars(value)}
+                        tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={70}
+                      />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-bg-hover, rgba(0,0,0,0.04))' }} />
+                      <Legend
+                        wrapperStyle={{ fontSize: '0.8125rem', paddingTop: '8px' }}
+                        iconType="square"
+                        iconSize={10}
+                      />
+                      {chartBars.map((bar) => (
+                        <Bar
+                          key={bar.key}
+                          dataKey={bar.key}
+                          stackId="spending"
+                          fill={bar.color}
+                          radius={[0, 0, 0, 0]}
+                        />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Quarterly Table */}
+              <div className="quarterly-table-wrapper">
+                <table className="quarterly-table">
+                  <thead>
+                    <tr>
+                      <th className="quarterly-table__category-header">Category</th>
+                      <th className="quarterly-table__quarter-header">Q1</th>
+                      <th className="quarterly-table__quarter-header">Q2</th>
+                      <th className="quarterly-table__quarter-header">Q3</th>
+                      <th className="quarterly-table__quarter-header">Q4</th>
+                      <th className="quarterly-table__total-header">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.rows.map((row) => (
+                      <tr key={row.categoryId} className="quarterly-table__row">
+                        <td className="quarterly-table__category-cell">
+                          <span className="quarterly-table__emoji">{row.emoji}</span>
+                          <span className="quarterly-table__name">{row.name}</span>
+                        </td>
+                        <td className={`quarterly-table__amount-cell ${row.q1 === 0 ? 'quarterly-table__amount-cell--zero' : ''}`}>
+                          {row.q1 === 0 ? '—' : formatDollars(row.q1)}
+                        </td>
+                        <td className={`quarterly-table__amount-cell ${row.q2 === 0 ? 'quarterly-table__amount-cell--zero' : ''}`}>
+                          {row.q2 === 0 ? '—' : formatDollars(row.q2)}
+                        </td>
+                        <td className={`quarterly-table__amount-cell ${row.q3 === 0 ? 'quarterly-table__amount-cell--zero' : ''}`}>
+                          {row.q3 === 0 ? '—' : formatDollars(row.q3)}
+                        </td>
+                        <td className={`quarterly-table__amount-cell ${row.q4 === 0 ? 'quarterly-table__amount-cell--zero' : ''}`}>
+                          {row.q4 === 0 ? '—' : formatDollars(row.q4)}
+                        </td>
+                        <td className="quarterly-table__amount-cell quarterly-table__amount-cell--total">
+                          {formatDollars(row.total)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="quarterly-table__totals-row">
+                      <td className="quarterly-table__category-cell quarterly-table__category-cell--total">TOTAL</td>
+                      <td className="quarterly-table__amount-cell quarterly-table__amount-cell--total">
+                        {formatDollars(data.totals.q1)}
                       </td>
                       <td className="quarterly-table__amount-cell quarterly-table__amount-cell--total">
-                        {formatDollars(row.total)}
+                        {formatDollars(data.totals.q2)}
+                      </td>
+                      <td className="quarterly-table__amount-cell quarterly-table__amount-cell--total">
+                        {formatDollars(data.totals.q3)}
+                      </td>
+                      <td className="quarterly-table__amount-cell quarterly-table__amount-cell--total">
+                        {formatDollars(data.totals.q4)}
+                      </td>
+                      <td className="quarterly-table__amount-cell quarterly-table__amount-cell--grand-total">
+                        {formatDollars(data.totals.total)}
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="quarterly-table__totals-row">
-                    <td className="quarterly-table__category-cell quarterly-table__category-cell--total">TOTAL</td>
-                    <td className="quarterly-table__amount-cell quarterly-table__amount-cell--total">
-                      {formatDollars(data.totals.q1)}
-                    </td>
-                    <td className="quarterly-table__amount-cell quarterly-table__amount-cell--total">
-                      {formatDollars(data.totals.q2)}
-                    </td>
-                    <td className="quarterly-table__amount-cell quarterly-table__amount-cell--total">
-                      {formatDollars(data.totals.q3)}
-                    </td>
-                    <td className="quarterly-table__amount-cell quarterly-table__amount-cell--total">
-                      {formatDollars(data.totals.q4)}
-                    </td>
-                    <td className="quarterly-table__amount-cell quarterly-table__amount-cell--grand-total">
-                      {formatDollars(data.totals.total)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+                  </tfoot>
+                </table>
+              </div>
+            </>
           )}
         </>
       )}
