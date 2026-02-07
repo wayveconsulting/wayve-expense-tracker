@@ -18,6 +18,10 @@ export const tenants = pgTable('tenants', {
   // White-label custom domain (future)
   customDomain: varchar('custom_domain', { length: 255 }), // e.g., "expenses.sarahcpa.com"
   
+  // Home Office settings (tenant-level — applies to all home_office categories equally)
+  homeTotalSqft: integer('home_total_sqft'), // total home square footage
+  homeOfficeSqft: integer('home_office_sqft'), // dedicated office square footage
+  
   // Settings
   isActive: boolean('is_active').default(true).notNull(),
   
@@ -102,6 +106,15 @@ export const categories = pgTable('categories', {
   // Display
   name: varchar('name', { length: 100 }).notNull(),
   emoji: varchar('emoji', { length: 10 }).default('📁'), // emoji icon
+  
+  // Classification default — when an expense uses this category, default to this type
+  expenseType: varchar('expense_type', { length: 50 }).default('operating').notNull(), // 'cogs' | 'operating' | 'home_office'
+  
+  // Home Office — only relevant when expenseType = 'home_office'
+  homeOfficeEligible: boolean('home_office_eligible').default(false).notNull(),
+  
+  // System categories can't be deleted (e.g., "Uncategorized")
+  isSystem: boolean('is_system').default(false).notNull(),
   
   // Sorting
   sortOrder: integer('sort_order').default(0),
@@ -325,4 +338,3 @@ export const expensePolicies = pgTable('expense_policies', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
-
