@@ -56,7 +56,7 @@ async function migrate() {
 
   // 2. Ensure all existing categories without expenseType get the default
   // (This is defensive — the schema default should handle it, but belt + suspenders)
-  const result = await db.execute(sql`
+  await db.execute(sql`
     UPDATE categories 
     SET expense_type = 'operating' 
     WHERE expense_type IS NULL
