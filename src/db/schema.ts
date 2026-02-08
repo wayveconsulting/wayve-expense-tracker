@@ -145,7 +145,8 @@ export const expenses = pgTable('expenses', {
   expenseType: varchar('expense_type', { length: 50 }).default('operating').notNull(), // 'cogs' | 'operating' | 'home_office'
   
   // Home office specific
-  homeOfficePercent: integer('home_office_percent'), // e.g., 15 for 15%
+  isHomeOffice: boolean('is_home_office').default(false).notNull(),
+  homeOfficePercent: integer('home_office_percent'), // snapshot of deduction % at time of creation
   
   // Receipt
   receiptUrl: text('receipt_url'),
