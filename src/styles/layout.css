@@ -4005,7 +4005,8 @@
 }
 
 .home-office-config__stat--highlight {
-  background: var(--color-primary-light, rgba(42, 157, 143, 0.1));
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--color-primary);
 }
 
 .home-office-config__stat-label {
