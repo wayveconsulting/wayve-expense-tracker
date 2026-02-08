@@ -6,6 +6,7 @@ interface Category {
   name: string
   emoji: string | null
   sortOrder: number
+  homeOfficeEligible?: boolean
 }
 
 interface AddExpenseSheetProps {
@@ -25,12 +26,24 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [categoryId, setCategoryId] = useState('')
   const [expenseType, setExpenseType] = useState<'operating' | 'cogs' | 'home_office'>('operating')
+  const [isHomeOffice, setIsHomeOffice] = useState(false)
   
   // UI state
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Derived: is the selected category home-office-eligible?
+  const selectedCategory = categories.find(c => c.id === categoryId)
+  const showHomeOfficeCheckbox = selectedCategory?.homeOfficeEligible === true
+
+  // Reset home office checkbox when category changes to non-eligible
+  useEffect(() => {
+    if (!showHomeOfficeCheckbox) {
+      setIsHomeOffice(false)
+    }
+  }, [showHomeOfficeCheckbox])
 
   // Fetch categories when sheet opens
   useEffect(() => {
@@ -73,6 +86,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
         setDate(new Date().toISOString().split('T')[0])
         setCategoryId(preselectedCategoryId || '')
         setExpenseType('operating')
+        setIsHomeOffice(false)
         setError(null)
       }, 300)
       return () => clearTimeout(timer)
@@ -117,6 +131,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
           vendor: vendor.trim() || null,
           description: description.trim() || null,
           expenseType,
+          isHomeOffice,
         }),
       })
 
@@ -235,6 +250,25 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
               </select>
             )}
           </div>
+
+          {/* Home Office Checkbox — only when category is eligible */}
+          {showHomeOfficeCheckbox && (
+            <div className="form-group">
+              <label className="home-office-checkbox">
+                <input
+                  type="checkbox"
+                  checked={isHomeOffice}
+                  onChange={(e) => setIsHomeOffice(e.target.checked)}
+                />
+                <span className="home-office-checkbox__label">
+                  🏡 Home Office Expense
+                </span>
+                <span className="home-office-checkbox__hint">
+                  Deduction percentage will be applied to this expense
+                </span>
+              </label>
+            </div>
+          )}
 
           {/* Vendor */}
           <div className="form-group">
