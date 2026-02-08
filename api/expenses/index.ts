@@ -187,7 +187,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
       .limit(1)
 
     if (tenant?.homeTotalSqft && tenant?.homeOfficeSqft && tenant.homeTotalSqft > 0) {
-      homeOfficePercent = Math.round((tenant.homeOfficeSqft / tenant.homeTotalSqft) * 10000) / 100
+      homeOfficePercent = Math.round((tenant.homeOfficeSqft / tenant.homeTotalSqft) * 100)
     }
   }
 
