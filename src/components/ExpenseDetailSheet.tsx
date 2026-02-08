@@ -11,6 +11,7 @@ interface Category {
   id: string
   name: string
   emoji: string | null
+  homeOfficeEligible?: boolean
 }
 
 interface Expense {
@@ -23,6 +24,8 @@ interface Expense {
   categoryName: string | null
   categoryEmoji: string | null
   expenseType?: string
+  isHomeOffice?: boolean
+  homeOfficePercent?: number | null
 }
 
 interface ExpenseDetailSheetProps {
@@ -52,6 +55,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
   const [date, setDate] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [expenseType, setExpenseType] = useState<'operating' | 'cogs' | 'home_office'>('operating')
+  const [isHomeOffice, setIsHomeOffice] = useState(false)
   
   // UI state
   const [categories, setCategories] = useState<Category[]>([])
@@ -60,6 +64,17 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Derived: is the selected category home-office-eligible?
+  const selectedCategory = categories.find(c => c.id === categoryId)
+  const showHomeOfficeCheckbox = selectedCategory?.homeOfficeEligible === true
+
+  // Reset home office checkbox when category changes to non-eligible
+  useEffect(() => {
+    if (!showHomeOfficeCheckbox) {
+      setIsHomeOffice(false)
+    }
+  }, [showHomeOfficeCheckbox])
 
   // Populate form when expense changes or sheet opens
   useEffect(() => {
@@ -70,6 +85,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
       setDate(new Date(expense.date).toISOString().split('T')[0])
       setCategoryId(expense.categoryId || '')
       setExpenseType((expense.expenseType as 'operating' | 'cogs' | 'home_office') || 'operating')
+      setIsHomeOffice(expense.isHomeOffice || false)
       setMode(getDefaultMode())
       setError(null)
       setShowDeleteConfirm(false)
@@ -160,6 +176,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
           vendor: vendor.trim() || null,
           description: description.trim() || null,
           expenseType,
+          isHomeOffice,
         }),
       })
 
@@ -210,6 +227,11 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
   }
 
   if (!expense) return null
+
+  // Calculate deductible amount for display
+  const deductibleAmount = (expense.isHomeOffice && expense.homeOfficePercent)
+    ? Math.round(expense.amount * expense.homeOfficePercent / 100)
+    : null
 
   return (
     <>
@@ -311,6 +333,21 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                 <span className="detail-hero__emoji">{expense.categoryEmoji || '📁'}</span>
                 <span className="detail-hero__amount">{formatMoney(expense.amount)}</span>
               </div>
+
+              {/* Home Office Deduction Callout */}
+              {expense.isHomeOffice && deductibleAmount !== null && (
+                <div className="home-office-deduction-callout">
+                  <span className="home-office-deduction-callout__icon">🏡</span>
+                  <div className="home-office-deduction-callout__details">
+                    <span className="home-office-deduction-callout__amount">
+                      {formatMoney(deductibleAmount)} deductible
+                    </span>
+                    <span className="home-office-deduction-callout__rate">
+                      {expense.homeOfficePercent}% home office rate
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Details List */}
               <div className="detail-list">
@@ -431,6 +468,25 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                   </select>
                 )}
               </div>
+
+              {/* Home Office Checkbox — only when category is eligible */}
+              {showHomeOfficeCheckbox && (
+                <div className="form-group">
+                  <label className="home-office-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={isHomeOffice}
+                      onChange={(e) => setIsHomeOffice(e.target.checked)}
+                    />
+                    <span className="home-office-checkbox__label">
+                      🏡 Home Office Expense
+                    </span>
+                    <span className="home-office-checkbox__hint">
+                      Deduction percentage will be applied to this expense
+                    </span>
+                  </label>
+                </div>
+              )}
 
               {/* Vendor */}
               <div className="form-group">
