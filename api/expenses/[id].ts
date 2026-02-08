@@ -89,6 +89,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse, expenseId: str
       categoryName: categories.name,
       categoryEmoji: categories.emoji,
       expenseType: expenses.expenseType,
+      isHomeOffice: expenses.isHomeOffice,
       homeOfficePercent: expenses.homeOfficePercent,
       receiptUrl: expenses.receiptUrl,
       extractedText: expenses.extractedText,
@@ -141,6 +142,7 @@ async function handlePut(req: VercelRequest, res: VercelResponse, expenseId: str
     vendor,
     description,
     expenseType,
+    isHomeOffice,
   } = req.body
 
   // Validation
@@ -195,6 +197,26 @@ async function handlePut(req: VercelRequest, res: VercelResponse, expenseId: str
   if (vendor !== undefined) updateData.vendor = vendor?.trim() || null
   if (description !== undefined) updateData.description = description?.trim() || null
   if (expenseType !== undefined) updateData.expenseType = expenseType
+  if (isHomeOffice !== undefined) {
+    updateData.isHomeOffice = isHomeOffice
+    if (isHomeOffice) {
+      // Snapshot current deduction percentage from tenant
+      const [tenant] = await db
+        .select({
+          homeTotalSqft: tenants.homeTotalSqft,
+          homeOfficeSqft: tenants.homeOfficeSqft,
+        })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1)
+
+      if (tenant?.homeTotalSqft && tenant?.homeOfficeSqft && tenant.homeTotalSqft > 0) {
+        updateData.homeOfficePercent = Math.round((tenant.homeOfficeSqft / tenant.homeTotalSqft) * 100)
+      }
+    } else {
+      updateData.homeOfficePercent = null
+    }
+  }
 
   // Update the expense
   const [updatedExpense] = await db
@@ -215,6 +237,8 @@ async function handlePut(req: VercelRequest, res: VercelResponse, expenseId: str
       categoryName: categories.name,
       categoryEmoji: categories.emoji,
       expenseType: expenses.expenseType,
+      isHomeOffice: expenses.isHomeOffice,
+      homeOfficePercent: expenses.homeOfficePercent,
       receiptUrl: expenses.receiptUrl,
       createdAt: expenses.createdAt,
       updatedAt: expenses.updatedAt,
