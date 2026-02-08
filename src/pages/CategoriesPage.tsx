@@ -476,6 +476,24 @@ export default function CategoriesPage() {
               </div>
             )}
 
+            {/* Home Office Warnings */}
+            {homeOfficeSettings.homeTotalSqft && homeOfficeSettings.homeOfficeSqft && (
+              <div className="home-office-config__warnings">
+                {homeOfficeSettings.homeOfficeSqft > 300 && (
+                  <div className="home-office-config__warning">
+                    <span className="home-office-config__warning-icon">💡</span>
+                    <span>Your office exceeds 300 sq ft — the IRS simplified method caps at 300 sq ft ($1,500 max deduction). You're using the regular method, which has no cap, but keep documentation handy.</span>
+                  </div>
+                )}
+                {homeOfficeSettings.deductionPercent !== null && homeOfficeSettings.deductionPercent > 33 && (
+                  <div className="home-office-config__warning home-office-config__warning--caution">
+                    <span className="home-office-config__warning-icon">⚠️</span>
+                    <span>Claiming over 33% of your home as office space may increase audit scrutiny. Make sure you have documentation (photos, floor plan) to support your claim.</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Eligible categories list */}
             {homeOfficeSettings.deductionPercent !== null && (
               <div className="home-office-config__eligible">

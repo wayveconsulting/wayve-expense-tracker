@@ -4079,3 +4079,34 @@
   }
 }
 
+/* Home Office Warnings */
+.home-office-config__warnings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.home-office-config__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.home-office-config__warning--caution {
+  border-left-color: var(--color-warning, #e9c46a);
+}
+
+.home-office-config__warning-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
