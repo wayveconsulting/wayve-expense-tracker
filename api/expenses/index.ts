@@ -165,13 +165,31 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
 
   // Parse request body
   const {
-    amount,      // Required: number in cents
-    date,        // Required: ISO date string
-    categoryId,  // Required: UUID
-    vendor,      // Optional: string
-    description, // Optional: string
-    expenseType, // Optional: 'cogs' | 'operating' | 'home_office' (defaults to 'operating')
+    amount,       // Required: number in cents
+    date,         // Required: ISO date string
+    categoryId,   // Required: UUID
+    vendor,       // Optional: string
+    description,  // Optional: string
+    expenseType,  // Optional: 'cogs' | 'operating' | 'home_office' (defaults to 'operating')
+    isHomeOffice, // Optional: boolean — true if user checked "Home Office Expense"
   } = req.body
+
+  // If home office, snapshot the tenant's current deduction percentage
+  let homeOfficePercent: number | null = null
+  if (isHomeOffice) {
+    const [tenant] = await db
+      .select({
+        homeTotalSqft: tenants.homeTotalSqft,
+        homeOfficeSqft: tenants.homeOfficeSqft,
+      })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1)
+
+    if (tenant?.homeTotalSqft && tenant?.homeOfficeSqft && tenant.homeTotalSqft > 0) {
+      homeOfficePercent = Math.round((tenant.homeOfficeSqft / tenant.homeTotalSqft) * 10000) / 100
+    }
+  }
 
   // ===========================================
   // Validation
@@ -237,6 +255,8 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
       vendor: vendor?.trim() || null,
       description: description?.trim() || null,
       expenseType: expenseType || 'operating',
+      isHomeOffice: isHomeOffice || false,
+      homeOfficePercent,
       createdBy: user.id,
       updatedBy: user.id,
     })
