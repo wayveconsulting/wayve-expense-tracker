@@ -3397,6 +3397,24 @@
   color: var(--color-text-secondary);
 }
 
+/* Grand total deductible line */
+.tax-summary__grand-total-deductible {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-success, #16a34a);
+  font-weight: 500;
+  margin-top: var(--spacing-xs);
+}
+
+/* Section header deductible sub-line */
+.tax-summary__section-deductible {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-success, #16a34a);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
 .tax-summary__grand-total-value {
   font-size: 2rem;
   font-weight: 800;
@@ -3580,14 +3598,26 @@
   flex-shrink: 0;
 }
 
-.tax-summary__cat-name {
+.tax-summary__cat-info {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tax-summary__cat-name {
   font-weight: 500;
   color: var(--color-text-primary);
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tax-summary__cat-deductible {
+  font-size: 0.7rem;
+  color: var(--color-success, #16a34a);
+  font-weight: 500;
 }
 
 .tax-summary__cat-count {

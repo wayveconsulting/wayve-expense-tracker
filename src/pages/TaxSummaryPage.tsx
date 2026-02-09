@@ -8,6 +8,7 @@ interface CategoryDetail {
   name: string
   emoji: string
   amount: number
+  deductible: number
   count: number
   percentOfType: number
 }
@@ -18,6 +19,7 @@ interface TypeSection {
   description: string
   order: number
   total: number
+  deductible: number
   count: number
   percentOfTotal: number
   categories: CategoryDetail[]
@@ -26,6 +28,7 @@ interface TypeSection {
 interface TaxSummaryData {
   year: number
   totalSpent: number
+  totalDeductible: number
   expenseCount: number
   sections: TypeSection[]
 }
@@ -161,6 +164,11 @@ export default function TaxSummaryPage() {
                 <span className="tax-summary__grand-total-label">Total Business Expenses</span>
                 <span className="tax-summary__grand-total-value">{formatDollars(data.totalSpent)}</span>
                 <span className="tax-summary__grand-total-sub">{data.expenseCount} transactions</span>
+                {data.totalDeductible !== data.totalSpent && (
+                  <span className="tax-summary__grand-total-deductible">
+                    ✅ {formatDollars(data.totalDeductible)} deductible
+                  </span>
+                )}
               </div>
 
               {/* Composition Bar */}
@@ -201,6 +209,7 @@ export default function TaxSummaryPage() {
                 {data.sections.map((section) => {
                   const isExpanded = expandedSections.has(section.type)
                   const accentColor = TYPE_COLORS[section.type] || 'var(--color-text-secondary)'
+                  const hasPartialDeduction = section.deductible !== section.total
 
                   return (
                     <div key={section.type} className="tax-summary__section">
@@ -222,6 +231,11 @@ export default function TaxSummaryPage() {
                         <div className="tax-summary__section-right">
                           <div className="tax-summary__section-stats">
                             <span className="tax-summary__section-amount">{formatDollars(section.total)}</span>
+                            {hasPartialDeduction && (
+                              <span className="tax-summary__section-deductible">
+                                {formatDollars(section.deductible)} deductible
+                              </span>
+                            )}
                             <span className="tax-summary__section-meta">
                               {section.count} txn{section.count !== 1 ? 's' : ''} · {section.percentOfTotal}%
                             </span>
@@ -242,14 +256,24 @@ export default function TaxSummaryPage() {
 
                       {isExpanded && section.categories.length > 0 && (
                         <div className="tax-summary__section-details">
-                          {section.categories.map((cat) => (
-                            <div key={cat.categoryId} className="tax-summary__cat-row">
-                              <span className="tax-summary__cat-emoji">{cat.emoji}</span>
-                              <span className="tax-summary__cat-name">{cat.name}</span>
-                              <span className="tax-summary__cat-count">{cat.count}</span>
-                              <span className="tax-summary__cat-amount">{formatDollars(cat.amount)}</span>
-                            </div>
-                          ))}
+                          {section.categories.map((cat) => {
+                            const catHasPartial = cat.deductible !== cat.amount
+                            return (
+                              <div key={cat.categoryId} className="tax-summary__cat-row">
+                                <span className="tax-summary__cat-emoji">{cat.emoji}</span>
+                                <div className="tax-summary__cat-info">
+                                  <span className="tax-summary__cat-name">{cat.name}</span>
+                                  {catHasPartial && (
+                                    <span className="tax-summary__cat-deductible">
+                                      {formatDollars(cat.deductible)} deductible
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="tax-summary__cat-count">{cat.count}</span>
+                                <span className="tax-summary__cat-amount">{formatDollars(cat.amount)}</span>
+                              </div>
+                            )
+                          })}
                         </div>
                       )}
 
