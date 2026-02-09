@@ -78,6 +78,7 @@ async function authenticateRequest(req: VercelRequest): Promise<{
 // GET: Fetch expenses with category breakdown
 // ===========================================
 async function handleGet(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store')
   const auth = await authenticateRequest(req)
   if ('error' in auth) {
     return res.status(auth.status).json({ error: auth.error })
