@@ -90,6 +90,23 @@ const TYPE_CONFIG: Record<string, { label: string; description: string; order: n
 }
 
 // ===========================================
+// Helper: Calculate deductible amount for an expense
+// ===========================================
+function getDeductibleAmount(expense: {
+  amount: number
+  isHomeOffice: boolean | null
+  homeOfficePercent: number | null
+  expenseType: string | null
+}): number {
+  // Home office expenses with a snapshotted percentage get partial deduction
+  if (expense.isHomeOffice && expense.homeOfficePercent != null) {
+    return Math.round(expense.amount * expense.homeOfficePercent / 100)
+  }
+  // Everything else (COGS, Operating, non-home-office) is 100% deductible
+  return expense.amount
+}
+
+// ===========================================
 // GET: Tax summary report
 // ===========================================
 async function handleGet(req: VercelRequest, res: VercelResponse) {
@@ -101,7 +118,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
 
   const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear()
 
-  // Fetch all expenses for tenant
+  // Fetch all expenses for tenant — include home office fields
   const allExpenses = await db
     .select({
       id: expenses.id,
@@ -110,6 +127,8 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
       categoryId: expenses.categoryId,
       expenseType: expenses.expenseType,
       vendor: expenses.vendor,
+      isHomeOffice: expenses.isHomeOffice,
+      homeOfficePercent: expenses.homeOfficePercent,
     })
     .from(expenses)
     .where(eq(expenses.tenantId, tenantId))
@@ -138,18 +157,21 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
 
   // ---- Build type sections ----
   const totalSpent = yearExpenses.reduce((sum, e) => sum + e.amount, 0)
+  const totalDeductible = yearExpenses.reduce((sum, e) => sum + getDeductibleAmount(e), 0)
 
   const sections = Object.entries(TYPE_CONFIG)
     .map(([typeKey, config]) => {
       const typeExpenses = typeGroups.get(typeKey) || []
       const typeTotal = typeExpenses.reduce((sum, e) => sum + e.amount, 0)
+      const typeDeductible = typeExpenses.reduce((sum, e) => sum + getDeductibleAmount(e), 0)
 
       // Category breakdown within this type
-      const catTotals = new Map<string, { amount: number; count: number }>()
+      const catTotals = new Map<string, { amount: number; deductible: number; count: number }>()
       for (const exp of typeExpenses) {
         const catId = exp.categoryId || 'uncategorized'
-        const existing = catTotals.get(catId) || { amount: 0, count: 0 }
+        const existing = catTotals.get(catId) || { amount: 0, deductible: 0, count: 0 }
         existing.amount += exp.amount
+        existing.deductible += getDeductibleAmount(exp)
         existing.count += 1
         catTotals.set(catId, existing)
       }
@@ -162,6 +184,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
             name: cat?.name || 'Uncategorized',
             emoji: cat?.emoji || '❓',
             amount: data.amount,
+            deductible: data.deductible,
             count: data.count,
             percentOfType: typeTotal > 0 ? Math.round((data.amount / typeTotal) * 1000) / 10 : 0,
           }
@@ -174,6 +197,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
         description: config.description,
         order: config.order,
         total: typeTotal,
+        deductible: typeDeductible,
         count: typeExpenses.length,
         percentOfTotal: totalSpent > 0 ? Math.round((typeTotal / totalSpent) * 1000) / 10 : 0,
         categories: categoryBreakdown,
@@ -181,9 +205,12 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
     })
     .sort((a, b) => a.order - b.order)
 
+  res.setHeader('Cache-Control', 'no-store')
+
   return res.status(200).json({
     year,
     totalSpent,
+    totalDeductible,
     expenseCount: yearExpenses.length,
     sections,
   })
