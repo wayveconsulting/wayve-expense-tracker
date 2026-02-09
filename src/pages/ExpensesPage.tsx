@@ -269,6 +269,7 @@ export default function ExpensesPage() {
                   </div>
                   <span className="expense-row__amount">
                     {formatMoney(expense.amount)}
+                    {expense.isHomeOffice && <span className="expense-row__home-icon" title="Home Office Expense">🏡</span>}
                   </span>
                 </div>
               ))}

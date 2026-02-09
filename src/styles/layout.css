@@ -3376,6 +3376,11 @@
   margin: 0 0 var(--spacing-lg) 0;
 }
 
+.expense-row__home-icon {
+  margin-left: 6px;
+  font-size: 0.85em;
+}
+
 /* Grand total */
 .tax-summary__grand-total {
   background: var(--color-bg-primary);
