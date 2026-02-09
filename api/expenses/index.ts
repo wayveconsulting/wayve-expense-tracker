@@ -101,6 +101,8 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
       categoryName: categories.name,
       categoryEmoji: categories.emoji,
       expenseType: expenses.expenseType,
+      isHomeOffice: expenses.isHomeOffice,
+      homeOfficePercent: expenses.homeOfficePercent,
       receiptUrl: expenses.receiptUrl,
       createdAt: expenses.createdAt,
     })
