@@ -70,11 +70,12 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
   const showHomeOfficeCheckbox = selectedCategory?.homeOfficeEligible === true
 
   // Reset home office checkbox when category changes to non-eligible
+  // BUT only after categories have loaded — otherwise we'd wipe the saved value
   useEffect(() => {
-    if (!showHomeOfficeCheckbox) {
+    if (categories.length > 0 && !showHomeOfficeCheckbox) {
       setIsHomeOffice(false)
     }
-  }, [showHomeOfficeCheckbox])
+  }, [showHomeOfficeCheckbox, categories.length])
 
   // Populate form when expense changes or sheet opens
   useEffect(() => {
