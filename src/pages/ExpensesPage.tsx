@@ -16,6 +16,8 @@ interface Expense {
   categoryName: string | null
   categoryEmoji: string | null
   expenseType?: string
+  isHomeOffice?: boolean
+  homeOfficePercent?: number | null
 }
 
 export default function ExpensesPage() {
