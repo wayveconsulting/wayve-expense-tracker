@@ -119,7 +119,7 @@ async function handlePut(req: VercelRequest, res: VercelResponse, categoryId: st
     if (name && name.trim().length > 100) {
       errors.push('Name must be 100 characters or less')
     }
-    if (expenseType !== undefined && !['operating', 'cogs', 'home_office'].includes(expenseType)) {
+    if (expenseType !== undefined && !['operating', 'cogs'].includes(expenseType)) {
       errors.push('Invalid expense type')
     }
     // System categories can have name/emoji edited but not deleted
@@ -153,18 +153,8 @@ async function handlePut(req: VercelRequest, res: VercelResponse, categoryId: st
 
     if (name !== undefined) updates.name = name.trim()
     if (emoji !== undefined) updates.emoji = emoji
-    if (expenseType !== undefined) {
-      updates.expenseType = expenseType
-      // Auto-sync homeOfficeEligible when type changes
-      if (expenseType === 'home_office') {
-        updates.homeOfficeEligible = homeOfficeEligible ?? true
-      } else {
-        updates.homeOfficeEligible = false
-      }
-    } else if (homeOfficeEligible !== undefined && existing.expenseType === 'home_office') {
-      // Allow toggling eligible without changing type
-      updates.homeOfficeEligible = homeOfficeEligible
-    }
+    if (expenseType !== undefined) updates.expenseType = expenseType
+    if (homeOfficeEligible !== undefined) updates.homeOfficeEligible = homeOfficeEligible
 
     const [updated] = await db
       .update(categories)
