@@ -6,6 +6,7 @@ interface Category {
   name: string
   emoji: string | null
   sortOrder: number
+  expenseType?: string
   homeOfficeEligible?: boolean
 }
 
@@ -34,16 +35,20 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Derived: is the selected category home-office-eligible?
+  // Derived: selected category properties
   const selectedCategory = categories.find(c => c.id === categoryId)
   const showHomeOfficeCheckbox = selectedCategory?.homeOfficeEligible === true
 
-  // Reset home office checkbox when category changes to non-eligible
+  // Sync expense type and home office checkbox when category changes
   useEffect(() => {
+    if (selectedCategory) {
+      const catType = selectedCategory.expenseType === 'home_office' ? 'operating' : selectedCategory.expenseType
+      setExpenseType((catType as 'operating' | 'cogs') || 'operating')
+    }
     if (!showHomeOfficeCheckbox) {
       setIsHomeOffice(false)
     }
-  }, [showHomeOfficeCheckbox])
+  }, [categoryId, showHomeOfficeCheckbox])
 
   // Fetch categories when sheet opens
   useEffect(() => {
