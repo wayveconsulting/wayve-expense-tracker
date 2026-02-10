@@ -11,6 +11,7 @@ interface Category {
   id: string
   name: string
   emoji: string | null
+  expenseType?: string
   homeOfficeEligible?: boolean
 }
 
@@ -69,13 +70,19 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
   const selectedCategory = categories.find(c => c.id === categoryId)
   const showHomeOfficeCheckbox = selectedCategory?.homeOfficeEligible === true
 
-  // Reset home office checkbox when category changes to non-eligible
+  // Sync expense type and home office when category changes in edit mode
   // BUT only after categories have loaded — otherwise we'd wipe the saved value
   useEffect(() => {
-    if (categories.length > 0 && !showHomeOfficeCheckbox) {
-      setIsHomeOffice(false)
+    if (categories.length > 0) {
+      if (selectedCategory) {
+        const catType = selectedCategory.expenseType === 'home_office' ? 'operating' : selectedCategory.expenseType
+        setExpenseType((catType as 'operating' | 'cogs') || 'operating')
+      }
+      if (!showHomeOfficeCheckbox) {
+        setIsHomeOffice(false)
+      }
     }
-  }, [showHomeOfficeCheckbox, categories.length])
+  }, [categoryId, showHomeOfficeCheckbox, categories.length])
 
   // Populate form when expense changes or sheet opens
   useEffect(() => {
