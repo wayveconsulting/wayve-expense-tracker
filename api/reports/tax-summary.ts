@@ -84,7 +84,7 @@ const TYPE_CONFIG: Record<string, { label: string; description: string; order: n
   },
   home_office: {
     label: 'Home Office Expenses',
-    description: 'Expenses related to business use of your home',
+    description: 'Expenses with home office deduction applied (partial deductibility based on sq ft percentage)',
     order: 3,
   },
 }
@@ -96,13 +96,12 @@ function getDeductibleAmount(expense: {
   amount: number
   isHomeOffice: boolean | null
   homeOfficePercent: number | null
-  expenseType: string | null
 }): number {
   // Home office expenses with a snapshotted percentage get partial deduction
   if (expense.isHomeOffice && expense.homeOfficePercent != null) {
     return Math.round(expense.amount * expense.homeOfficePercent / 100)
   }
-  // Everything else (COGS, Operating, non-home-office) is 100% deductible
+  // Everything else (COGS, Operating) is 100% deductible
   return expense.amount
 }
 
@@ -144,15 +143,27 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
 
   const categoryMap = new Map(tenantCategories.map((c) => [c.id, c]))
 
-  // ---- Group by expense type ----
+  // ---- Group by section ----
+  // Home Office section: any expense where isHomeOffice === true
+  // COGS/Operating: grouped by expenseType, EXCLUDING home office expenses
   const typeGroups = new Map<string, typeof yearExpenses>()
 
   for (const exp of yearExpenses) {
-    const type = exp.expenseType || 'operating'
-    if (!typeGroups.has(type)) {
-      typeGroups.set(type, [])
+    let section: string
+    if (exp.isHomeOffice) {
+      section = 'home_office'
+    } else {
+      section = exp.expenseType || 'operating'
+      // Normalize any legacy 'home_office' expenseType to 'operating'
+      if (section === 'home_office') {
+        section = 'operating'
+      }
     }
-    typeGroups.get(type)!.push(exp)
+
+    if (!typeGroups.has(section)) {
+      typeGroups.set(section, [])
+    }
+    typeGroups.get(section)!.push(exp)
   }
 
   // ---- Build type sections ----
