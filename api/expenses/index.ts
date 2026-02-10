@@ -235,7 +235,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
   }
 
   // Expense type: optional, but must be valid if provided
-  const validExpenseTypes = ['cogs', 'operating', 'home_office']
+  const validExpenseTypes = ['cogs', 'operating']
   if (expenseType && !validExpenseTypes.includes(expenseType)) {
     errors.push(`Expense type must be one of: ${validExpenseTypes.join(', ')}`)
   }
