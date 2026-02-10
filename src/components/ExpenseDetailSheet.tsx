@@ -54,7 +54,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
   const [description, setDescription] = useState('')
   const [date, setDate] = useState('')
   const [categoryId, setCategoryId] = useState('')
-  const [expenseType, setExpenseType] = useState<'operating' | 'cogs' | 'home_office'>('operating')
+  const [expenseType, setExpenseType] = useState<'operating' | 'cogs'>('operating')
   const [isHomeOffice, setIsHomeOffice] = useState(false)
   
   // UI state
@@ -85,7 +85,8 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
       setDescription(expense.description || '')
       setDate(new Date(expense.date).toISOString().split('T')[0])
       setCategoryId(expense.categoryId || '')
-      setExpenseType((expense.expenseType as 'operating' | 'cogs' | 'home_office') || 'operating')
+      const type = expense.expenseType === 'home_office' ? 'operating' : expense.expenseType
+      setExpenseType((type as 'operating' | 'cogs') || 'operating')
       setIsHomeOffice(expense.isHomeOffice || false)
       setMode(getDefaultMode())
       setError(null)
@@ -538,16 +539,6 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                       onChange={() => setExpenseType('cogs')}
                     />
                     <span>COGS</span>
-                  </label>
-                  <label className={`expense-type-option ${expenseType === 'home_office' ? 'expense-type-option--selected' : ''}`}>
-                    <input
-                      type="radio"
-                      name="editExpenseType"
-                      value="home_office"
-                      checked={expenseType === 'home_office'}
-                      onChange={() => setExpenseType('home_office')}
-                    />
-                    <span>Home Office</span>
                   </label>
                 </div>
               </div>
