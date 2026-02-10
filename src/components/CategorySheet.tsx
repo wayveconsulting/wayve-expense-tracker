@@ -45,7 +45,7 @@ export function CategorySheet({ isOpen, onClose, onSuccess, editCategory }: Cate
   // Form state
   const [name, setName] = useState('')
   const [emoji, setEmoji] = useState('📁')
-  const [expenseType, setExpenseType] = useState<'operating' | 'cogs' | 'home_office'>('operating')
+  const [expenseType, setExpenseType] = useState<'operating' | 'cogs'>('operating')
   const [homeOfficeEligible, setHomeOfficeEligible] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
 
@@ -58,7 +58,9 @@ export function CategorySheet({ isOpen, onClose, onSuccess, editCategory }: Cate
     if (isOpen && editCategory) {
       setName(editCategory.name)
       setEmoji(editCategory.emoji || '📁')
-      setExpenseType(editCategory.expenseType as 'operating' | 'cogs' | 'home_office')
+      // Normalize any legacy 'home_office' type to 'operating'
+      const type = editCategory.expenseType === 'home_office' ? 'operating' : editCategory.expenseType
+      setExpenseType(type as 'operating' | 'cogs')
       setHomeOfficeEligible(editCategory.homeOfficeEligible)
       setShowEmojiPicker(false)
       setError(null)
@@ -82,15 +84,6 @@ export function CategorySheet({ isOpen, onClose, onSuccess, editCategory }: Cate
     }
   }, [isOpen, editCategory])
 
-  // Auto-sync homeOfficeEligible when expense type changes
-  useEffect(() => {
-    if (expenseType === 'home_office') {
-      setHomeOfficeEligible(true)
-    } else {
-      setHomeOfficeEligible(false)
-    }
-  }, [expenseType])
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -107,7 +100,7 @@ export function CategorySheet({ isOpen, onClose, onSuccess, editCategory }: Cate
         name: name.trim(),
         emoji,
         expenseType,
-        homeOfficeEligible: expenseType === 'home_office' ? homeOfficeEligible : false,
+        homeOfficeEligible,
       }
 
       const url = isEditing
@@ -244,37 +237,30 @@ export function CategorySheet({ isOpen, onClose, onSuccess, editCategory }: Cate
                 />
                 <span>COGS</span>
               </label>
-              <label className={`expense-type-option ${expenseType === 'home_office' ? 'expense-type-option--selected' : ''}`}>
-                <input
-                  type="radio"
-                  name="catExpenseType"
-                  value="home_office"
-                  checked={expenseType === 'home_office'}
-                  onChange={() => setExpenseType('home_office')}
-                />
-                <span>Home Office</span>
-              </label>
             </div>
           </div>
 
-          {/* Home Office Eligible toggle — only visible when type is home_office */}
-          {expenseType === 'home_office' && (
-            <div className="form-group form-group--horizontal">
-              <div>
-                <label className="form-label">Home Office Deduction Eligible</label>
-                <span className="form-hint">Apply sq ft deduction percentage</span>
-              </div>
-              <button
-                type="button"
-                className={`toggle ${homeOfficeEligible ? 'toggle--on' : ''}`}
-                onClick={() => setHomeOfficeEligible(!homeOfficeEligible)}
-                role="switch"
-                aria-checked={homeOfficeEligible}
-              >
-                <span className="toggle__slider" />
-              </button>
+          {/* Home Office Eligible toggle — always visible */}
+          <div className="form-group form-group--horizontal">
+            <div>
+              <label className="form-label">Home Office Deduction Eligible</label>
+              <span className="form-hint">
+                Enable this for expenses that may apply to your home office
+                (e.g., utilities, rent, insurance). When adding an expense in this
+                category, you'll see a checkbox to mark it as a home office expense.
+                Only checked expenses will have the sq ft deduction percentage applied.
+              </span>
             </div>
-          )}
+            <button
+              type="button"
+              className={`toggle ${homeOfficeEligible ? 'toggle--on' : ''}`}
+              onClick={() => setHomeOfficeEligible(!homeOfficeEligible)}
+              role="switch"
+              aria-checked={homeOfficeEligible}
+            >
+              <span className="toggle__slider" />
+            </button>
+          </div>
 
           {/* Submit Button */}
           <button
