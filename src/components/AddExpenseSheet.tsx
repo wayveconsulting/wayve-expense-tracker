@@ -25,7 +25,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
   const [description, setDescription] = useState('')
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [categoryId, setCategoryId] = useState('')
-  const [expenseType, setExpenseType] = useState<'operating' | 'cogs' | 'home_office'>('operating')
+  const [expenseType, setExpenseType] = useState<'operating' | 'cogs'>('operating')
   const [isHomeOffice, setIsHomeOffice] = useState(false)
   
   // UI state
@@ -319,16 +319,6 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
                   onChange={() => setExpenseType('cogs')}
                 />
                 <span>COGS</span>
-              </label>
-              <label className={`expense-type-option ${expenseType === 'home_office' ? 'expense-type-option--selected' : ''}`}>
-                <input
-                  type="radio"
-                  name="expenseType"
-                  value="home_office"
-                  checked={expenseType === 'home_office'}
-                  onChange={() => setExpenseType('home_office')}
-                />
-                <span>Home Office</span>
               </label>
             </div>
           </div>
