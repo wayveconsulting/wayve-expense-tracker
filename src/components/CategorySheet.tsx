@@ -216,6 +216,11 @@ export function CategorySheet({ isOpen, onClose, onSuccess, editCategory }: Cate
           {/* Expense Type */}
           <div className="form-group">
             <label className="form-label">Default Expense Type</label>
+            {isEditing && (
+              <p className="form-hint" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                Changing this will not update existing expenses. It only sets the default for new expenses in this category.
+              </p>
+            )}
             <div className="expense-type-group">
               <label className={`expense-type-option ${expenseType === 'operating' ? 'expense-type-option--selected' : ''}`}>
                 <input
