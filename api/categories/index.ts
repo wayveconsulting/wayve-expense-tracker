@@ -207,7 +207,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
     if (name && name.trim().length > 100) {
       errors.push('Name must be 100 characters or less')
     }
-    if (expenseType && !['operating', 'cogs', 'home_office'].includes(expenseType)) {
+    if (expenseType && !['operating', 'cogs'].includes(expenseType)) {
       errors.push('Invalid expense type')
     }
     if (errors.length > 0) {
@@ -235,9 +235,8 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
       .from(categories)
       .where(eq(categories.tenantId, tenantId))
 
-    // homeOfficeEligible is only true when expenseType is home_office
     const resolvedType = expenseType || 'operating'
-    const resolvedEligible = resolvedType === 'home_office' ? (homeOfficeEligible ?? true) : false
+    const resolvedEligible = homeOfficeEligible ?? false
 
     const [newCategory] = await db
       .insert(categories)
