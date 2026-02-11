@@ -98,6 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         from: 'Wayve Expense Tracker <noreply@wayveconsulting.app>',
         to: invite.email,
         subject: `You've been invited to Wayve Expense Tracker`,
+        text: `You've been invited to manage expenses for ${businessName} on Wayve Expense Tracker.\n\nGet started by visiting: ${inviteUrl}\n\nYou'll sign in with your Google account — no new password needed.\n\nThis invite expires on ${expiryDate}. If you have any questions, contact your administrator.\n\nWayve Consulting — Expense Tracking Made Simple`,
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
             <div style="text-align: center; margin-bottom: 32px;">
