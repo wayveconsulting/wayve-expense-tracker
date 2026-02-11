@@ -18,6 +18,7 @@ interface Expense {
   expenseType?: string
   isHomeOffice?: boolean
   homeOfficePercent?: number | null
+  attachmentCount?: number
 }
 
 export default function ExpensesPage() {
@@ -270,6 +271,7 @@ export default function ExpensesPage() {
                   <span className="expense-row__amount">
                     {formatMoney(expense.amount)}
                     {expense.isHomeOffice && <span className="expense-row__home-icon" title="Home Office Expense">🏡</span>}
+                    {Number(expense.attachmentCount) > 0 && <span className="attachment-indicator" title="Has attachments">📎</span>}
                   </span>
                 </div>
               ))}
