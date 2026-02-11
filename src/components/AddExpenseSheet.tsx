@@ -328,6 +328,11 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
             </div>
           </div>
 
+          {/* Attachment hint */}
+          <div className="form-hint">
+            📎 You can attach receipt images after saving the expense.
+          </div>
+
           {/* Submit Button */}
           <button 
             type="submit" 

@@ -4695,3 +4695,14 @@
   color: #ff6b6b;
 }
 
+/* ============================================
+   FORM HINT
+   ============================================ */
+
+.form-hint {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: var(--spacing-sm) 0;
+}
+
