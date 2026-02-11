@@ -163,6 +163,29 @@ export const expenses = pgTable('expenses', {
 });
 
 // ============================================
+// EXPENSE ATTACHMENTS (Receipt images, PDFs)
+// ============================================
+export const expenseAttachments = pgTable('expense_attachments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  expenseId: uuid('expense_id').notNull().references(() => expenses.id, { onDelete: 'cascade' }),
+  
+  // File metadata
+  blobUrl: text('blob_url').notNull(), // Vercel Blob URL
+  fileName: varchar('file_name', { length: 500 }).notNull(), // original filename
+  fileSize: integer('file_size').notNull(), // bytes
+  mimeType: varchar('mime_type', { length: 100 }).notNull(), // image/jpeg, image/png, image/heic, application/pdf
+  
+  // Display ordering
+  sortOrder: integer('sort_order').default(0).notNull(),
+  
+  // Audit fields
+  uploadedBy: uuid('uploaded_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ============================================
 // EXPENSE HISTORY (Audit Trail)
 // ============================================
 export const expenseHistory = pgTable('expense_history', {
