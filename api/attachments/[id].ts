@@ -6,14 +6,13 @@ import { eq, and } from 'drizzle-orm';
 
 // Auth helper — returns { userId, tenantId } or null
 async function getAuth(req: VercelRequest) {
-  const cookies = req.headers.cookie || '';
-  const match = cookies.match(/session=([^;]+)/);
-  if (!match) return null;
+  const sessionToken = req.cookies?.session;
+  if (!sessionToken) return null;
 
   const [session] = await db
     .select({ userId: sessions.userId, tenantId: sessions.tenantId })
     .from(sessions)
-    .where(eq(sessions.token, match[1]))
+    .where(eq(sessions.token, sessionToken))
     .limit(1);
 
   if (!session || !session.tenantId) return null;
