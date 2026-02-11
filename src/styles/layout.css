@@ -4215,3 +4215,321 @@
   font-size: 0.75rem;
   color: var(--color-text-secondary);
 }
+
+/* ============================================
+   ADMIN PAGE
+   ============================================ */
+
+.admin-forbidden {
+  text-align: center;
+  padding: var(--spacing-2xl) var(--spacing-md);
+}
+
+.admin-forbidden h1 {
+  font-size: 1.5rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.admin-forbidden p {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.admin-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.admin-section__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+}
+
+.admin-section__loading,
+.admin-section__empty {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.admin-alert {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  font-size: 0.875rem;
+}
+
+.admin-alert--error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.admin-alert--success {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+/* Admin Form */
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.admin-form__row {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.admin-form__row > .admin-form__field {
+  flex: 1;
+}
+
+.admin-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.admin-form__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.admin-form__input {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+.admin-form__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.admin-form__subdomain-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.admin-form__input--subdomain {
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  border-right: none;
+  flex: 1;
+}
+
+.admin-form__subdomain-suffix {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* Admin Invite Cards */
+
+.admin-invite-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.admin-invite-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  background: var(--color-bg-primary);
+}
+
+.admin-invite-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.admin-invite-card__business {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.admin-invite-card__badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: capitalize;
+}
+
+.admin-invite-card__badge--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-invite-card__badge--accepted {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.admin-invite-card__badge--expired {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.admin-invite-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.admin-invite-card__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+}
+
+.admin-invite-card__label {
+  color: var(--color-text-secondary);
+}
+
+.admin-invite-card__value {
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+.admin-invite-card__resend {
+  margin-top: var(--spacing-xs);
+}
+
+/* ============================================
+   INVITE LANDING PAGE
+   ============================================ */
+
+.invite-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  background: var(--color-bg-secondary);
+}
+
+.invite-page__card {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+.invite-page__title {
+  color: var(--color-primary);
+  font-size: 1.5rem;
+  margin-bottom: var(--spacing-lg);
+}
+
+.invite-page__loading {
+  color: var(--color-text-secondary);
+}
+
+.invite-page__welcome {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.invite-page__business {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xl);
+}
+
+.invite-page__google-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-xl);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.invite-page__google-btn:hover {
+  background: var(--color-bg-secondary);
+}
+
+.invite-page__note {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-md);
+}
+
+.invite-page__error {
+  color: #991b1b;
+  font-weight: 500;
+  margin-bottom: var(--spacing-sm);
+}
+
+.invite-page__detail {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.invite-page__link {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+/* ============================================
+   DARK MODE — ADMIN & INVITE
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  .admin-alert--error {
+    background: rgba(153, 27, 27, 0.15);
+    border-color: rgba(153, 27, 27, 0.3);
+  }
+
+  .admin-alert--success {
+    background: rgba(22, 101, 52, 0.15);
+    border-color: rgba(22, 101, 52, 0.3);
+  }
+
+  .invite-page__error {
+    color: #fca5a5;
+  }
+}
+
+[data-theme="dark"] .admin-alert--error {
+  background: rgba(153, 27, 27, 0.15);
+  border-color: rgba(153, 27, 27, 0.3);
+}
+
+[data-theme="dark"] .admin-alert--success {
+  background: rgba(22, 101, 52, 0.15);
+  border-color: rgba(22, 101, 52, 0.3);
+}
+
+[data-theme="dark"] .invite-page__error {
+  color: #fca5a5;
+}
+
