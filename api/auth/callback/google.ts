@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../../src/db/index.js';
-import { users, sessions, userTenantAccess, tenants } from '../../../src/db/schema.js';
-import { eq } from 'drizzle-orm';
+import { users, sessions, userTenantAccess, tenants, invites } from '../../../src/db/schema.js';
+import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 
 interface GoogleTokenResponse {
@@ -98,10 +98,62 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let user = existingUsers[0];
 
     if (!user) {
-      // User not found - this is an invite-only system
-      // In the future, we'd check for pending invites here
-      console.log(`Login attempt from uninvited user: ${googleUser.email}`);
-      return res.redirect('/login?error=not_invited');
+      // User not found — check for pending invite
+      const [pendingInvite] = await db
+        .select()
+        .from(invites)
+        .where(and(
+          eq(invites.email, googleUser.email.toLowerCase()),
+          eq(invites.status, 'pending'),
+        ))
+        .limit(1);
+
+      if (!pendingInvite) {
+        console.log(`Login attempt from uninvited user: ${googleUser.email}`);
+        return res.redirect('/login?error=not_invited');
+      }
+
+      // Check if invite is expired
+      if (new Date(pendingInvite.expiresAt) < new Date()) {
+        console.log(`Expired invite used by: ${googleUser.email}`);
+        return res.redirect('/login?error=invite_expired');
+      }
+
+      // Invite is valid — create the user
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          email: googleUser.email.toLowerCase(),
+          firstName: googleUser.given_name || pendingInvite.firstName || null,
+          lastName: googleUser.family_name || pendingInvite.lastName || null,
+          googleId: googleUser.id,
+          tenantId: pendingInvite.tenantId,
+          role: pendingInvite.role || 'owner',
+          emailVerified: true,
+          isSuperAdmin: false,
+          isAccountant: false,
+        })
+        .returning();
+
+      // Create tenant access record
+      await db.insert(userTenantAccess).values({
+        userId: newUser.id,
+        tenantId: pendingInvite.tenantId,
+        role: pendingInvite.role || 'owner',
+      });
+
+      // Mark invite as accepted
+      await db
+        .update(invites)
+        .set({
+          status: 'accepted',
+          acceptedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(invites.id, pendingInvite.id));
+
+      // Use the newly created user going forward
+      user = newUser;
     }
 
     // Update user's Google ID if not set (first OAuth login)
