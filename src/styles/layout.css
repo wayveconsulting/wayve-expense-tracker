@@ -4533,3 +4533,165 @@
   color: #fca5a5;
 }
 
+/* ============================================
+   ATTACHMENTS
+   ============================================ */
+
+.attachments-section {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.attachments-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.attachments-upload-btn {
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.attachments-loading,
+.attachments-empty {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  padding: var(--spacing-sm) 0;
+}
+
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+}
+
+.attachment-item__thumbnail {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.attachment-item__thumbnail--pdf {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.attachment-item__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.attachment-item__name {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attachment-item__size {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.attachment-item__delete {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+.attachment-item__delete:hover {
+  color: var(--color-danger, #e74c3c);
+}
+
+/* ============================================
+   LIGHTBOX
+   ============================================ */
+
+.lightbox-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  z-index: 10001;
+}
+
+.lightbox-image {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  cursor: default;
+  border-radius: var(--radius-sm, 4px);
+}
+
+/* ============================================
+   ATTACHMENT INDICATOR (for expense list rows)
+   ============================================ */
+
+.attachment-indicator {
+  font-size: 0.8rem;
+  margin-left: var(--spacing-xs);
+  opacity: 0.7;
+}
+
+/* ============================================
+   DARK MODE — Attachments
+   ============================================ */
+
+[data-theme="dark"] .attachment-item {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .lightbox-close {
+  color: #ccc;
+}
+
+[data-theme="dark"] .attachment-item__delete:hover {
+  color: #ff6b6b;
+}
+
