@@ -29,6 +29,15 @@ interface Expense {
   homeOfficePercent?: number | null
 }
 
+interface Attachment {
+  id: string
+  blobUrl: string
+  fileName: string
+  fileSize: number
+  mimeType: string
+  createdAt: string
+}
+
 interface ExpenseDetailSheetProps {
   expense: Expense | null
   isOpen: boolean
@@ -65,6 +74,12 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Attachment state
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [loadingAttachments, setLoadingAttachments] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
   // Derived: is the selected category home-office-eligible?
   const selectedCategory = categories.find(c => c.id === categoryId)
@@ -122,6 +137,27 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
     }
   }, [mode, categories.length, subdomain])
 
+  // Fetch attachments when sheet opens
+  useEffect(() => {
+    if (isOpen && expense && subdomain) {
+      async function fetchAttachments() {
+        setLoadingAttachments(true)
+        try {
+          const response = await fetch(`/api/attachments?expenseId=${expense!.id}&tenant=${subdomain}`)
+          if (response.ok) {
+            const data = await response.json()
+            setAttachments(data.attachments)
+          }
+        } catch (err) {
+          console.error('Error fetching attachments:', err)
+        } finally {
+          setLoadingAttachments(false)
+        }
+      }
+      fetchAttachments()
+    }
+  }, [isOpen, expense, subdomain])
+
   // Reset when sheet closes
   useEffect(() => {
     if (!isOpen) {
@@ -129,10 +165,96 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
         setMode('view')
         setError(null)
         setShowDeleteConfirm(false)
+        setAttachments([])
+        setLightboxUrl(null)
       }, 300)
       return () => clearTimeout(timer)
     }
   }, [isOpen])
+
+  // Handle file upload
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !expense) return
+
+    // Reset the input so the same file can be re-selected
+    e.target.value = ''
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/heic', 'application/pdf']
+    if (!allowedTypes.includes(file.type)) {
+      setError('File type not allowed. Accepted: JPEG, PNG, HEIC, PDF')
+      return
+    }
+
+    if (file.size > 4 * 1024 * 1024) {
+      setError('File too large. Maximum size is 4MB.')
+      return
+    }
+
+    try {
+      setUploading(true)
+      setError(null)
+
+      // Convert file to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          resolve(result.split(',')[1]) // strip data:... prefix
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      const response = await fetch(`/api/attachments?tenant=${subdomain}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expenseId: expense.id,
+          fileName: file.name,
+          fileType: file.type,
+          fileData: base64,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Upload failed')
+      }
+
+      const data = await response.json()
+      setAttachments(prev => [...prev, data.attachment])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  // Handle attachment delete
+  async function handleDeleteAttachment(attachmentId: string) {
+    try {
+      const response = await fetch(`/api/attachments/${attachmentId}?tenant=${subdomain}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete attachment')
+      }
+
+      setAttachments(prev => prev.filter(a => a.id !== attachmentId))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete attachment')
+    }
+  }
+
+  // Format file size for display
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
 
   // Format cents to dollars for display
   const formatMoney = (cents: number) => {
@@ -394,6 +516,68 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                 </div>
               </div>
 
+              {/* Attachments Section */}
+              <div className="attachments-section">
+                <div className="attachments-section__header">
+                  <span className="form-label">Attachments</span>
+                  <label className="btn btn--small btn--secondary attachments-upload-btn">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/heic,application/pdf"
+                      onChange={handleFileUpload}
+                      style={{ display: 'none' }}
+                      disabled={uploading}
+                    />
+                    {uploading ? 'Uploading...' : '📎 Attach'}
+                  </label>
+                </div>
+
+                {loadingAttachments && (
+                  <div className="attachments-loading">Loading attachments...</div>
+                )}
+
+                {!loadingAttachments && attachments.length === 0 && (
+                  <div className="attachments-empty">No attachments yet</div>
+                )}
+
+                {attachments.length > 0 && (
+                  <div className="attachments-list">
+                    {attachments.map(att => (
+                      <div key={att.id} className="attachment-item">
+                        {att.mimeType.startsWith('image/') ? (
+                          <img
+                            src={att.blobUrl}
+                            alt={att.fileName}
+                            className="attachment-item__thumbnail"
+                            onClick={() => setLightboxUrl(att.blobUrl)}
+                          />
+                        ) : (
+                          <div
+                            className="attachment-item__thumbnail attachment-item__thumbnail--pdf"
+                            onClick={() => window.open(att.blobUrl, '_blank')}
+                          >
+                            PDF
+                          </div>
+                        )}
+                        <div className="attachment-item__info">
+                          <span className="attachment-item__name">{att.fileName}</span>
+                          <span className="attachment-item__size">{formatFileSize(att.fileSize)}</span>
+                        </div>
+                        <button
+                          className="attachment-item__delete"
+                          onClick={() => handleDeleteAttachment(att.id)}
+                          aria-label="Delete attachment"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 6 6 18M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Action Buttons */}
               <div className="detail-actions">
                 <button 
@@ -585,6 +769,30 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
           )}
         </div>
       </div>
+
+      {/* Lightbox Overlay */}
+      {lightboxUrl && (
+        <div 
+          className="lightbox-overlay"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button 
+            className="lightbox-close"
+            onClick={() => setLightboxUrl(null)}
+            aria-label="Close image"
+          >
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Attachment"
+            className="lightbox-image"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </>
   )
 }
