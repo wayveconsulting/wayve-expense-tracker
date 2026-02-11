@@ -322,6 +322,39 @@ export const accountantInvites = pgTable('accountant_invites', {
 });
 
 // ============================================
+// INVITES (Super Admin → New Client Onboarding)
+// ============================================
+export const invites = pgTable('invites', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  
+  // Who is being invited
+  email: varchar('email', { length: 255 }).notNull(),
+  firstName: varchar('first_name', { length: 100 }),
+  lastName: varchar('last_name', { length: 100 }),
+  
+  // Which tenant they'll own
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  
+  // Role to assign on acceptance
+  role: varchar('role', { length: 50 }).default('owner').notNull(),
+  
+  // Who sent the invite
+  invitedBy: uuid('invited_by').notNull().references(() => users.id),
+  
+  // Invite token (in the email link)
+  token: varchar('token', { length: 255 }).notNull().unique(),
+  
+  // Status tracking
+  status: varchar('status', { length: 20 }).default('pending').notNull(), // 'pending' | 'accepted' | 'expired'
+  expiresAt: timestamp('expires_at').notNull(),
+  acceptedAt: timestamp('accepted_at'),
+  
+  // Audit fields
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ============================================
 // EXPENSE POLICIES (per sub-user rules)
 // ============================================
 export const expensePolicies = pgTable('expense_policies', {
