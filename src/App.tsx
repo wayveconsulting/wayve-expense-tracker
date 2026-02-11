@@ -13,6 +13,7 @@ import MileageReportPage from './pages/MileageReportPage'
 import AnnualSummaryPage from './pages/AnnualSummaryPage'
 import TaxSummaryPage from './pages/TaxSummaryPage'
 import SettingsPage from './pages/SettingsPage'
+import AdminPage from './pages/AdminPage'
 
 function App() {
   const { isLoading: tenantLoading } = useTenant()
@@ -56,6 +57,7 @@ function App() {
         <Route path="/reports/mileage" component={MileageReportPage} />
         <Route path="/reports/quarterly" component={QuarterlyReportPage} />
         <Route path="/reports" component={ReportsPage} />
+        <Route path="/admin" component={AdminPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route>
           <div className="page">

@@ -120,6 +120,9 @@ export function Layout({ children }: LayoutProps) {
           <NavItem icon="car" label="Mileage" href="/mileage" currentPath={location} onClick={closeDrawer} />
           <NavItem icon="folder" label="Categories" href="/categories" currentPath={location} onClick={closeDrawer} />
           <NavItem icon="chart" label="Reports" href="/reports" currentPath={location} onClick={closeDrawer} />
+          {user?.isSuperAdmin && (
+            <NavItem icon="admin" label="Admin" href="/admin" currentPath={location} onClick={closeDrawer} />
+          )}
           <NavItem icon="settings" label="Settings" href="/settings" currentPath={location} onClick={closeDrawer} />
         </ul>
 
@@ -183,7 +186,7 @@ export function Layout({ children }: LayoutProps) {
 }
 
 interface NavItemProps {
-  icon: 'dashboard' | 'receipt' | 'car' | 'folder' | 'chart' | 'settings'
+  icon: 'dashboard' | 'receipt' | 'car' | 'folder' | 'chart' | 'admin' | 'settings'
   label: string
   href: string
   currentPath: string
@@ -228,6 +231,11 @@ function NavItem({ icon, label, href, currentPath, onClick }: NavItemProps) {
         <line x1="18" y1="20" x2="18" y2="10" />
         <line x1="12" y1="20" x2="12" y2="4" />
         <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+    ),
+    admin: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
       </svg>
     ),
     settings: (
