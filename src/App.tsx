@@ -14,15 +14,19 @@ import AnnualSummaryPage from './pages/AnnualSummaryPage'
 import TaxSummaryPage from './pages/TaxSummaryPage'
 import SettingsPage from './pages/SettingsPage'
 import AdminPage from './pages/AdminPage'
+import InvitePage from './pages/InvitePage'
 
 function App() {
   const { isLoading: tenantLoading } = useTenant()
   const { isLoading: authLoading, isAuthenticated } = useAuth()
 
-  // Simple routing based on path - login doesn't need Layout
+  // Simple routing based on path - login and invite don't need Layout
   const path = window.location.pathname
   if (path === '/login') {
     return <LoginPage />
+  }
+  if (path === '/invite') {
+    return <InvitePage />
   }
 
   const isLoading = tenantLoading || authLoading
