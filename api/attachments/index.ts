@@ -16,6 +16,8 @@ const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB (Vercel function body limit safety
 
 // Auth helper — returns { userId, tenantId } or null
 async function getAuth(req: VercelRequest) {
+  console.log('ATTACH DEBUG cookies:', JSON.stringify(req.cookies));
+  console.log('ATTACH DEBUG cookie header:', req.headers.cookie);
   const sessionToken = req.cookies?.session;
   if (!sessionToken) return null;
 
