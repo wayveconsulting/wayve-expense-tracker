@@ -1,23 +1,57 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { del } from '@vercel/blob';
 import { db } from '../../src/db/index.js';
-import { sessions, expenseAttachments } from '../../src/db/schema.js';
+import { sessions, expenseAttachments, users, userTenantAccess, tenants } from '../../src/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
-// Auth helper — returns { userId, tenantId } or null
+// Auth helper — resolves tenant from query param, same pattern as expenses endpoint
 async function getAuth(req: VercelRequest) {
   const sessionToken = req.cookies?.session;
   if (!sessionToken) return null;
 
+  // Validate session
   const [session] = await db
-    .select({ userId: sessions.userId, tenantId: sessions.tenantId })
+    .select()
     .from(sessions)
     .where(eq(sessions.token, sessionToken))
     .limit(1);
 
-  if (!session || !session.tenantId) return null;
-  if (!session.userId) return null;
-  return { userId: session.userId, tenantId: session.tenantId };
+  if (!session || new Date(session.expiresAt) < new Date()) return null;
+
+  // Get user
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, session.userId))
+    .limit(1);
+
+  if (!user) return null;
+
+  // Resolve tenant from query param
+  const tenantSubdomain = req.query.tenant as string | undefined;
+  if (!tenantSubdomain) return null;
+
+  const [tenant] = await db
+    .select()
+    .from(tenants)
+    .where(eq(tenants.subdomain, tenantSubdomain))
+    .limit(1);
+
+  if (!tenant) return null;
+
+  // Verify user has access to this tenant
+  const [hasAccess] = await db
+    .select()
+    .from(userTenantAccess)
+    .where(and(
+      eq(userTenantAccess.userId, user.id),
+      eq(userTenantAccess.tenantId, tenant.id)
+    ))
+    .limit(1);
+
+  if (!hasAccess && !user.isSuperAdmin) return null;
+
+  return { userId: user.id, tenantId: tenant.id };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
