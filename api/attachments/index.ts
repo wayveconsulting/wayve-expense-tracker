@@ -1,18 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { put } from '@vercel/blob';
 import { db } from '../../src/db/index.js';
 import { sessions, expenseAttachments, expenses, users, userTenantAccess, tenants } from '../../src/db/schema.js';
 import { eq, and } from 'drizzle-orm';
-
-// Allowed MIME types
-const ALLOWED_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/heic',
-  'application/pdf',
-];
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB (client-side compression handles large images before upload)
 
 // Auth helper — resolves tenant from query param, same pattern as expenses endpoint
 async function getAuth(req: VercelRequest) {
@@ -66,32 +55,19 @@ async function getAuth(req: VercelRequest) {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ============================================
-  // POST — Upload file to Vercel Blob + record in DB
+  // POST — Record attachment metadata (blob already uploaded via client upload)
   // ============================================
   if (req.method === 'POST') {
     try {
       const auth = await getAuth(req);
       if (!auth) return res.status(401).json({ error: 'Unauthorized' });
 
-      const { expenseId, fileName, fileType, fileData } = req.body || {};
+      const { expenseId, blobUrl, fileName, fileType, fileSize } = req.body || {};
 
-      if (!expenseId || !fileName || !fileType || !fileData) {
-        return res.status(400).json({ error: 'expenseId, fileName, fileType, and fileData are required' });
-      }
-
-      // Validate file type
-      if (!ALLOWED_TYPES.includes(fileType)) {
+      if (!expenseId || !blobUrl || !fileName || !fileType || !fileSize) {
         return res.status(400).json({ 
-          error: `File type not allowed. Accepted: ${ALLOWED_TYPES.join(', ')}` 
+          error: 'expenseId, blobUrl, fileName, fileType, and fileSize are required' 
         });
-      }
-
-      // Decode base64 file data
-      const buffer = Buffer.from(fileData, 'base64');
-
-      // Validate file size
-      if (buffer.length > MAX_FILE_SIZE) {
-        return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
       }
 
       // Verify expense belongs to this tenant
@@ -105,24 +81,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(404).json({ error: 'Expense not found' });
       }
 
-      // Upload to Vercel Blob
-      // Path: tenantId/expenseId/filename for organized storage
-      const blobPath = `${auth.tenantId}/${expenseId}/${Date.now()}-${fileName}`;
-      const blob = await put(blobPath, buffer, {
-        access: 'public',
-        contentType: fileType,
-        token: process.env.BLOB_READ_WRITE_TOKEN,
-      });
-
       // Save attachment record
       const [attachment] = await db
         .insert(expenseAttachments)
         .values({
           tenantId: auth.tenantId,
           expenseId: expenseId,
-          blobUrl: blob.url,
+          blobUrl: blobUrl,
           fileName: fileName,
-          fileSize: buffer.length,
+          fileSize: fileSize,
           mimeType: fileType,
           sortOrder: 0,
           uploadedBy: auth.userId,
@@ -131,8 +98,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       return res.status(201).json({ attachment });
     } catch (error) {
-      console.error('Upload error:', error);
-      return res.status(500).json({ error: 'Upload failed' });
+      console.error('Record attachment error:', error);
+      return res.status(500).json({ error: 'Failed to record attachment' });
     }
   }
 

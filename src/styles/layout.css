@@ -4717,3 +4717,14 @@
   font-style: italic;
 }
 
+/* ============================================
+   ATTACHMENT UPLOAD STATUS
+   ============================================ */
+
+.attachments-status {
+  font-size: 0.8rem;
+  color: var(--color-primary);
+  padding: var(--spacing-xs) 0;
+  font-style: italic;
+}
+

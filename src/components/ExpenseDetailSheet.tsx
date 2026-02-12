@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { upload } from '@vercel/blob/client'
 import { useTenant } from '../hooks/useTenant'
 
 // Get saved preference from localStorage
@@ -15,50 +16,30 @@ const COMPRESSION_THRESHOLD = 4 * 1024 * 1024 // 4MB — compress if larger
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024       // 10MB — reject if larger (pre-compression)
 const MAX_DIMENSION = 2048                      // Resize longest edge to this
 
-async function compressImageFile(file: File): Promise<{ base64: string; fileName: string; fileType: string; fileSize: number }> {
-  // PDFs: never compress, just convert to base64
-  if (file.type === 'application/pdf') {
-    const base64 = await fileToBase64(file)
-    return { base64, fileName: file.name, fileType: file.type, fileSize: file.size }
-  }
+async function compressImageFile(file: File): Promise<File> {
+  // PDFs: never compress
+  if (file.type === 'application/pdf') return file
 
   // Images under threshold: pass through untouched
-  if (file.size <= COMPRESSION_THRESHOLD) {
-    const base64 = await fileToBase64(file)
-    return { base64, fileName: file.name, fileType: file.type, fileSize: file.size }
-  }
+  if (file.size <= COMPRESSION_THRESHOLD) return file
 
   // Image over 4MB — compress via Canvas API
   const img = await loadImage(file)
   const qualitySteps = [0.92, 0.85, 0.75]
-  
+
   for (const quality of qualitySteps) {
-    const { base64, blob } = await resizeAndCompress(img, quality)
-    
-    if (blob.size <= COMPRESSION_THRESHOLD) {
-      // Build new filename: original name but .jpg extension
+    const compressedBlob = await resizeAndCompress(img, quality)
+
+    if (compressedBlob.size <= COMPRESSION_THRESHOLD) {
       const compressedName = file.name.replace(/\.[^.]+$/, '') + '.jpg'
-      return { base64, fileName: compressedName, fileType: 'image/jpeg', fileSize: blob.size }
+      return new File([compressedBlob], compressedName, { type: 'image/jpeg' })
     }
   }
 
   // Even at 75% quality it's still over 4MB — use the last attempt anyway
-  // The server will reject if it's truly too large for the body limit
-  const { base64, blob } = await resizeAndCompress(img, 0.75)
+  const lastBlob = await resizeAndCompress(img, 0.75)
   const compressedName = file.name.replace(/\.[^.]+$/, '') + '.jpg'
-  return { base64, fileName: compressedName, fileType: 'image/jpeg', fileSize: blob.size }
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      resolve(result.split(',')[1]) // Strip data:...;base64, prefix
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
+  return new File([lastBlob], compressedName, { type: 'image/jpeg' })
 }
 
 function loadImage(file: File): Promise<HTMLImageElement> {
@@ -73,8 +54,7 @@ function loadImage(file: File): Promise<HTMLImageElement> {
   })
 }
 
-async function resizeAndCompress(img: HTMLImageElement, quality: number): Promise<{ base64: string; blob: Blob }> {
-  // Calculate new dimensions — scale down so longest edge = MAX_DIMENSION
+async function resizeAndCompress(img: HTMLImageElement, quality: number): Promise<Blob> {
   let { width, height } = img
   if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
     if (width > height) {
@@ -92,27 +72,13 @@ async function resizeAndCompress(img: HTMLImageElement, quality: number): Promis
   const ctx = canvas.getContext('2d')!
   ctx.drawImage(img, 0, 0, width, height)
 
-  // Export as JPEG blob
-  const blob = await new Promise<Blob>((resolve, reject) => {
+  return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (b) => b ? resolve(b) : reject(new Error('Canvas compression failed')),
       'image/jpeg',
       quality
     )
   })
-
-  // Convert blob to base64
-  const base64 = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      resolve(result.split(',')[1])
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(blob)
-  })
-
-  return { base64, blob }
 }
 
 interface Category {
@@ -282,7 +248,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
     }
   }, [isOpen])
 
-  // Handle file upload — with client-side compression for large images
+  // Handle file upload — client-side upload directly to Vercel Blob
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !expense) return
@@ -296,7 +262,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
       return
     }
 
-    // Pre-compression size gate — reject truly massive files
+    // Pre-compression size gate
     if (file.size > MAX_UPLOAD_SIZE) {
       setError('File too large. Maximum size is 10MB.')
       return
@@ -307,35 +273,40 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
       setUploadStatus(null)
       setError(null)
 
-      // Compress if needed (images >4MB), otherwise pass through
+      // Step 1: Compress if needed (images >4MB)
+      let fileToUpload = file
       if (file.size > COMPRESSION_THRESHOLD && file.type.startsWith('image/')) {
         setUploadStatus('Compressing image...')
+        fileToUpload = await compressImageFile(file)
+        const savedPct = Math.round((1 - fileToUpload.size / file.size) * 100)
+        setUploadStatus(`Compressed: ${formatFileSize(file.size)} → ${formatFileSize(fileToUpload.size)} (${savedPct}% smaller)`)
       }
 
-      const { base64, fileName, fileType, fileSize } = await compressImageFile(file)
+      // Step 2: Upload directly to Vercel Blob via client upload
+      setUploadStatus(prev => prev ? `${prev} • Uploading...` : 'Uploading...')
+      
+      const blobPath = `${subdomain}/${expense.id}/${Date.now()}-${fileToUpload.name}`
+      const blob = await upload(blobPath, fileToUpload, {
+        access: 'public',
+        handleUploadUrl: `/api/attachments/upload?tenant=${subdomain}`,
+      })
 
-      // Show compression result if it happened
-      if (file.size > COMPRESSION_THRESHOLD && file.type.startsWith('image/')) {
-        const savedPct = Math.round((1 - fileSize / file.size) * 100)
-        setUploadStatus(`Compressed: ${formatFileSize(file.size)} → ${formatFileSize(fileSize)} (${savedPct}% smaller)`)
-      } else {
-        setUploadStatus('Uploading...')
-      }
-
+      // Step 3: Record the attachment in our database
       const response = await fetch(`/api/attachments?tenant=${subdomain}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           expenseId: expense.id,
-          fileName: fileName,
-          fileType: fileType,
-          fileData: base64,
+          blobUrl: blob.url,
+          fileName: fileToUpload.name,
+          fileType: fileToUpload.type,
+          fileSize: fileToUpload.size,
         }),
       })
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Upload failed')
+        throw new Error(data.error || 'Failed to record attachment')
       }
 
       const data = await response.json()
