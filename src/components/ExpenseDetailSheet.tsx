@@ -7,6 +7,114 @@ function getDefaultMode(): 'view' | 'edit' {
   return (localStorage.getItem('expenseDetailMode') as 'view' | 'edit') || 'view'
 }
 
+// ============================================
+// Client-side image compression via Canvas API
+// Only compresses images over 4MB. PDFs and small files pass through.
+// ============================================
+const COMPRESSION_THRESHOLD = 4 * 1024 * 1024 // 4MB — compress if larger
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024       // 10MB — reject if larger (pre-compression)
+const MAX_DIMENSION = 2048                      // Resize longest edge to this
+
+async function compressImageFile(file: File): Promise<{ base64: string; fileName: string; fileType: string; fileSize: number }> {
+  // PDFs: never compress, just convert to base64
+  if (file.type === 'application/pdf') {
+    const base64 = await fileToBase64(file)
+    return { base64, fileName: file.name, fileType: file.type, fileSize: file.size }
+  }
+
+  // Images under threshold: pass through untouched
+  if (file.size <= COMPRESSION_THRESHOLD) {
+    const base64 = await fileToBase64(file)
+    return { base64, fileName: file.name, fileType: file.type, fileSize: file.size }
+  }
+
+  // Image over 4MB — compress via Canvas API
+  const img = await loadImage(file)
+  const qualitySteps = [0.92, 0.85, 0.75]
+  
+  for (const quality of qualitySteps) {
+    const { base64, blob } = await resizeAndCompress(img, quality)
+    
+    if (blob.size <= COMPRESSION_THRESHOLD) {
+      // Build new filename: original name but .jpg extension
+      const compressedName = file.name.replace(/\.[^.]+$/, '') + '.jpg'
+      return { base64, fileName: compressedName, fileType: 'image/jpeg', fileSize: blob.size }
+    }
+  }
+
+  // Even at 75% quality it's still over 4MB — use the last attempt anyway
+  // The server will reject if it's truly too large for the body limit
+  const { base64, blob } = await resizeAndCompress(img, 0.75)
+  const compressedName = file.name.replace(/\.[^.]+$/, '') + '.jpg'
+  return { base64, fileName: compressedName, fileType: 'image/jpeg', fileSize: blob.size }
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      resolve(result.split(',')[1]) // Strip data:...;base64, prefix
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+function loadImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      URL.revokeObjectURL(img.src)
+      resolve(img)
+    }
+    img.onerror = reject
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+async function resizeAndCompress(img: HTMLImageElement, quality: number): Promise<{ base64: string; blob: Blob }> {
+  // Calculate new dimensions — scale down so longest edge = MAX_DIMENSION
+  let { width, height } = img
+  if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+    if (width > height) {
+      height = Math.round(height * (MAX_DIMENSION / width))
+      width = MAX_DIMENSION
+    } else {
+      width = Math.round(width * (MAX_DIMENSION / height))
+      height = MAX_DIMENSION
+    }
+  }
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')!
+  ctx.drawImage(img, 0, 0, width, height)
+
+  // Export as JPEG blob
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (b) => b ? resolve(b) : reject(new Error('Canvas compression failed')),
+      'image/jpeg',
+      quality
+    )
+  })
+
+  // Convert blob to base64
+  const base64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      resolve(result.split(',')[1])
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+
+  return { base64, blob }
+}
+
 interface Category {
   id: string
   name: string
@@ -79,6 +187,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [loadingAttachments, setLoadingAttachments] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
   // Derived: is the selected category home-office-eligible?
@@ -167,12 +276,13 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
         setShowDeleteConfirm(false)
         setAttachments([])
         setLightboxUrl(null)
+        setUploadStatus(null)
       }, 300)
       return () => clearTimeout(timer)
     }
   }, [isOpen])
 
-  // Handle file upload
+  // Handle file upload — with client-side compression for large images
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !expense) return
@@ -186,33 +296,39 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
       return
     }
 
-    if (file.size > 4 * 1024 * 1024) {
-      setError('File too large. Maximum size is 4MB.')
+    // Pre-compression size gate — reject truly massive files
+    if (file.size > MAX_UPLOAD_SIZE) {
+      setError('File too large. Maximum size is 10MB.')
       return
     }
 
     try {
       setUploading(true)
+      setUploadStatus(null)
       setError(null)
 
-      // Convert file to base64
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-          const result = reader.result as string
-          resolve(result.split(',')[1]) // strip data:... prefix
-        }
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
+      // Compress if needed (images >4MB), otherwise pass through
+      if (file.size > COMPRESSION_THRESHOLD && file.type.startsWith('image/')) {
+        setUploadStatus('Compressing image...')
+      }
+
+      const { base64, fileName, fileType, fileSize } = await compressImageFile(file)
+
+      // Show compression result if it happened
+      if (file.size > COMPRESSION_THRESHOLD && file.type.startsWith('image/')) {
+        const savedPct = Math.round((1 - fileSize / file.size) * 100)
+        setUploadStatus(`Compressed: ${formatFileSize(file.size)} → ${formatFileSize(fileSize)} (${savedPct}% smaller)`)
+      } else {
+        setUploadStatus('Uploading...')
+      }
 
       const response = await fetch(`/api/attachments?tenant=${subdomain}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           expenseId: expense.id,
-          fileName: file.name,
-          fileType: file.type,
+          fileName: fileName,
+          fileType: fileType,
           fileData: base64,
         }),
       })
@@ -224,8 +340,10 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
 
       const data = await response.json()
       setAttachments(prev => [...prev, data.attachment])
+      setUploadStatus(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed')
+      setUploadStatus(null)
     } finally {
       setUploading(false)
     }
@@ -531,6 +649,11 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                     {uploading ? 'Uploading...' : '📎 Attach'}
                   </label>
                 </div>
+
+                {/* Upload status message (compression feedback) */}
+                {uploadStatus && (
+                  <div className="attachments-status">{uploadStatus}</div>
+                )}
 
                 {loadingAttachments && (
                   <div className="attachments-loading">Loading attachments...</div>

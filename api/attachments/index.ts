@@ -12,7 +12,7 @@ const ALLOWED_TYPES = [
   'application/pdf',
 ];
 
-const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB (Vercel function body limit safety margin)
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB (client-side compression handles large images before upload)
 
 // Auth helper — resolves tenant from query param, same pattern as expenses endpoint
 async function getAuth(req: VercelRequest) {
@@ -91,7 +91,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Validate file size
       if (buffer.length > MAX_FILE_SIZE) {
-        return res.status(400).json({ error: 'File too large. Maximum size is 4MB.' });
+        return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
       }
 
       // Verify expense belongs to this tenant
