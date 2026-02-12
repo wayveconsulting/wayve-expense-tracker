@@ -201,47 +201,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Determine where to redirect based on user type
     let finalRedirect = redirectTo;
     
+    // Look up tenant access for ALL user types (including super admins)
+    const tenantAccessRecords = await db
+      .select({
+        tenantId: userTenantAccess.tenantId,
+        subdomain: tenants.subdomain,
+      })
+      .from(userTenantAccess)
+      .innerJoin(tenants, eq(userTenantAccess.tenantId, tenants.id))
+      .where(eq(userTenantAccess.userId, user.id));
+
+    // Also check if user has a primary tenant (legacy/direct assignment)
+    let allTenantAccess = [...tenantAccessRecords];
+    
+    if (user.tenantId) {
+      const [primaryTenant] = await db
+        .select({ subdomain: tenants.subdomain })
+        .from(tenants)
+        .where(eq(tenants.id, user.tenantId))
+        .limit(1);
+      
+      if (primaryTenant && !allTenantAccess.some(t => t.subdomain === primaryTenant.subdomain)) {
+        allTenantAccess.push({ tenantId: user.tenantId, subdomain: primaryTenant.subdomain });
+      }
+    }
+
     if (user.isSuperAdmin) {
-      finalRedirect = '/admin';
+      if (allTenantAccess.length === 1) {
+        // Super admin with one tenant — redirect to their business
+        finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
+      } else if (allTenantAccess.length > 1) {
+        // Super admin with multiple tenants — TODO: tenant picker
+        // For now, default to first tenant
+        console.log(`Super admin ${user.email} has ${allTenantAccess.length} tenants, defaulting to first`);
+        finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
+      } else {
+        // Pure super admin with no tenant — go to admin
+        finalRedirect = '/admin';
+      }
     } else if (user.isAccountant) {
       // TODO [MVP - Option B]: Build tenant picker page for accountants
       // For now, accountants go to dashboard and will need to select a tenant
       finalRedirect = '/dashboard';
     } else {
-      // Regular user - find their tenant(s) and redirect appropriately
-      const tenantAccessRecords = await db
-        .select({
-          tenantId: userTenantAccess.tenantId,
-          subdomain: tenants.subdomain,
-        })
-        .from(userTenantAccess)
-        .innerJoin(tenants, eq(userTenantAccess.tenantId, tenants.id))
-        .where(eq(userTenantAccess.userId, user.id));
-
-      // Also check if user has a primary tenant (legacy/direct assignment)
-      let allTenantAccess = [...tenantAccessRecords];
-      
-      if (user.tenantId) {
-        const [primaryTenant] = await db
-          .select({ subdomain: tenants.subdomain })
-          .from(tenants)
-          .where(eq(tenants.id, user.tenantId))
-          .limit(1);
-        
-        if (primaryTenant && !allTenantAccess.some(t => t.subdomain === primaryTenant.subdomain)) {
-          allTenantAccess.push({ tenantId: user.tenantId, subdomain: primaryTenant.subdomain });
-        }
-      }
-
+      // Regular user
       if (allTenantAccess.length === 0) {
-        // No tenant access at all
         return res.redirect('/login?error=no_tenant_access');
       } else if (allTenantAccess.length === 1) {
-        // Single tenant - redirect with tenant context
         finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
       } else {
         // TODO [MVP - Option B]: Multiple tenants - show tenant picker
-        // For now, just use the first one (not ideal, but functional)
         console.log(`User ${user.email} has ${allTenantAccess.length} tenants, defaulting to first`);
         finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
       }
