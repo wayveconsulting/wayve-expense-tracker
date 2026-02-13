@@ -828,6 +828,73 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                 </div>
               </div>
 
+              {/* Attachments Section */}
+              <div className="attachments-section">
+                <div className="attachments-section__header">
+                  <span className="form-label">Attachments</span>
+                  <label className="btn btn--small btn--secondary attachments-upload-btn">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/heic,application/pdf"
+                      onChange={handleFileUpload}
+                      style={{ display: 'none' }}
+                      disabled={uploading}
+                    />
+                    {uploading ? 'Uploading...' : '📎 Attach'}
+                  </label>
+                </div>
+
+                {/* Upload status message (compression feedback) */}
+                {uploadStatus && (
+                  <div className="attachments-status">{uploadStatus}</div>
+                )}
+
+                {loadingAttachments && (
+                  <div className="attachments-loading">Loading attachments...</div>
+                )}
+
+                {!loadingAttachments && attachments.length === 0 && (
+                  <div className="attachments-empty">No attachments yet</div>
+                )}
+
+                {attachments.length > 0 && (
+                  <div className="attachments-list">
+                    {attachments.map(att => (
+                      <div key={att.id} className="attachment-item">
+                        {att.mimeType.startsWith('image/') ? (
+                          <img
+                            src={att.blobUrl}
+                            alt={att.fileName}
+                            className="attachment-item__thumbnail"
+                            onClick={() => setLightboxUrl(att.blobUrl)}
+                          />
+                        ) : (
+                          <div
+                            className="attachment-item__thumbnail attachment-item__thumbnail--pdf"
+                            onClick={() => window.open(att.blobUrl, '_blank')}
+                          >
+                            PDF
+                          </div>
+                        )}
+                        <div className="attachment-item__info">
+                          <span className="attachment-item__name">{att.fileName}</span>
+                          <span className="attachment-item__size">{formatFileSize(att.fileSize)}</span>
+                        </div>
+                        <button
+                          className="attachment-item__delete"
+                          onClick={() => handleDeleteAttachment(att.id)}
+                          aria-label="Delete attachment"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 6 6 18M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Action Buttons */}
               <div className="edit-actions">
                 <button 
