@@ -18,7 +18,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const tenant = await db
       .select({
-        id: tenants.id,
         name: tenants.name,
         subdomain: tenants.subdomain,
         logoUrl: tenants.logoUrl,
