@@ -109,13 +109,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .limit(1);
 
       if (!pendingInvite) {
-        console.log(`Login attempt from uninvited user: ${googleUser.email}`);
+        console.log(`Login attempt from uninvited user (Google sub: ${googleUser.id})`);
         return res.redirect('/login?error=not_invited');
       }
 
       // Check if invite is expired
       if (new Date(pendingInvite.expiresAt) < new Date()) {
-        console.log(`Expired invite used by: ${googleUser.email}`);
+        console.log(`Expired invite used (Google sub: ${googleUser.id})`);
         return res.redirect('/login?error=invite_expired');
       }
 
@@ -233,7 +233,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } else if (allTenantAccess.length > 1) {
         // Super admin with multiple tenants — TODO: tenant picker
         // For now, default to first tenant
-        console.log(`Super admin ${user.email} has ${allTenantAccess.length} tenants, defaulting to first`);
+        console.log(`Super admin ${user.id} has ${allTenantAccess.length} tenants, defaulting to first`);
         finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
       } else {
         // Pure super admin with no tenant — go to admin
@@ -251,7 +251,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
       } else {
         // TODO [MVP - Option B]: Multiple tenants - show tenant picker
-        console.log(`User ${user.email} has ${allTenantAccess.length} tenants, defaulting to first`);
+        console.log(`User ${user.id} has ${allTenantAccess.length} tenants, defaulting to first`);
         finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
       }
     }
