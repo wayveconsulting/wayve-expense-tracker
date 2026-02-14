@@ -4,6 +4,7 @@ import { users, sessions, tenants, invites } from '../../../src/db/schema.js';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 import { Resend } from 'resend';
+import { escapeHtml } from '../../_lib/utils.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -106,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             </div>
             
             <p style="font-size: 16px; color: #333; line-height: 1.6;">
-              You've been invited to manage expenses for <strong>${businessName}</strong>.
+              You've been invited to manage expenses for <strong>${escapeHtml(businessName)}</strong>.
             </p>
             
             <p style="font-size: 16px; color: #333; line-height: 1.6;">

@@ -5,6 +5,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import { DEFAULT_CATEGORIES, UNCATEGORIZED_CATEGORY } from '../../../src/db/default-categories.js';
+import { escapeHtml } from '../../_lib/utils.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -221,7 +222,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
             </div>
             
             <p style="font-size: 16px; color: #333; line-height: 1.6;">
-              You've been invited to manage expenses for <strong>${businessName.trim()}</strong>.
+              You've been invited to manage expenses for <strong>${escapeHtml(businessName.trim())}</strong>.
             </p>
             
             <p style="font-size: 16px; color: #333; line-height: 1.6;">
