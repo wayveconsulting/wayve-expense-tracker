@@ -105,13 +105,6 @@ export function LoginPage() {
               Sign in with Google
             </button>
 
-            {/* Apple button placeholder - Phase 2 */}
-            {/* 
-            <button style={styles.appleButton}>
-              <svg>...</svg>
-              Sign in with Apple
-            </button>
-            */}
           </div>
         )}
 
