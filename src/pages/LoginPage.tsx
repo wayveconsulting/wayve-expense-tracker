@@ -58,9 +58,7 @@ export function LoginPage() {
           {logoUrl ? (
             <img src={logoUrl} alt={appName} style={styles.logo} />
           ) : (
-            <div style={{ ...styles.logoPlaceholder, backgroundColor: primaryColor }}>
-              {appName.charAt(0)}
-            </div>
+            <img src="/icon-192.png" alt={appName} style={styles.logo} />
           )}
           <h1 style={styles.title}>{appName}</h1>
           {tenant && (
@@ -104,7 +102,6 @@ export function LoginPage() {
               </svg>
               Sign in with Google
             </button>
-
           </div>
         )}
 
