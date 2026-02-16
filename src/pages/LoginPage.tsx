@@ -48,7 +48,6 @@ export function LoginPage() {
   // Get branding from tenant (if on a subdomain) or use defaults
   const appName = tenant?.appName || 'Wayve Expense Tracker';
   const logoUrl = tenant?.logoUrl;
-  const primaryColor = tenant?.primaryColor || '#2A9D8F';
 
   return (
     <div style={styles.container}>
