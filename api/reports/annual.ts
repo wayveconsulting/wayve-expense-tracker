@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { db } from '../../src/db/index.js'
 import { expenses, categories, sessions, users, userTenantAccess, tenants } from '../../src/db/schema.js'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, gte, lt } from 'drizzle-orm'
 
 // ===========================================
 // Helper: Validate session and get user + tenant
@@ -72,6 +72,7 @@ async function authenticateRequest(req: VercelRequest): Promise<{
 // GET: Annual summary report
 // ===========================================
 async function handleGet(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store')
   const auth = await authenticateRequest(req)
   if ('error' in auth) {
     return res.status(auth.status).json({ error: auth.error })
@@ -80,8 +81,12 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
 
   const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear()
 
-  // Fetch all expenses for tenant
-  const allExpenses = await db
+  // Date range for SQL-level filtering
+  const startDate = new Date(year, 0, 1)
+  const endDate = new Date(year + 1, 0, 1)
+
+  // Fetch expenses for this year only (SQL-level date filter)
+  const yearExpenses = await db
     .select({
       id: expenses.id,
       amount: expenses.amount,
@@ -90,10 +95,11 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
       expenseType: expenses.expenseType,
     })
     .from(expenses)
-    .where(eq(expenses.tenantId, tenantId))
-
-  // Filter by year
-  const yearExpenses = allExpenses.filter((e) => new Date(e.date).getFullYear() === year)
+    .where(and(
+      eq(expenses.tenantId, tenantId),
+      gte(expenses.date, startDate),
+      lt(expenses.date, endDate)
+    ))
 
   // Fetch categories for this tenant
   const tenantCategories = await db
