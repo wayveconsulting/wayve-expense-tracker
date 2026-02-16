@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { db } from '../../src/db/index.js'
 import { expenses, categories, sessions, users, userTenantAccess, tenants } from '../../src/db/schema.js'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, gte, lt } from 'drizzle-orm'
 
 // ===========================================
 // Helper: Validate session and get user + tenant
@@ -79,6 +79,7 @@ function getQuarter(date: Date): number {
 // GET: Quarterly breakdown by category
 // ===========================================
 async function handleGet(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store')
   const auth = await authenticateRequest(req)
   if ('error' in auth) {
     return res.status(auth.status).json({ error: auth.error })
@@ -87,8 +88,12 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
 
   const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear()
 
-  // Fetch all expenses for the year with category info
-  const expenseList = await db
+  // Date range for SQL-level filtering
+  const startDate = new Date(year, 0, 1)   // Jan 1 of year
+  const endDate = new Date(year + 1, 0, 1) // Jan 1 of next year
+
+  // Fetch expenses for this year only (SQL-level date filter)
+  const filtered = await db
     .select({
       amount: expenses.amount,
       date: expenses.date,
@@ -98,14 +103,15 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
     })
     .from(expenses)
     .leftJoin(categories, eq(expenses.categoryId, categories.id))
-    .where(eq(expenses.tenantId, tenantId))
+    .where(and(
+      eq(expenses.tenantId, tenantId),
+      gte(expenses.date, startDate),
+      lt(expenses.date, endDate)
+    ))
     .orderBy(desc(expenses.date))
 
-  // Filter by year
-  const filtered = expenseList.filter((e: typeof expenseList[number]) => new Date(e.date).getFullYear() === year)
-
   // Build category × quarter matrix
-  const matrix = new Map<string, {
+  type QuarterlyRow = {
     categoryId: string
     name: string
     emoji: string | null
@@ -114,7 +120,9 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
     q3: number
     q4: number
     total: number
-  }>()
+  }
+
+  const matrix = new Map<string, QuarterlyRow>()
 
   for (const expense of filtered) {
     const key = expense.categoryId || 'uncategorized'
