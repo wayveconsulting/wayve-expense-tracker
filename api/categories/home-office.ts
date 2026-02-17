@@ -1,67 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { db } from '../../src/db/index.js'
-import { sessions, users, userTenantAccess, tenants } from '../../src/db/schema.js'
-import { eq, and } from 'drizzle-orm'
-
-// ============================================
-// AUTH HELPER
-// ============================================
-async function authenticateAndGetTenant(req: VercelRequest): Promise<{ tenantId: string; userId: string } | { error: string; status: number }> {
-  const sessionToken = req.cookies.session
-  if (!sessionToken) {
-    return { error: 'Not authenticated', status: 401 }
-  }
-
-  const [session] = await db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.token, sessionToken))
-    .limit(1)
-
-  if (!session || new Date(session.expiresAt) < new Date()) {
-    return { error: 'Session expired', status: 401 }
-  }
-
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, session.userId))
-    .limit(1)
-
-  if (!user) {
-    return { error: 'User not found', status: 401 }
-  }
-
-  const tenantSubdomain = req.query.tenant as string | undefined
-  if (!tenantSubdomain) {
-    return { error: 'No tenant context', status: 400 }
-  }
-
-  const [tenant] = await db
-    .select()
-    .from(tenants)
-    .where(eq(tenants.subdomain, tenantSubdomain))
-    .limit(1)
-
-  if (!tenant) {
-    return { error: 'Tenant not found', status: 404 }
-  }
-
-  const [hasAccess] = await db
-    .select()
-    .from(userTenantAccess)
-    .where(and(
-      eq(userTenantAccess.userId, user.id),
-      eq(userTenantAccess.tenantId, tenant.id)
-    ))
-    .limit(1)
-
-  if (!hasAccess && !user.isSuperAdmin) {
-    return { error: 'Access denied', status: 403 }
-  }
-
-  return { tenantId: tenant.id, userId: user.id }
-}
+import { tenants } from '../../src/db/schema.js'
+import { eq } from 'drizzle-orm'
+import { authenticateRequest } from '../_lib/auth.js'
 
 // ============================================
 // MAIN HANDLER — PUT only
@@ -74,9 +15,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const auth = await authenticateAndGetTenant(req)
-    if ('error' in auth) {
-      return res.status(auth.status).json({ error: auth.error })
+    const auth = await authenticateRequest(req)
+    if (!auth) {
+      return res.status(401).json({ error: 'Unauthorized' })
     }
 
     const { tenantId } = auth
