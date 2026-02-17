@@ -4718,13 +4718,141 @@
 }
 
 /* ============================================
-   ATTACHMENT UPLOAD STATUS
+   ADD EXPENSE — ATTACHMENT PICKER
    ============================================ */
 
-.attachments-status {
-  font-size: 0.8rem;
+.add-expense-attachments {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.add-expense-attachments__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.add-expense-attachments__limit {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.add-expense-attachments__picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  min-height: 44px;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.add-expense-attachments__picker:active {
+  border-color: var(--color-primary);
   color: var(--color-primary);
-  padding: var(--spacing-xs) 0;
-  font-style: italic;
+}
+
+.add-expense-attachments__picker--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-expense-attachments__preview {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.add-expense-attachments__thumb-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.add-expense-attachments__thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.add-expense-attachments__thumb--pdf {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.add-expense-attachments__remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  /* Expand touch target to 44px without changing visual size */
+}
+
+.add-expense-attachments__remove::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+.add-expense-attachments__file-size {
+  display: block;
+  text-align: center;
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* ============================================
+   DARK MODE — Add Expense Attachments
+   ============================================ */
+
+[data-theme="dark"] .add-expense-attachments {
+  border-top-color: var(--color-border);
+}
+
+[data-theme="dark"] .add-expense-attachments__picker {
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .add-expense-attachments__picker:active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+[data-theme="dark"] .add-expense-attachments__thumb {
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .add-expense-attachments__remove {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
 }
 

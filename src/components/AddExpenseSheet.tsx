@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useTenant } from '../hooks/useTenant'
+import {
+  type PendingAttachment,
+  type UploadProgress,
+  uploadToBlob,
+  linkAttachmentToExpense,
+  validateFile,
+  formatFileSize,
+  ALLOWED_FILE_ACCEPT,
+} from '../utils/attachment-upload'
+
+const MAX_ATTACHMENTS = 2
 
 interface Category {
   id: string
@@ -19,7 +30,7 @@ interface AddExpenseSheetProps {
 
 export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategoryId }: AddExpenseSheetProps) {
   const { subdomain } = useTenant()
-  
+
   // Form state
   const [amount, setAmount] = useState('')
   const [vendor, setVendor] = useState('')
@@ -28,12 +39,16 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
   const [categoryId, setCategoryId] = useState('')
   const [expenseType, setExpenseType] = useState<'operating' | 'cogs'>('operating')
   const [isHomeOffice, setIsHomeOffice] = useState(false)
-  
+
   // UI state
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Attachment state
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([])
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({ status: 'idle' })
 
   // Derived: selected category properties
   const selectedCategory = categories.find(c => c.id === categoryId)
@@ -63,7 +78,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
         }
         const data = await response.json()
         setCategories(data.categories)
-        
+
         // Set preselected category if provided, otherwise default to first
         if (preselectedCategoryId) {
           setCategoryId(preselectedCategoryId)
@@ -80,7 +95,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
     fetchCategories()
   }, [isOpen, subdomain])
 
-  // Reset form when sheet closes
+  // Reset form when sheet closes (including pending attachments)
   useEffect(() => {
     if (!isOpen) {
       // Small delay to let animation finish before resetting
@@ -93,10 +108,55 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
         setExpenseType('operating')
         setIsHomeOffice(false)
         setError(null)
+        setPendingAttachments([])
+        setUploadProgress({ status: 'idle' })
       }, 300)
       return () => clearTimeout(timer)
     }
   }, [isOpen, preselectedCategoryId])
+
+  // Handle file selection — uploads to Vercel Blob immediately
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Reset the input so the same file can be re-selected
+    e.target.value = ''
+
+    if (pendingAttachments.length >= MAX_ATTACHMENTS) {
+      setError(`Maximum ${MAX_ATTACHMENTS} attachments allowed`)
+      return
+    }
+
+    const validationError = validateFile(file)
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    try {
+      setError(null)
+      setUploadProgress({ status: 'uploading', message: 'Uploading...' })
+
+      // Upload to Vercel Blob (compresses if needed)
+      // Use a generic prefix since we don't have an expense ID yet
+      const blobPathPrefix = `${subdomain}/pending`
+      const pending = await uploadToBlob(file, subdomain!, blobPathPrefix, (progress) => {
+        setUploadProgress(progress)
+      })
+
+      setPendingAttachments(prev => [...prev, pending])
+      setUploadProgress({ status: 'idle' })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed')
+      setUploadProgress({ status: 'error', message: 'Upload failed' })
+    }
+  }
+
+  // Remove a pending attachment
+  function handleRemoveAttachment(index: number) {
+    setPendingAttachments(prev => prev.filter((_, i) => i !== index))
+  }
 
   // Handle form submission
   async function handleSubmit(e: React.FormEvent) {
@@ -124,6 +184,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
       // Convert dollars to cents
       const amountCents = Math.round(amountNum * 100)
 
+      // Step 1: Create the expense
       const response = await fetch(`/api/expenses?tenant=${subdomain}`, {
         method: 'POST',
         headers: {
@@ -145,6 +206,25 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
         throw new Error(data.details?.join(', ') || data.error || 'Failed to create expense')
       }
 
+      const { expense } = await response.json()
+
+      // Step 2: Link pending attachments to the new expense
+      if (pendingAttachments.length > 0) {
+        const linkErrors: string[] = []
+        for (const attachment of pendingAttachments) {
+          try {
+            await linkAttachmentToExpense(attachment, expense.id, subdomain!)
+          } catch (err) {
+            linkErrors.push(err instanceof Error ? err.message : 'Failed to link attachment')
+          }
+        }
+
+        if (linkErrors.length > 0) {
+          // Expense saved but some attachments failed to link — still close
+          console.error('Attachment linking errors:', linkErrors)
+        }
+      }
+
       // Success! Close sheet and trigger refresh
       onSuccess()
       onClose()
@@ -162,10 +242,12 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
     }
   }
 
+  const isUploading = uploadProgress.status === 'compressing' || uploadProgress.status === 'uploading'
+
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className={`sheet-backdrop ${isOpen ? 'sheet-backdrop--open' : ''}`}
         onClick={handleBackdropClick}
       />
@@ -180,7 +262,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
         {/* Header */}
         <div className="bottom-sheet__header">
           <h2 className="bottom-sheet__title">Add Expense</h2>
-          <button 
+          <button
             className="bottom-sheet__close"
             onClick={onClose}
             aria-label="Close"
@@ -328,16 +410,74 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
             </div>
           </div>
 
-          {/* Attachment hint */}
-          <div className="form-hint">
-            📎 You can attach receipt images after saving the expense.
+          {/* Attachment Section */}
+          <div className="add-expense-attachments">
+            <div className="add-expense-attachments__header">
+              <span className="form-label">Receipts</span>
+              {pendingAttachments.length > 0 && (
+                <span className="add-expense-attachments__limit">
+                  {pendingAttachments.length} of {MAX_ATTACHMENTS}
+                </span>
+              )}
+            </div>
+
+            {/* Upload progress */}
+            {uploadProgress.message && (
+              <div className="attachments-status">{uploadProgress.message}</div>
+            )}
+
+            {/* Thumbnail previews */}
+            {pendingAttachments.length > 0 && (
+              <div className="add-expense-attachments__preview">
+                {pendingAttachments.map((att, index) => (
+                  <div key={att.blobUrl} className="add-expense-attachments__thumb-wrapper">
+                    {att.fileType.startsWith('image/') ? (
+                      <img
+                        src={att.blobUrl}
+                        alt={att.fileName}
+                        className="add-expense-attachments__thumb"
+                      />
+                    ) : (
+                      <div className="add-expense-attachments__thumb add-expense-attachments__thumb--pdf">
+                        PDF
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="add-expense-attachments__remove"
+                      onClick={() => handleRemoveAttachment(index)}
+                      aria-label="Remove attachment"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <span className="add-expense-attachments__file-size">{formatFileSize(att.fileSize)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* File picker — hidden when max reached or uploading */}
+            {pendingAttachments.length < MAX_ATTACHMENTS && (
+              <label className={`add-expense-attachments__picker ${isUploading ? 'add-expense-attachments__picker--disabled' : ''}`}>
+                <input
+                  type="file"
+                  accept={ALLOWED_FILE_ACCEPT}
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                  disabled={isUploading}
+                />
+                {isUploading ? 'Uploading...' : '📎 Attach Receipt'}
+              </label>
+            )}
           </div>
 
           {/* Submit Button */}
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="btn btn--primary btn--full"
-            disabled={submitting || loadingCategories}
+            disabled={submitting || loadingCategories || isUploading}
           >
             {submitting ? 'Saving...' : 'Save Expense'}
           </button>
