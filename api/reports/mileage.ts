@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { db } from '../../src/db/index.js'
 import { mileageTrips, sessions, users, userTenantAccess, tenants } from '../../src/db/schema.js'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, asc, gte, lt } from 'drizzle-orm'
 
 // ===========================================
 // Helper: Validate session and get user + tenant
@@ -72,6 +72,7 @@ async function authenticateRequest(req: VercelRequest): Promise<{
 // GET: Mileage log report for a year
 // ===========================================
 async function handleGet(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store')
   const auth = await authenticateRequest(req)
   if ('error' in auth) {
     return res.status(auth.status).json({ error: auth.error })
@@ -80,21 +81,23 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
 
   const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear()
 
-  // Fetch all mileage trips for this tenant, ordered by date
-  const allTrips = await db
+  // Date range for SQL-level filtering
+  const startDate = new Date(year, 0, 1)
+  const endDate = new Date(year + 1, 0, 1)
+
+  // Fetch mileage trips for this year only, sorted chronologically (oldest first for IRS report)
+  const yearTrips = await db
     .select()
     .from(mileageTrips)
-    .where(eq(mileageTrips.tenantId, tenantId))
-    .orderBy(desc(mileageTrips.date))
-
-  // Filter by year
-  const filtered = allTrips.filter((t) => new Date(t.date).getFullYear() === year)
-
-  // Sort chronologically for the report (oldest first)
-  filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .where(and(
+      eq(mileageTrips.tenantId, tenantId),
+      gte(mileageTrips.date, startDate),
+      lt(mileageTrips.date, endDate)
+    ))
+    .orderBy(asc(mileageTrips.date))
 
   // Build report rows
-  const trips = filtered.map((trip) => ({
+  const trips = yearTrips.map((trip) => ({
     id: trip.id,
     date: trip.date,
     startLocation: trip.startLocation,
