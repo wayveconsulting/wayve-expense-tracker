@@ -48,7 +48,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
       gte(expenses.date, startDate),
       lt(expenses.date, endDate)
     ))
-    .orderBy(desc(expenses.date))
+    .orderBy(desc(expenses.date), desc(expenses.createdAt))
     .limit(limit)
 
   // Calculate summary stats
