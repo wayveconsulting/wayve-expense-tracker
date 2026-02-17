@@ -22,6 +22,13 @@
       "when": 1767756387333,
       "tag": "0002_wise_krista_starr",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771359838475,
+      "tag": "0003_workable_terrax",
+      "breakpoints": true
     }
   ]
 }

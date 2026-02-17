@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, boolean, integer, unique, index } from 'drizzle-orm/pg-core';
 
 // ============================================
 // TENANTS (Organizations/Businesses)
@@ -384,14 +384,26 @@ export const expensePolicies = pgTable('expense_policies', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
   userId: uuid('user_id').notNull().references(() => users.id), // the sub-user this policy applies to
-  
+
   // Policy rules (all optional - null means no restriction)
   maxExpenseAmount: integer('max_expense_amount'), // cents - flag expenses over this
   requireNotesAbove: integer('require_notes_above'), // cents - require notes for expenses over this
   allowedCategories: text('allowed_categories'), // JSON array of category IDs, null = all allowed
-  
+
   // Audit
   createdBy: uuid('created_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+// ============================================
+// RATE LIMIT USAGE (tracks API usage per tenant)
+// ============================================
+export const rateLimitUsage = pgTable('rate_limit_usage', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  actionType: varchar('action_type', { length: 50 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('rate_limit_tenant_action_time_idx').on(table.tenantId, table.actionType, table.createdAt),
+]);
