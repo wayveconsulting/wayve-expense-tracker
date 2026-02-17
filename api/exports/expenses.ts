@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { db } from '../../src/db/index.js'
-import { expenses, categories, sessions, users, userTenantAccess, tenants } from '../../src/db/schema.js'
+import { expenses, categories } from '../../src/db/schema.js'
 import { eq, and, gte, lte, desc } from 'drizzle-orm'
+import { authenticateRequest } from '../_lib/auth.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -9,60 +10,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Auth check
-    const sessionToken = req.cookies.session
-    if (!sessionToken) {
-      return res.status(401).json({ error: 'Not authenticated' })
-    }
-
-    const [session] = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.token, sessionToken))
-      .limit(1)
-
-    if (!session || new Date(session.expiresAt) < new Date()) {
-      return res.status(401).json({ error: 'Session expired' })
-    }
-
-    // Get tenant from query param
-    const tenantSubdomain = req.query.tenant as string
-    if (!tenantSubdomain) {
-      return res.status(400).json({ error: 'Tenant required' })
-    }
-
-    // Look up tenant
-    const [tenant] = await db
-      .select()
-      .from(tenants)
-      .where(eq(tenants.subdomain, tenantSubdomain))
-      .limit(1)
-
-    if (!tenant) {
-      return res.status(404).json({ error: 'Tenant not found' })
-    }
-
-    // Verify user has access to this tenant
-    const [access] = await db
-      .select()
-      .from(userTenantAccess)
-      .where(
-        and(
-          eq(userTenantAccess.userId, session.userId),
-          eq(userTenantAccess.tenantId, tenant.id)
-        )
-      )
-      .limit(1)
-
-    // Also check if super admin
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.userId))
-      .limit(1)
-
-    if (!access && !user?.isSuperAdmin) {
-      return res.status(403).json({ error: 'Access denied' })
+    const auth = await authenticateRequest(req)
+    if (!auth) {
+      return res.status(401).json({ error: 'Unauthorized' })
     }
 
     // Parse date filters
@@ -70,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const endDate = req.query.endDate as string | undefined
 
     // Build query conditions
-    const conditions = [eq(expenses.tenantId, tenant.id)]
+    const conditions = [eq(expenses.tenantId, auth.tenantId)]
     
     if (startDate) {
       conditions.push(gte(expenses.date, new Date(startDate)))
