@@ -1,72 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { db } from '../../src/db/index.js'
-import { expenses, categories, sessions, users, userTenantAccess, tenants } from '../../src/db/schema.js'
+import { expenses, categories, tenants } from '../../src/db/schema.js'
 import { eq, and } from 'drizzle-orm'
-
-// ===========================================
-// Helper: Validate session and get user + tenant
-// ===========================================
-async function authenticateRequest(req: VercelRequest): Promise<{
-  user: typeof users.$inferSelect
-  tenantId: string
-} | { error: string; status: number }> {
-  const sessionToken = req.cookies.session
-  if (!sessionToken) {
-    return { error: 'Not authenticated', status: 401 }
-  }
-
-  const [session] = await db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.token, sessionToken))
-    .limit(1)
-
-  if (!session || new Date(session.expiresAt) < new Date()) {
-    return { error: 'Session expired', status: 401 }
-  }
-
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, session.userId))
-    .limit(1)
-
-  if (!user) {
-    return { error: 'User not found', status: 401 }
-  }
-
-  let tenantId: string | null = null
-  const tenantSubdomain = req.query.tenant as string | undefined
-
-  if (tenantSubdomain) {
-    const [tenant] = await db
-      .select()
-      .from(tenants)
-      .where(eq(tenants.subdomain, tenantSubdomain))
-      .limit(1)
-
-    if (tenant) {
-      const [hasAccess] = await db
-        .select()
-        .from(userTenantAccess)
-        .where(and(
-          eq(userTenantAccess.userId, user.id),
-          eq(userTenantAccess.tenantId, tenant.id)
-        ))
-        .limit(1)
-
-      if (hasAccess || user.isSuperAdmin) {
-        tenantId = tenant.id
-      }
-    }
-  }
-
-  if (!tenantId) {
-    return { error: 'No tenant context', status: 400 }
-  }
-
-  return { user, tenantId }
-}
+import { authenticateRequest } from '../_lib/auth.js'
 
 // ===========================================
 // GET: Fetch single expense by ID
@@ -74,8 +10,8 @@ async function authenticateRequest(req: VercelRequest): Promise<{
 async function handleGet(req: VercelRequest, res: VercelResponse, expenseId: string) {
   res.setHeader('Cache-Control', 'no-store')
   const auth = await authenticateRequest(req)
-  if ('error' in auth) {
-    return res.status(auth.status).json({ error: auth.error })
+  if (!auth) {
+    return res.status(401).json({ error: 'Unauthorized' })
   }
   const { tenantId } = auth
 
@@ -117,8 +53,8 @@ async function handleGet(req: VercelRequest, res: VercelResponse, expenseId: str
 // ===========================================
 async function handlePut(req: VercelRequest, res: VercelResponse, expenseId: string) {
   const auth = await authenticateRequest(req)
-  if ('error' in auth) {
-    return res.status(auth.status).json({ error: auth.error })
+  if (!auth) {
+    return res.status(401).json({ error: 'Unauthorized' })
   }
   const { user, tenantId } = auth
 
@@ -260,8 +196,8 @@ async function handlePut(req: VercelRequest, res: VercelResponse, expenseId: str
 // ===========================================
 async function handleDelete(req: VercelRequest, res: VercelResponse, expenseId: string) {
   const auth = await authenticateRequest(req)
-  if ('error' in auth) {
-    return res.status(auth.status).json({ error: auth.error })
+  if (!auth) {
+    return res.status(401).json({ error: 'Unauthorized' })
   }
   const { tenantId } = auth
 
