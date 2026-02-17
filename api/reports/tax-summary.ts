@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { db } from '../../src/db/index.js'
 import { expenses, categories, sessions, users, userTenantAccess, tenants } from '../../src/db/schema.js'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, gte, lt } from 'drizzle-orm'
 
 // ===========================================
 // Helper: Validate session and get user + tenant
@@ -97,11 +97,9 @@ function getDeductibleAmount(expense: {
   isHomeOffice: boolean | null
   homeOfficePercent: number | null
 }): number {
-  // Home office expenses with a snapshotted percentage get partial deduction
   if (expense.isHomeOffice && expense.homeOfficePercent != null) {
     return Math.round(expense.amount * expense.homeOfficePercent / 100)
   }
-  // Everything else (COGS, Operating) is 100% deductible
   return expense.amount
 }
 
@@ -109,6 +107,7 @@ function getDeductibleAmount(expense: {
 // GET: Tax summary report
 // ===========================================
 async function handleGet(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store')
   const auth = await authenticateRequest(req)
   if ('error' in auth) {
     return res.status(auth.status).json({ error: auth.error })
@@ -117,8 +116,12 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
 
   const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear()
 
-  // Fetch all expenses for tenant — include home office fields
-  const allExpenses = await db
+  // Date range for SQL-level filtering
+  const startDate = new Date(year, 0, 1)
+  const endDate = new Date(year + 1, 0, 1)
+
+  // Fetch expenses for this year only (SQL-level date filter)
+  const yearExpenses = await db
     .select({
       id: expenses.id,
       amount: expenses.amount,
@@ -130,10 +133,11 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
       homeOfficePercent: expenses.homeOfficePercent,
     })
     .from(expenses)
-    .where(eq(expenses.tenantId, tenantId))
-
-  // Filter by year
-  const yearExpenses = allExpenses.filter((e) => new Date(e.date).getFullYear() === year)
+    .where(and(
+      eq(expenses.tenantId, tenantId),
+      gte(expenses.date, startDate),
+      lt(expenses.date, endDate)
+    ))
 
   // Fetch categories
   const tenantCategories = await db
@@ -144,8 +148,6 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
   const categoryMap = new Map(tenantCategories.map((c) => [c.id, c]))
 
   // ---- Group by section ----
-  // Home Office section: any expense where isHomeOffice === true
-  // COGS/Operating: grouped by expenseType, EXCLUDING home office expenses
   const typeGroups = new Map<string, typeof yearExpenses>()
 
   for (const exp of yearExpenses) {
@@ -154,7 +156,6 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
       section = 'home_office'
     } else {
       section = exp.expenseType || 'operating'
-      // Normalize any legacy 'home_office' expenseType to 'operating'
       if (section === 'home_office') {
         section = 'operating'
       }
@@ -215,8 +216,6 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
       }
     })
     .sort((a, b) => a.order - b.order)
-
-  res.setHeader('Cache-Control', 'no-store')
 
   return res.status(200).json({
     year,
