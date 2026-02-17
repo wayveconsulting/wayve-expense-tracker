@@ -101,13 +101,14 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
 
   // Parse request body
   const {
-    amount,       // Required: number in cents
-    date,         // Required: ISO date string
-    categoryId,   // Required: UUID
-    vendor,       // Optional: string
-    description,  // Optional: string
-    expenseType,  // Optional: 'cogs' | 'operating' | 'home_office' (defaults to 'operating')
-    isHomeOffice, // Optional: boolean — true if user checked "Home Office Expense"
+    amount,        // Required: number in cents
+    date,          // Required: ISO date string
+    categoryId,    // Required: UUID
+    vendor,        // Optional: string
+    description,   // Optional: string
+    expenseType,   // Optional: 'cogs' | 'operating' | 'home_office' (defaults to 'operating')
+    isHomeOffice,  // Optional: boolean — true if user checked "Home Office Expense"
+    extractedText, // Optional: string — raw text from AI receipt scan
   } = req.body
 
   // If home office, snapshot the tenant's current deduction percentage
@@ -193,6 +194,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
       expenseType: expenseType || 'operating',
       isHomeOffice: isHomeOffice || false,
       homeOfficePercent,
+      extractedText: extractedText || null,
       createdBy: user.id,
       updatedBy: user.id,
     })

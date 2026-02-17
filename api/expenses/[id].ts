@@ -80,6 +80,7 @@ async function handlePut(req: VercelRequest, res: VercelResponse, expenseId: str
     description,
     expenseType,
     isHomeOffice,
+    extractedText,
   } = req.body
 
   // Validation
@@ -134,6 +135,7 @@ async function handlePut(req: VercelRequest, res: VercelResponse, expenseId: str
   if (vendor !== undefined) updateData.vendor = vendor?.trim() || null
   if (description !== undefined) updateData.description = description?.trim() || null
   if (expenseType !== undefined) updateData.expenseType = expenseType
+  if (extractedText !== undefined) updateData.extractedText = extractedText
   if (isHomeOffice !== undefined) {
     updateData.isHomeOffice = isHomeOffice
     if (isHomeOffice) {
