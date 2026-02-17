@@ -1,8 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
-import { db } from '../../src/db/index.js';
-import { sessions, users, userTenantAccess, tenants } from '../../src/db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { authenticateRequest } from '../_lib/auth.js';
 
 // Allowed MIME types
 const ALLOWED_TYPES = [
@@ -14,59 +12,13 @@ const ALLOWED_TYPES = [
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-// Auth helper — same pattern as other endpoints
-async function getAuth(req: VercelRequest) {
-  const sessionToken = req.cookies?.session;
-  if (!sessionToken) return null;
-
-  const [session] = await db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.token, sessionToken))
-    .limit(1);
-
-  if (!session || new Date(session.expiresAt) < new Date()) return null;
-
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, session.userId))
-    .limit(1);
-
-  if (!user) return null;
-
-  const tenantSubdomain = req.query.tenant as string | undefined;
-  if (!tenantSubdomain) return null;
-
-  const [tenant] = await db
-    .select()
-    .from(tenants)
-    .where(eq(tenants.subdomain, tenantSubdomain))
-    .limit(1);
-
-  if (!tenant) return null;
-
-  const [hasAccess] = await db
-    .select()
-    .from(userTenantAccess)
-    .where(and(
-      eq(userTenantAccess.userId, user.id),
-      eq(userTenantAccess.tenantId, tenant.id)
-    ))
-    .limit(1);
-
-  if (!hasAccess && !user.isSuperAdmin) return null;
-
-  return { userId: user.id, tenantId: tenant.id };
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const auth = await getAuth(req);
+    const auth = await authenticateRequest(req);
     if (!auth) return res.status(401).json({ error: 'Unauthorized' });
 
     const body = req.body as HandleUploadBody;
@@ -83,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           maximumSizeInBytes: MAX_FILE_SIZE,
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({
-            userId: auth.userId,
+            userId: auth.user.id,
             tenantId: auth.tenantId,
             clientPayload,
           }),
