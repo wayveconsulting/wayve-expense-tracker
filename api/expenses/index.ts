@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { db } from '../../src/db/index.js'
 import { expenses, categories, sessions, users, userTenantAccess, tenants, expenseAttachments } from '../../src/db/schema.js'
-import { eq, and, desc, sql } from 'drizzle-orm'
+import { eq, and, desc, sql, gte, lt } from 'drizzle-orm'
 
 // ===========================================
 // Helper: Validate session and get user + tenant
@@ -89,8 +89,12 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
   const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear()
   const limit = req.query.limit ? parseInt(req.query.limit as string) : 100
 
-  // Fetch expenses with category info + attachment count
-  const expenseList = await db
+  // Date range for SQL-level filtering
+  const startDate = new Date(year, 0, 1)
+  const endDate = new Date(year + 1, 0, 1)
+
+  // Fetch expenses for this year only (SQL-level date filter) with category info + attachment count
+  const filteredExpenses = await db
     .select({
       id: expenses.id,
       amount: expenses.amount,
@@ -109,15 +113,13 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
     })
     .from(expenses)
     .leftJoin(categories, eq(expenses.categoryId, categories.id))
-    .where(eq(expenses.tenantId, tenantId))
+    .where(and(
+      eq(expenses.tenantId, tenantId),
+      gte(expenses.date, startDate),
+      lt(expenses.date, endDate)
+    ))
     .orderBy(desc(expenses.date))
     .limit(limit)
-
-  // Filter by year in JS (Drizzle date filtering can be tricky)
-  const filteredExpenses = expenseList.filter(e => {
-    const expenseYear = new Date(e.date).getFullYear()
-    return expenseYear === year
-  })
 
   // Calculate summary stats
   const totalAmount = filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
