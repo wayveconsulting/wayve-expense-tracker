@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Guard: API key must be configured
   if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('ANTHROPIC_API_KEY not configured. Env keys containing ANTHRO:', Object.keys(process.env).filter(k => k.toLowerCase().includes('anthro')))
+    console.error('ANTHROPIC_API_KEY not configured')
     return res.status(503).json({ error: 'Receipt scanning not configured' })
   }
 
