@@ -4856,3 +4856,120 @@
   color: var(--color-text-secondary);
 }
 
+/* ============================================
+   RECEIPT SCAN UI
+   ============================================ */
+
+/* Scan button — overlayed on attachment thumbnails */
+.scan-button {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.scan-button:active {
+  transform: scale(0.9);
+}
+
+.scan-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.scan-button--scanning {
+  animation: scan-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes scan-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Confidence dot — inline next to form labels */
+.scan-confidence {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.scan-confidence--high {
+  background-color: var(--color-success, #22c55e);
+}
+
+.scan-confidence--medium {
+  background-color: var(--color-warning, #f59e0b);
+}
+
+.scan-confidence--low {
+  background-color: var(--color-danger, #ef4444);
+}
+
+/* Scan suggestion button — below fields when scanned value differs */
+.scan-suggestion {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-primary);
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.scan-suggestion:active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* Scan error message */
+.scan-error {
+  font-size: 0.8rem;
+  color: var(--color-danger, #ef4444);
+  padding: var(--spacing-xs) 0;
+}
+
+/* Wrapper for thumbnail + scan button positioning */
+.attachment-item__thumb-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   DARK MODE — Receipt Scan UI
+   ============================================ */
+
+[data-theme="dark"] .scan-button {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .scan-suggestion {
+  color: var(--color-primary-light, var(--color-primary));
+  border-color: var(--color-primary-light, var(--color-primary));
+}
+
+[data-theme="dark"] .scan-suggestion:active {
+  background: var(--color-primary);
+  color: #fff;
+}
+

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTenant } from '../hooks/useTenant'
+import { useScanReceipt, type ScanResult } from '../hooks/useScanReceipt'
 import {
   type PendingAttachment,
   type UploadProgress,
@@ -30,6 +31,7 @@ interface AddExpenseSheetProps {
 
 export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategoryId }: AddExpenseSheetProps) {
   const { subdomain } = useTenant()
+  const { scanResult, isScanning, scanError, scanReceipt, clearScan } = useScanReceipt()
 
   // Form state
   const [amount, setAmount] = useState('')
@@ -39,6 +41,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
   const [categoryId, setCategoryId] = useState('')
   const [expenseType, setExpenseType] = useState<'operating' | 'cogs'>('operating')
   const [isHomeOffice, setIsHomeOffice] = useState(false)
+  const [extractedText, setExtractedText] = useState<string | null>(null)
 
   // UI state
   const [categories, setCategories] = useState<Category[]>([])
@@ -95,10 +98,9 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
     fetchCategories()
   }, [isOpen, subdomain])
 
-  // Reset form when sheet closes (including pending attachments)
+  // Reset form when sheet closes (including pending attachments and scan state)
   useEffect(() => {
     if (!isOpen) {
-      // Small delay to let animation finish before resetting
       const timer = setTimeout(() => {
         setAmount('')
         setVendor('')
@@ -107,20 +109,52 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
         setCategoryId(preselectedCategoryId || '')
         setExpenseType('operating')
         setIsHomeOffice(false)
+        setExtractedText(null)
         setError(null)
         setPendingAttachments([])
         setUploadProgress({ status: 'idle' })
+        clearScan()
       }, 300)
       return () => clearTimeout(timer)
     }
   }, [isOpen, preselectedCategoryId])
+
+  // Handle scan result — auto-fill empty fields, show suggestions for filled ones
+  function applyScanResult(result: ScanResult) {
+    setExtractedText(result.rawText || null)
+
+    // Auto-fill empty fields
+    if (!amount && result.total?.value != null) {
+      setAmount(String(result.total.value))
+    }
+    if (!vendor && result.vendor?.value) {
+      setVendor(String(result.vendor.value))
+    }
+    if (!date.trim() || date === new Date().toISOString().split('T')[0]) {
+      // Only auto-fill date if it's still the default (today)
+      if (result.date?.value) {
+        const parsed = result.date.value as string
+        if (/^\d{4}-\d{2}-\d{2}$/.test(parsed)) {
+          setDate(parsed)
+        }
+      }
+    }
+  }
+
+  // Handle scan button click
+  async function handleScan(blobUrl: string) {
+    if (!subdomain) return
+    const result = await scanReceipt(blobUrl, subdomain)
+    if (result) {
+      applyScanResult(result)
+    }
+  }
 
   // Handle file selection — uploads to Vercel Blob immediately
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Reset the input so the same file can be re-selected
     e.target.value = ''
 
     if (pendingAttachments.length >= MAX_ATTACHMENTS) {
@@ -138,8 +172,6 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
       setError(null)
       setUploadProgress({ status: 'uploading', message: 'Uploading...' })
 
-      // Upload to Vercel Blob (compresses if needed)
-      // Use a generic prefix since we don't have an expense ID yet
       const blobPathPrefix = `${subdomain}/pending`
       const pending = await uploadToBlob(file, subdomain!, blobPathPrefix, (progress) => {
         setUploadProgress(progress)
@@ -163,7 +195,6 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
     e.preventDefault()
     setError(null)
 
-    // Client-side validation
     const amountNum = parseFloat(amount)
     if (!amount || isNaN(amountNum) || amountNum <= 0) {
       setError('Please enter a valid amount')
@@ -181,15 +212,11 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
     try {
       setSubmitting(true)
 
-      // Convert dollars to cents
       const amountCents = Math.round(amountNum * 100)
 
-      // Step 1: Create the expense
       const response = await fetch(`/api/expenses?tenant=${subdomain}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: amountCents,
           date: new Date(date).toISOString(),
@@ -198,6 +225,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
           description: description.trim() || null,
           expenseType,
           isHomeOffice,
+          extractedText,
         }),
       })
 
@@ -208,7 +236,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
 
       const { expense } = await response.json()
 
-      // Step 2: Link pending attachments to the new expense
+      // Link pending attachments to the new expense
       if (pendingAttachments.length > 0) {
         const linkErrors: string[] = []
         for (const attachment of pendingAttachments) {
@@ -218,14 +246,11 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
             linkErrors.push(err instanceof Error ? err.message : 'Failed to link attachment')
           }
         }
-
         if (linkErrors.length > 0) {
-          // Expense saved but some attachments failed to link — still close
           console.error('Attachment linking errors:', linkErrors)
         }
       }
 
-      // Success! Close sheet and trigger refresh
       onSuccess()
       onClose()
     } catch (err) {
@@ -235,7 +260,6 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
     }
   }
 
-  // Handle backdrop click
   function handleBackdropClick(e: React.MouseEvent) {
     if (e.target === e.currentTarget) {
       onClose()
@@ -243,6 +267,52 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
   }
 
   const isUploading = uploadProgress.status === 'compressing' || uploadProgress.status === 'uploading'
+
+  // Confidence indicator helper
+  function confidenceDot(confidence: number | undefined) {
+    if (confidence === undefined) return null
+    if (confidence >= 0.8) return <span className="scan-confidence scan-confidence--high" title="High confidence" />
+    if (confidence >= 0.5) return <span className="scan-confidence scan-confidence--medium" title="Review this" />
+    return <span className="scan-confidence scan-confidence--low" title="Low confidence" />
+  }
+
+  // Check if a field was populated by scan
+  function wasScanned(fieldName: 'total' | 'vendor' | 'date'): number | undefined {
+    if (!scanResult) return undefined
+    const field = scanResult[fieldName]
+    if (field?.value != null) return field.confidence
+    return undefined
+  }
+
+  // Suggestion helper: show scan suggestion when field already had data
+  function scanSuggestion(fieldName: 'total' | 'vendor' | 'date', applyFn: () => void) {
+    if (!scanResult) return null
+    const field = scanResult[fieldName]
+    if (field?.value == null) return null
+
+    // Only show suggestion if the field currently has different data than the scan
+    let currentVal: string
+    let scannedVal: string
+    if (fieldName === 'total') {
+      currentVal = amount
+      scannedVal = String(field.value)
+    } else if (fieldName === 'vendor') {
+      currentVal = vendor
+      scannedVal = String(field.value)
+    } else {
+      currentVal = date
+      scannedVal = String(field.value)
+    }
+
+    if (currentVal === scannedVal) return null
+    if (!currentVal) return null // Already auto-filled
+
+    return (
+      <button type="button" className="scan-suggestion" onClick={applyFn}>
+        Use: {fieldName === 'total' ? `$${field.value}` : String(field.value)}
+      </button>
+    )
+  }
 
   return (
     <>
@@ -277,14 +347,94 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
         <form className="bottom-sheet__form" onSubmit={handleSubmit}>
           {/* Error Message */}
           {error && (
-            <div className="form-error">
-              {error}
-            </div>
+            <div className="form-error">{error}</div>
           )}
+
+          {/* Attachment Section — moved to top so scan can fill fields below */}
+          <div className="add-expense-attachments">
+            <div className="add-expense-attachments__header">
+              <span className="form-label">Receipts</span>
+              {pendingAttachments.length > 0 && (
+                <span className="add-expense-attachments__limit">
+                  {pendingAttachments.length} of {MAX_ATTACHMENTS}
+                </span>
+              )}
+            </div>
+
+            {/* Upload progress */}
+            {uploadProgress.message && (
+              <div className="attachments-status">{uploadProgress.message}</div>
+            )}
+
+            {/* Scan error */}
+            {scanError && (
+              <div className="scan-error">{scanError}</div>
+            )}
+
+            {/* Thumbnail previews */}
+            {pendingAttachments.length > 0 && (
+              <div className="add-expense-attachments__preview">
+                {pendingAttachments.map((att, index) => (
+                  <div key={att.blobUrl} className="add-expense-attachments__thumb-wrapper">
+                    {att.fileType.startsWith('image/') ? (
+                      <img
+                        src={att.blobUrl}
+                        alt={att.fileName}
+                        className="add-expense-attachments__thumb"
+                      />
+                    ) : (
+                      <div className="add-expense-attachments__thumb add-expense-attachments__thumb--pdf">
+                        PDF
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="add-expense-attachments__remove"
+                      onClick={() => handleRemoveAttachment(index)}
+                      aria-label="Remove attachment"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <span className="add-expense-attachments__file-size">{formatFileSize(att.fileSize)}</span>
+                    {/* Scan button — only for images, not PDFs */}
+                    {att.fileType.startsWith('image/') && (
+                      <button
+                        type="button"
+                        className={`scan-button ${isScanning ? 'scan-button--scanning' : ''}`}
+                        onClick={() => handleScan(att.blobUrl)}
+                        disabled={isScanning}
+                        aria-label="Scan receipt"
+                      >
+                        {isScanning ? '...' : '🔍'}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* File picker */}
+            {pendingAttachments.length < MAX_ATTACHMENTS && (
+              <label className={`add-expense-attachments__picker ${isUploading ? 'add-expense-attachments__picker--disabled' : ''}`}>
+                <input
+                  type="file"
+                  accept={ALLOWED_FILE_ACCEPT}
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                  disabled={isUploading}
+                />
+                {isUploading ? 'Uploading...' : '📎 Attach Receipt'}
+              </label>
+            )}
+          </div>
 
           {/* Amount */}
           <div className="form-group">
-            <label htmlFor="amount" className="form-label">Amount *</label>
+            <label htmlFor="amount" className="form-label">
+              Amount * {confidenceDot(wasScanned('total'))}
+            </label>
             <div className="input-with-prefix">
               <span className="input-prefix">$</span>
               <input
@@ -300,11 +450,14 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
                 autoFocus={isOpen}
               />
             </div>
+            {scanSuggestion('total', () => setAmount(String(scanResult!.total.value)))}
           </div>
 
           {/* Date */}
           <div className="form-group">
-            <label htmlFor="date" className="form-label">Date *</label>
+            <label htmlFor="date" className="form-label">
+              Date * {confidenceDot(wasScanned('date'))}
+            </label>
             <input
               type="date"
               id="date"
@@ -313,6 +466,10 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
               onChange={(e) => setDate(e.target.value)}
               required
             />
+            {scanSuggestion('date', () => {
+              const val = String(scanResult!.date.value)
+              if (/^\d{4}-\d{2}-\d{2}$/.test(val)) setDate(val)
+            })}
           </div>
 
           {/* Category */}
@@ -338,7 +495,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
             )}
           </div>
 
-          {/* Home Office Checkbox — only when category is eligible */}
+          {/* Home Office Checkbox */}
           {showHomeOfficeCheckbox && (
             <div className="form-group">
               <label className="home-office-checkbox">
@@ -359,7 +516,9 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
 
           {/* Vendor */}
           <div className="form-group">
-            <label htmlFor="vendor" className="form-label">Vendor</label>
+            <label htmlFor="vendor" className="form-label">
+              Vendor {confidenceDot(wasScanned('vendor'))}
+            </label>
             <input
               type="text"
               id="vendor"
@@ -368,6 +527,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
               value={vendor}
               onChange={(e) => setVendor(e.target.value)}
             />
+            {scanSuggestion('vendor', () => setVendor(String(scanResult!.vendor.value)))}
           </div>
 
           {/* Description */}
@@ -410,74 +570,11 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
             </div>
           </div>
 
-          {/* Attachment Section */}
-          <div className="add-expense-attachments">
-            <div className="add-expense-attachments__header">
-              <span className="form-label">Receipts</span>
-              {pendingAttachments.length > 0 && (
-                <span className="add-expense-attachments__limit">
-                  {pendingAttachments.length} of {MAX_ATTACHMENTS}
-                </span>
-              )}
-            </div>
-
-            {/* Upload progress */}
-            {uploadProgress.message && (
-              <div className="attachments-status">{uploadProgress.message}</div>
-            )}
-
-            {/* Thumbnail previews */}
-            {pendingAttachments.length > 0 && (
-              <div className="add-expense-attachments__preview">
-                {pendingAttachments.map((att, index) => (
-                  <div key={att.blobUrl} className="add-expense-attachments__thumb-wrapper">
-                    {att.fileType.startsWith('image/') ? (
-                      <img
-                        src={att.blobUrl}
-                        alt={att.fileName}
-                        className="add-expense-attachments__thumb"
-                      />
-                    ) : (
-                      <div className="add-expense-attachments__thumb add-expense-attachments__thumb--pdf">
-                        PDF
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      className="add-expense-attachments__remove"
-                      onClick={() => handleRemoveAttachment(index)}
-                      aria-label="Remove attachment"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M18 6 6 18M6 6l12 12" />
-                      </svg>
-                    </button>
-                    <span className="add-expense-attachments__file-size">{formatFileSize(att.fileSize)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* File picker — hidden when max reached or uploading */}
-            {pendingAttachments.length < MAX_ATTACHMENTS && (
-              <label className={`add-expense-attachments__picker ${isUploading ? 'add-expense-attachments__picker--disabled' : ''}`}>
-                <input
-                  type="file"
-                  accept={ALLOWED_FILE_ACCEPT}
-                  onChange={handleFileSelect}
-                  style={{ display: 'none' }}
-                  disabled={isUploading}
-                />
-                {isUploading ? 'Uploading...' : '📎 Attach Receipt'}
-              </label>
-            )}
-          </div>
-
           {/* Submit Button */}
           <button
             type="submit"
             className="btn btn--primary btn--full"
-            disabled={submitting || loadingCategories || isUploading}
+            disabled={submitting || loadingCategories || isUploading || isScanning}
           >
             {submitting ? 'Saving...' : 'Save Expense'}
           </button>

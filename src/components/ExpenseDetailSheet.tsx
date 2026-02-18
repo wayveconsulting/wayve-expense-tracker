@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTenant } from '../hooks/useTenant'
+import { useScanReceipt, type ScanResult } from '../hooks/useScanReceipt'
 import {
   uploadToBlob,
   linkAttachmentToExpense,
@@ -55,7 +56,8 @@ interface ExpenseDetailSheetProps {
 
 export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelete }: ExpenseDetailSheetProps) {
   const { subdomain } = useTenant()
-  
+  const { scanResult, isScanning, scanError, scanReceipt, clearScan } = useScanReceipt()
+
   // Mode: 'view' or 'edit' (persisted to localStorage)
   const [mode, setMode] = useState<'view' | 'edit'>(getDefaultMode)
   
@@ -73,7 +75,8 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
   const [categoryId, setCategoryId] = useState('')
   const [expenseType, setExpenseType] = useState<'operating' | 'cogs'>('operating')
   const [isHomeOffice, setIsHomeOffice] = useState(false)
-  
+  const [extractedText, setExtractedText] = useState<string | null>(null)
+
   // UI state
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(false)
@@ -176,6 +179,8 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
         setAttachments([])
         setLightboxUrl(null)
         setUploadStatus(null)
+        setExtractedText(null)
+        clearScan()
       }, 300)
       return () => clearTimeout(timer)
     }
@@ -260,6 +265,64 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
     })
   }
 
+  // Handle scan result — auto-fill empty fields
+  function applyScanResult(result: ScanResult) {
+    setExtractedText(result.rawText || null)
+    if (!amount && result.total?.value != null) {
+      setAmount(String(result.total.value))
+    }
+    if (!vendor && result.vendor?.value) {
+      setVendor(String(result.vendor.value))
+    }
+    if (result.date?.value) {
+      const parsed = result.date.value as string
+      if (/^\d{4}-\d{2}-\d{2}$/.test(parsed)) {
+        setDate(parsed)
+      }
+    }
+  }
+
+  async function handleScanAttachment(blobUrl: string) {
+    if (!subdomain) return
+    const result = await scanReceipt(blobUrl, subdomain)
+    if (result) {
+      applyScanResult(result)
+    }
+  }
+
+  // Confidence indicator helper
+  function confidenceDot(confidence: number | undefined) {
+    if (confidence === undefined) return null
+    if (confidence >= 0.8) return <span className="scan-confidence scan-confidence--high" title="High confidence" />
+    if (confidence >= 0.5) return <span className="scan-confidence scan-confidence--medium" title="Review this" />
+    return <span className="scan-confidence scan-confidence--low" title="Low confidence" />
+  }
+
+  function wasScanned(fieldName: 'total' | 'vendor' | 'date'): number | undefined {
+    if (!scanResult) return undefined
+    const field = scanResult[fieldName]
+    if (field?.value != null) return field.confidence
+    return undefined
+  }
+
+  function scanSuggestion(fieldName: 'total' | 'vendor' | 'date', applyFn: () => void) {
+    if (!scanResult) return null
+    const field = scanResult[fieldName]
+    if (field?.value == null) return null
+    let currentVal: string
+    let scannedVal: string
+    if (fieldName === 'total') { currentVal = amount; scannedVal = String(field.value) }
+    else if (fieldName === 'vendor') { currentVal = vendor; scannedVal = String(field.value) }
+    else { currentVal = date; scannedVal = String(field.value) }
+    if (currentVal === scannedVal) return null
+    if (!currentVal) return null
+    return (
+      <button type="button" className="scan-suggestion" onClick={applyFn}>
+        Use: {fieldName === 'total' ? `$${field.value}` : String(field.value)}
+      </button>
+    )
+  }
+
   // Handle save
   async function handleSave() {
     if (!expense) return
@@ -294,6 +357,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
           description: description.trim() || null,
           expenseType,
           isHomeOffice,
+          extractedText,
         }),
       })
 
@@ -600,7 +664,9 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
             <>
               {/* Amount */}
               <div className="form-group">
-                <label htmlFor="edit-amount" className="form-label">Amount *</label>
+                <label htmlFor="edit-amount" className="form-label">
+                  Amount * {confidenceDot(wasScanned('total'))}
+                </label>
                 <div className="input-with-prefix">
                   <span className="input-prefix">$</span>
                   <input
@@ -615,11 +681,14 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                     required
                   />
                 </div>
+                {scanSuggestion('total', () => setAmount(String(scanResult!.total.value)))}
               </div>
 
               {/* Date */}
               <div className="form-group">
-                <label htmlFor="edit-date" className="form-label">Date *</label>
+                <label htmlFor="edit-date" className="form-label">
+                  Date * {confidenceDot(wasScanned('date'))}
+                </label>
                 <input
                   type="date"
                   id="edit-date"
@@ -628,6 +697,10 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                   onChange={(e) => setDate(e.target.value)}
                   required
                 />
+                {scanSuggestion('date', () => {
+                  const val = String(scanResult!.date.value)
+                  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) setDate(val)
+                })}
               </div>
 
               {/* Category */}
@@ -674,7 +747,9 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
 
               {/* Vendor */}
               <div className="form-group">
-                <label htmlFor="edit-vendor" className="form-label">Vendor</label>
+                <label htmlFor="edit-vendor" className="form-label">
+                  Vendor {confidenceDot(wasScanned('vendor'))}
+                </label>
                 <input
                   type="text"
                   id="edit-vendor"
@@ -683,6 +758,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                   value={vendor}
                   onChange={(e) => setVendor(e.target.value)}
                 />
+                {scanSuggestion('vendor', () => setVendor(String(scanResult!.vendor.value)))}
               </div>
 
               {/* Description */}
@@ -746,6 +822,11 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                   <div className="attachments-status">{uploadStatus}</div>
                 )}
 
+                {/* Scan error */}
+                {scanError && (
+                  <div className="scan-error">{scanError}</div>
+                )}
+
                 {loadingAttachments && (
                   <div className="attachments-loading">Loading attachments...</div>
                 )}
@@ -758,21 +839,35 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                   <div className="attachments-list">
                     {attachments.map(att => (
                       <div key={att.id} className="attachment-item">
-                        {att.mimeType.startsWith('image/') ? (
-                          <img
-                            src={att.blobUrl}
-                            alt={att.fileName}
-                            className="attachment-item__thumbnail"
-                            onClick={() => setLightboxUrl(att.blobUrl)}
-                          />
-                        ) : (
-                          <div
-                            className="attachment-item__thumbnail attachment-item__thumbnail--pdf"
-                            onClick={() => window.open(att.blobUrl, '_blank')}
-                          >
-                            PDF
-                          </div>
-                        )}
+                        <div className="attachment-item__thumb-wrapper">
+                          {att.mimeType.startsWith('image/') ? (
+                            <img
+                              src={att.blobUrl}
+                              alt={att.fileName}
+                              className="attachment-item__thumbnail"
+                              onClick={() => setLightboxUrl(att.blobUrl)}
+                            />
+                          ) : (
+                            <div
+                              className="attachment-item__thumbnail attachment-item__thumbnail--pdf"
+                              onClick={() => window.open(att.blobUrl, '_blank')}
+                            >
+                              PDF
+                            </div>
+                          )}
+                          {/* Scan button — only for images, not PDFs */}
+                          {att.mimeType.startsWith('image/') && (
+                            <button
+                              type="button"
+                              className={`scan-button ${isScanning ? 'scan-button--scanning' : ''}`}
+                              onClick={() => handleScanAttachment(att.blobUrl)}
+                              disabled={isScanning}
+                              aria-label="Scan receipt"
+                            >
+                              {isScanning ? '...' : '🔍'}
+                            </button>
+                          )}
+                        </div>
                         <div className="attachment-item__info">
                           <span className="attachment-item__name">{att.fileName}</span>
                           <span className="attachment-item__size">{formatFileSize(att.fileSize)}</span>
@@ -804,7 +899,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                 <button 
                   className="btn btn--primary"
                   onClick={handleSave}
-                  disabled={submitting || loadingCategories}
+                  disabled={submitting || loadingCategories || isScanning}
                 >
                   {submitting ? 'Saving...' : 'Save Changes'}
                 </button>
