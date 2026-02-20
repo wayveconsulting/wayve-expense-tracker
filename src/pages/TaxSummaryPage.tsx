@@ -161,12 +161,12 @@ export default function TaxSummaryPage() {
             <>
               {/* Grand Total */}
               <div className="tax-summary__grand-total">
-                <span className="tax-summary__grand-total-label">Total Business Expenses</span>
-                <span className="tax-summary__grand-total-value">{formatDollars(data.totalSpent)}</span>
+                <span className="tax-summary__grand-total-label">Total Deductible</span>
+                <span className="tax-summary__grand-total-value">{formatDollars(data.totalDeductible)}</span>
                 <span className="tax-summary__grand-total-sub">{data.expenseCount} transactions</span>
                 {data.totalDeductible !== data.totalSpent && (
                   <span className="tax-summary__grand-total-deductible">
-                    ✅ {formatDollars(data.totalDeductible)} deductible
+                    💰 {formatDollars(data.totalSpent)} total spent
                   </span>
                 )}
               </div>
