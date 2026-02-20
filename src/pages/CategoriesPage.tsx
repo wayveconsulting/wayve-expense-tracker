@@ -239,13 +239,8 @@ export default function CategoriesPage() {
     )
   }
 
-  // Categories sorted: those with spending first (by total desc), then zero-spend (by name)
-  const sortedCategories = [...categories].sort((a, b) => {
-    if (a.total > 0 && b.total === 0) return -1
-    if (a.total === 0 && b.total > 0) return 1
-    if (a.total > 0 && b.total > 0) return b.total - a.total
-    return a.name.localeCompare(b.name)
-  })
+  // Categories sorted alphabetically by name
+  const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name))
 
   const maxTotal = sortedCategories.length > 0
     ? Math.max(...sortedCategories.map(c => c.total))
