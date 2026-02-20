@@ -30,6 +30,7 @@ interface DashboardData {
   expenses: Expense[]
   summary: {
     totalAmount: number
+    totalDeductible: number
     expenseCount: number
     averageAmount: number
     year: number
@@ -316,9 +317,13 @@ export default function DashboardPage() {
             }
           }}
         >
-          <span className="summary-card__label">Total Spent</span>
-          <span className="summary-card__value">{formatMoney(summary.totalAmount)}</span>
-          <span className="summary-card__sub">{summary.year}</span>
+          <span className="summary-card__label">Total Deductible</span>
+          <span className="summary-card__value">{formatMoney(summary.totalDeductible)}</span>
+          <span className="summary-card__sub">
+            {summary.totalDeductible !== summary.totalAmount
+              ? `${formatMoney(summary.totalAmount)} spent`
+              : `${summary.year}`}
+          </span>
         </div>
         <div 
           className="summary-card summary-card--clickable"
