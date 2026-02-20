@@ -1,0 +1,131 @@
+Month,Quarter,Date,Category,Vendor,Amount,Notes,Receipt Image,Receipt File
+,,,,,,,,
+1,Q1,1/1/2025,Rent,Gyongyi Petrak,2600,Jan rent,,
+1,Q1,1/1/2025,Vehicle,Summit CU,495.99,Jan car payment,,
+4,Q2,4/4/2025,Equipment,OfficeSupply,81.33,Paper shredder,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/ONgIGKu0mWYkMuUeutD7.pdf
+1,Q1,1/28/2025,Software,Glide,1188,Glide subscription for app creation,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/4LInyyVpk53hGJyGaiWX.pdf
+2,Q1,2/1/2025,Rent,Gyongyi Petrak,2600,Feb rent,,
+4,Q2,4/26/2025,Software,Microsoft,105.49,Microsoft365 subscription ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/NGHWHzTJCBWWOXn0P95U.png,
+1,Q1,1/19/2025,Software,Adobe,63.29,Creative Cloud subscription ,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/NxeGkah652bS5jDLvyfE.pdf
+2,Q1,2/19/2025,Software,Adobe,63.29,Creative Cloud subscription ,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/xWaQFAg7mGpZSTwKLpQG.pdf
+3,Q1,3/19/2025,Software,Adobe,63.29,Creative Cloud subscription ,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/1kw1lK0HB7MBYjRatSx8.pdf
+4,Q2,4/22/2025,Software,Adobe,63.29,Creative Cloud subscription ,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/bY32gH6vOWdmd8k9HFFA.pdf
+4,Q2,4/25/2025,Software,Adobe,105.49,Adobe Express subscription ,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/M6yZD2xdvDved4dnXZp0.pdf
+2,Q1,2/1/2025,Vehicle,Summit CU,495.99,Feb car payment,,
+3,Q1,3/1/2025,Vehicle,Summit CU,495.99,Mar car payment,,
+4,Q2,4/1/2025,Vehicle,Summit CU,495.99,April car payment ,,
+3,Q1,3/1/2025,Rent,Gyongyi Petrak,2600,Mar rent,,
+4,Q2,4/1/2025,Rent,Gyongyi Petrak,2600,Apr rent,,
+1,Q1,1/26/2025,Utilities,Spectrum,21.11,Jan phone bill,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/BWlkGZ6Jkq6ypxWtLHyx.pdf
+2,Q1,2/26/2025,Utilities,Spectrum ,21.11,Feb phone bill,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/1VEJaDTUlAoIK0aBlJdY.pdf
+3,Q1,3/26/2025,Utilities,Spectrum ,21.11,Mar phone bill,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/6Nmnsy4jP4sle1CTsj7k.pdf
+4,Q2,4/26/2025,Utilities,Spectrum ,51.11,Apr phone bill,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/pQkRZ8GCaWTJKX9UBX7Y.pdf
+1,Q1,1/2/2025,Utilities,Spectrum ,59.99,Jan internet,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/zTwBt0ThrvPI5ScLtAvj.pdf
+2,Q1,2/2/2025,Utilities,Spectrum ,59.99,Feb internet,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/0ZG7HTeyzZro1U5CTrsu.pdf
+3,Q1,3/2/2025,Utilities,Spectrum ,59.99,Mar internet ,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/t1xMyFTPm1SvTmdPyOx2.pdf
+4,Q2,4/2/2025,Utilities,Spectrum ,59.99,Apr internet,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/JyVpIjACIVt5dEcmkaxI.pdf
+5,Q2,5/2/2025,Utilities,Spectrum ,59.99,May internet,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/vTaWfGMgSgO8qmbVUcbI.pdf
+5,Q2,5/1/2025,Rent,Gyongyi Petrak ,2700,May rent,,
+5,Q2,5/1/2025,Vehicle,Summit CU,495.99,May car payment,,
+1,Q1,1/15/2025,Utilities,Madison Municipal Services ,70.44,Jan water bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/KzYctH40DZsKlMWRjdYW.png,
+3,Q1,3/1/2025,Utilities,Madison Municipal Services ,70.88,Feb water bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/5kTK5AAALiACcg7VaQ4o.png,
+3,Q1,3/25/2025,Utilities,Madison Municipal Services ,66.31,Mar water bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/NxMYXMp3qWc59yEnDcuY.png,
+4,Q2,4/24/2025,Utilities,Madison Municipal Services,73.44,Apr water bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/Gv3hXPXEMWZDMEpzctNT.png,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/RCsZCPG9ORxbgYlhC2sm.png
+4,Q2,4/16/2025,Meals,Green Lantern,17.63,Team Women networking breakfast (incl card fee + tip),https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/gHNcxLbjAJ2JNYqEzar5.jpg,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/DVx8E6DTPA5Xqz71VCKT.png
+4,Q2,4/2/2025,Meals,Green Lantern,19.45,Team Women networking breakfast (incl card fee + tip),https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/v3js2q6CoVvfC6H117wY.jpg,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/flK3CbsqTVMhqYhYbJZR.png
+1,Q1,1/7/2025,Software,Google,1.99,Google storage,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/lMeEPhL2Iz78jJ83ZT7L.png,
+2,Q1,2/7/2025,Software,Google,1.99,Google storage,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/OPXAeYUc00HkjpMShpXB.png,
+3,Q1,3/7/2025,Software,Google,1.99,Google storage,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/kh9EiH3WmuYRaXDySHPb.png,
+1,Q1,1/10/2025,Utilities,MG&E,292.84,Jan electric bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/ShDTSMm5osxLDGhI5Fil.png,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/fE7wJJSu1NmL68eWxxiQ.pdf
+2,Q1,2/10/2025,Utilities,MG&E,328.54,Feb electric bill ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/H2T4h0VQrncWNSCTPcLc.png,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/itv28xdroeMKn34m1y61.pdf
+3,Q1,3/13/2025,Utilities,MG&E,344.06,Mar electric bill ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/AC39RM6cjmoX9u8PxtJy.png,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/N4bmolay9VJSzY5L6HVY.pdf
+4,Q2,4/10/2025,Utilities,MG&E,254.04,Apr electric bill ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/AKlt2TlHXkCbPlI0SbCT.png,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/m73JGTQSujtDl4Xx5Sd4.pdf
+4,Q2,4/17/2025,Software,Remakable,2.99,Notebook app,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/IbuYt18fBw8qQQRu61x1.pdf
+1,Q1,1/17/2025,Software,Remarkable ,2.99,Notebook app,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/GwgWHE150pt4iafLb6Na.pdf
+2,Q1,2/17/2025,Software,Remakable,2.99,Notebook app,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/E7NnM5IxSANPkjIip811.pdf
+3,Q1,3/17/2025,Software,Remarkable ,2.99,Notebook app,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/qR6luZOzE2INn7qD7fOB.pdf
+2,Q1,2/24/2025,Software,Notion,57.45,Notion business subscription,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/I4uiihJxt9lNEzRFKwDG.pdf
+3,Q1,3/30/2025,Office Supplies,HP,5.79,Instant ink subscription ,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/2aMCJWjImT3dk7tZ5oav.pdf
+3,Q1,3/2/2025,Office Supplies,HP,1.57,Instant ink,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/24Ee7M64JdPd9RNsxtBp.pdf
+1,Q1,1/30/2025,Office Supplies,HP,1.57,Instant ink,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/vwFuol718Yh3VaJu5BmJ.pdf
+4,Q2,4/7/2025,Software,Google,1.99,Google storage,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/vRq6w0AalIaoQWnQEfGo.png,
+4,Q2,4/18/2025,Software,Power Director,36.91,Video editing software,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/Ih9NVNxoJfnOTpGkfNBt.png,
+1,Q1,1/23/2025,Software,YouTube,11.59,YouTube premium for downloading client videos,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/eHeVLEUpPLyolP9Wbxaf.png,
+2,Q1,2/21/2025,Software,YouTube,11.59,YouTube premium for downloading client videos ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/WdH9qPF6PBGpomAS0mQK.png,
+3,Q1,3/21/2025,Software,YouTube ,11.59,YouTube premium for downloading client videos ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/svES1r4yHvvKdI8tGYRU.png,
+4,Q2,4/11/2025,Software,YouTube ,11.1,YouTube premium for downloading client videos ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/s3gcnUfkKxW2BBbLYphg.png,
+5,Q2,5/7/2025,Software,Google,1.99,Google storage ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/jHIoyCBf0dKL0pzHXeCK.png,
+5,Q2,5/9/2025,Software,Adobe,164.45,Adobe acrobat ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/tma5UqIxhvzqH8BNbMuY.png,
+5,Q2,5/6/2025,Office Supplies,Amazon,139.54,Amazon Prime membership ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/06OyfLGFMfWfmK3uTsNi.png,
+5,Q2,5/9/2025,Utilities,MG&E,226.78,May electric bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/UG3DxZhzT78T0ZK2JBzK.png,
+5,Q2,5/14/2025,Meals,Green lantern,12.75,Team Women breakfast,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/1KK5ryCNGKaBiRBAUU8Z.jpg,
+5,Q2,5/17/2025,Meals,Grace Coffee,26.46,Meeting with April,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/fZbCalXZLvzcYrMJGEJd.png,
+5,Q2,5/22/2025,Repair & Maintenance,MadisonGreen Team,47.48,Lawn service,,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/FPMGRLp5kyMRLOzEdjQn.pdf
+5,Q2,5/24/2025,Utilities,Madison Municipal Services ,75.91,May water bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/Dx6Z8MYXgUfBxe1vWacP.png,
+5,Q2,5/26/2025,Utilities,Spectrum ,51.11,May phone bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/ayjOVIfuztaiYwJxeMcz.png,
+5,Q2,5/25/2025,Legal & Professional,WI DOT,171.95,Vehicle registration ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/P0CKahBlHhobflxlglWF.png,
+6,Q2,6/1/2025,Repair & Maintenance,Madison Green Team,189.9,Lawn mowing,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/i2RLV7DevMVQodoiiN4a.png,
+6,Q2,6/10/2025,Utilities,MG&E,187.73,June electric bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/NunIfjTTLp0gMzo9Bv5u.png,
+6,Q2,6/26/2025,Utilities,Spectrum ,51.11,June phone bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/6Rn4Mv2GMg4MwNYf9R09.png,
+6,Q2,6/28/2025,Donations,Target,15.81,Reach Dane backpack donation ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/J9sXLZf03J1cSIBwKNiQ.png,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/LGQGcpvbGlejnlYTAfQb.png
+6,Q2,6/28/2025,Donations,Target,23.2,Reach Dane backpack donation ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/ObBkEFGBOp91M70s7oxF.png,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/IS0okZi00yGd1N7dpP17.png
+6,Q2,6/1/2025,Rent,Gyongyi Petrak,2700,June rent,,
+6,Q2,6/1/2025,Vehicle,Summit Credit Union,495.99,June car payment,,
+6,Q2,6/2/2025,Utilities,Spectrum ,59.99,May internet ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/gMy5gGLWVAi3xE9BV2Az.png,
+7,Q3,7/4/2025,Repair & Maintenance,Madison Green Team,189.9,Lawn service,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/HwHTxLZCaHwgiTlRvSA8.jpg,
+6,Q2,6/19/2025,Meals,La Brioche,46.17,Client brunch,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/S5R2fmq0ZByWRsEjup5e.jpg,
+7,Q3,7/9/2025,Utilities,Madison Municipal Services,73.3,Water bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/4IcG7IQcoAM3ruY2vGqU.png,
+7,Q3,7/9/2025,Meals,True Coffee,14.52,Networking breakfast,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/IzuNRDjw8DQeRJOsXRY0.png,
+7,Q3,7/8/2025,Equipment,Amazon,1837.23,Laptop,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/Pt6nsPtdiGnP7ahNZpS6.png,
+7,Q3,7/11/2025,Donations,Leukemia & Lymphoma Society,50,Light the night donation,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/IoI2NKDhZRFLGknQZusy.png,
+7,Q3,7/9/2025,Donations,Fairway Games,41.66,American Warrior fundraiser,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/FHEreEAXhH5OuiSTehWH.png,
+7,Q3,7/10/2025,Utilities,MG&E,187.18,Electric bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/RXgWQvrgj92URfOaQZ7H.png,
+7,Q3,7/16/2025,Contractors,Callagan Design,800,Website design,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/9hS6NIVNOlxjrF03pK0y.png,
+7,Q3,7/7/2025,Software,Google,1.99,Google storage,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/1xPbGNEt6REqduyGatnj.png,
+6,Q2,6/7/2025,Software,Google,1.99,Google storage,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/jhEX1gRtFuPRfawBI7mj.png,
+7,Q3,7/18/2025,Donations,Amazon,24.85,Helping the homeless donation,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/0qZzAPeNOq7AanZ1YRmb.png,
+7,Q3,7/20/2025,Equipment,Amazon,18.97,Monitor risers,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/RqDEpKqutYSP0fvivJ3i.png,
+7,Q3,7/23/2025,Meals,Green Lantern,20,TW networking breakfast,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/X2oTW5UbtO5BQReDDYfo.jpg,
+7,Q3,7/20/2025,Fuel,Kwik Trip,51.57,Fill up gas for driving to client meetings ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/pqfv0ApBnFr3WZkVd1PK.jpg,
+7,Q3,7/19/2025,Meals,Einstein Bagels,23.17,Breakfast with client,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/YmM7YB3WQfyzilrCwHUN.jpg,
+8,Q3,8/2/2025,Utilities,Spectrum,59.99,July internet bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/WyY3mW3t4mZPmW9LCGUu.png,
+8,Q3,8/6/2025,Utilities,Madison Municipal Services ,74.6,July water bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/GTVhCyQV704nRrT7tNol.png,
+7,Q3,7/1/2025,Rent,Gyongyi Petrak ,2700,July rent,,
+8,Q3,8/1/2025,Rent,Gyongyi Petrak ,2700,Aug rent,,
+8,Q3,8/6/2025,Meals,Green Lantern,20,Team Women networking breakfast,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/qk7WPa3S03VQUmRQo4Sk.jpg,
+7,Q3,7/1/2025,Vehicle,Summit credit Union,495.99,July car payment,,
+8,Q3,8/1/2025,Vehicle,Summit Credit Union,495.99,Aug car payment,,
+8,Q3,8/7/2025,Software,Google,1.99,Google storage,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/zchvP9h1lFDSb0tCdUUU.png,
+8,Q3,8/11/2025,Utilities,MG&E,214.95,Electric bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/Gvv4WFigcpLgcLPgE4Jk.png,
+9,Q3,9/3/2025,Meals,Green Lantern,13.75,Team Women networking breakfast ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/9aqkErTGEfjJw5F1mE0d.jpg,
+9,Q3,9/4/2025,Repair & Maintenance,Madison Green team,189.9,Lawn mowing service,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/qF63o4lGOS41oSbubvhg.png,
+9,Q3,9/8/2025,Utilities,Madison Municipal Services ,71.79,Water bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/YrkTl6cBsle6iu2hxonx.png,
+9,Q3,9/7/2025,Software,Google,1.99,Google storage,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/gSSMB3f7q0qoygkohGvE.png,
+9,Q3,9/9/2025,Software,Anthropic,20,Claude AI,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/3aP27f1xu9tvuD6A2X2x.png,
+9,Q3,9/1/2025,Rent,Gyongyi Petrak ,2700,Rent,,
+9,Q3,9/10/2025,Utilities,MG&E,135.74,Electric bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/PuRLmQrZ2AfU2NQFCWza.png,
+9,Q3,9/25/2025,Advertising,Team women,25,Networking group dues,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/HAYZQshxIMJnAPltVSkV.jpg,
+9,Q3,9/26/2025,Contractors,Kevin Powers,600,Web development contractor ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/7L6DTHgn3j8KykYxDaxy.jpg,
+9,Q3,9/19/2025,Software,Delta,9.95,WiFi for working on plane,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/fOg8YFTE9xySaiGgaGrO.jpg,
+10,Q4,10/1/2025,Software,Zoom,118.09,Zoom subscription for client meetings,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/Xpvd8gABpa58SZ3wFSTB.jpg,
+10,Q4,10/1/2025,Meals,Green Lantern,9.77,Team Women networking breakfast ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/tShRFFWNkWEWg6pHixpK.jpg,
+10,Q4,10/6/2025,Contractors,Kevin Powers,300,Contractor support for website development ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/Hu5Mx6wCdUC8HmLIRDDE.jpg,
+10,Q4,10/23/2025,Contractors,Kevin Powers ,250,Client work contracted out,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/ZtDI2KDKo8mGaoJPdT0r.jpg,
+11,Q4,11/4/2025,Contractors,Kevin Powers ,60,Contractor work,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/yZ3WeMbXk1zPyICEfW7S.jpg,
+10,Q4,10/14/2025,Insurance,Erie Insurance ,1395,Car Insurance,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/lUvtycgxxjuMgIXkBjaT.jpg,
+10,Q4,10/10/2025,Utilities,MG&E,112.38,Oct. Electric bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/DPKKmMEiGMbhzK7aZ9AY.jpg,
+10,Q4,10/8/2025,Software,Google,1.99,Google storage,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/HNtVhcDdEHfZxqNpCIxq.jpg,
+10,Q4,10/8/2025,Repair & Maintenance,Madison Green Team,189.9,Lawn Maintenance ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/47oRzWuWeJ2h7XUrl8Cw.jpg,
+10,Q4,10/8/2025,Utilities,Madison Municipal Services ,75.34,Oct Water bill,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/mD0JLbyhaWWxx20tpgaA.jpg,
+9,Q3,9/12/2025,Meals,Barriques ,7.28,Coffee meeting with client (Stacey),https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/QG2O8gCeXgFxWtn2OcEH.jpg,
+12,Q4,12/28/2025,Contractors,Kevin Powers,200,Contractor work,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/ndU9xddgE12GGBhfEPSR.jpg,
+11,Q4,11/10/2025,Utilities,Madison Municipal Services,79.72,Nov water bill - 15%,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/Wio7Ortru3lxe2KfcU7x.jpg,
+11,Q4,11/7/2025,Software,Google,1.99,Google storage,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/KFyoHcNdlLL9UAH6h3Qe.jpg,
+11,Q4,11/2/2025,Utilities,Spectrum,59.99,Internet,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/EhO2wJR19VesNUg1xqBN.jpg,
+11,Q4,11/11/2025,Travel,Delta,9.95,Wifi on the plane for working,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/5mnZ8Zkhak02cPQa9ukt.jpg,
+10,Q4,10/14/2025,Insurance,Erie insurance ,232,Renters insurance - 15%,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/t7SnfJ6VEDqN03MmFVQQ.jpg,
+12,Q4,12/7/2025,Software,Google,1.99,Google storage,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/YMNhravwG5RoBnxzmHiQ.jpg,
+12,Q4,12/8/2025,Utilities,Madison Municipal Services,86.12,Water bill - 15%,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/0wyUsVlfZlOKfZWrbAK7.jpg,
+12,Q4,12/8/2025,Utilities,MG&E,264.76,Electric bill - 15%,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/mXYyisT20mAuzd9QgZlT.jpg,
+12,Q4,12/11/2025,Software,Anthropic,200,Claude AI,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/hrpNKx7nkDCHdxkR5I37.jpg,
+12,Q4,12/4/2025,Equipment,Home depot,40.06,Coax mapper for home office wifi setup ,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/UCp55NAQOsrukEnQHHtP/pub/agUjqunx3UPopX6Qpi0O.jpg,
