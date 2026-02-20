@@ -116,7 +116,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
       setAmount(String(expense.amount / 100))
       setVendor(expense.vendor || '')
       setDescription(expense.description || '')
-      setDate(new Date(expense.date).toISOString().split('T')[0])
+      setDate(expense.date.substring(0, 10))
       setCategoryId(expense.categoryId || '')
       const type = expense.expenseType === 'home_office' ? 'operating' : expense.expenseType
       setExpenseType((type as 'operating' | 'cogs') || 'operating')
@@ -354,7 +354,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: amountCents,
-          date: new Date(date).toISOString(),
+          date: date + 'T12:00:00.000Z',
           categoryId,
           vendor: vendor.trim() || null,
           description: description.trim() || null,
