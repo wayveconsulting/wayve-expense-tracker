@@ -33,6 +33,7 @@ interface AnnualReportData {
   year: number
   summary: {
     totalSpent: number
+    totalDeductible: number
     expenseCount: number
     activeMonths: number
     averagePerMonth: number
@@ -181,9 +182,13 @@ export default function AnnualSummaryPage() {
               {/* Summary Cards */}
               <div className="annual-report__summary">
                 <div className="annual-report__stat-card annual-report__stat-card--primary">
-                  <span className="annual-report__stat-label">Total Spent</span>
-                  <span className="annual-report__stat-value">{formatDollars(data.summary.totalSpent)}</span>
-                  <span className="annual-report__stat-sub">{data.summary.expenseCount} transactions</span>
+                  <span className="annual-report__stat-label">Total Deductible</span>
+                  <span className="annual-report__stat-value">{formatDollars(data.summary.totalDeductible)}</span>
+                  <span className="annual-report__stat-sub">
+                    {data.summary.totalDeductible !== data.summary.totalSpent
+                      ? `${formatDollars(data.summary.totalSpent)} spent · ${data.summary.expenseCount} transactions`
+                      : `${data.summary.expenseCount} transactions`}
+                  </span>
                 </div>
                 <div className="annual-report__stat-card">
                   <span className="annual-report__stat-label">Avg / Month</span>
