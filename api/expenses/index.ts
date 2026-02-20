@@ -53,6 +53,12 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
 
   // Calculate summary stats
   const totalAmount = filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
+  const totalDeductible = filteredExpenses.reduce((sum, e) => {
+    if (e.isHomeOffice && e.homeOfficePercent) {
+      return sum + Math.round(e.amount * (e.homeOfficePercent / 100))
+    }
+    return sum + e.amount
+  }, 0)
   const expenseCount = filteredExpenses.length
   const averageAmount = expenseCount > 0 ? Math.round(totalAmount / expenseCount) : 0
 
@@ -81,6 +87,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
     expenses: filteredExpenses,
     summary: {
       totalAmount,
+      totalDeductible,
       expenseCount,
       averageAmount,
       year,
