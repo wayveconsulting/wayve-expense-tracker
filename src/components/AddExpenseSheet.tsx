@@ -80,7 +80,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
           throw new Error('Failed to load categories')
         }
         const data = await response.json()
-        setCategories(data.categories)
+        setCategories([...data.categories].sort((a: Category, b: Category) => a.name.localeCompare(b.name)))
 
         // Set preselected category if provided, otherwise default to first
         if (preselectedCategoryId) {
