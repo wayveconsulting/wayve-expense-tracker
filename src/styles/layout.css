@@ -1686,8 +1686,8 @@
 }
 
 .expense-type-option--selected {
-  color: var(--color-primary);
-  background: var(--color-primary-light, rgba(42, 157, 143, 0.1));
+  color: #fff;
+  background: var(--color-primary);
   border-color: var(--color-primary);
 }
 
