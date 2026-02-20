@@ -75,9 +75,10 @@ export default function ExpensesPage() {
     }).format(cents / 100)
   }
 
-  // Format date
+  // Format date (timezone-safe)
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const [year, month, day] = dateStr.substring(0, 10).split('-').map(Number)
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -103,8 +104,9 @@ export default function ExpensesPage() {
 
   // Group expenses by month
   const expensesByMonth = filteredExpenses.reduce((acc, expense) => {
-    const date = new Date(expense.date)
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    const [yr, mo, dy] = expense.date.substring(0, 10).split('-').map(Number)
+    const date = new Date(yr, mo - 1, dy)
+    const monthKey = `${yr}-${String(mo).padStart(2, '0')}`
     const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     
     if (!acc[monthKey]) {

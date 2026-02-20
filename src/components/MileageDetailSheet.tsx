@@ -54,7 +54,7 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
   // Populate form when trip changes or sheet opens
   useEffect(() => {
     if (trip && isOpen) {
-      setDate(new Date(trip.date).toISOString().split('T')[0])
+      setDate(trip.date.substring(0, 10))
       setDescription(trip.description || '')
       setStartLocation(trip.startLocation)
       setEndLocation(trip.endLocation)
@@ -81,9 +81,10 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
   // Format miles for display (stored as miles * 100)
   const formatMiles = (miles: number) => (miles / 100).toFixed(1)
 
-  // Format date for display
+  // Format date for display (timezone-safe)
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const [year, month, day] = dateStr.substring(0, 10).split('-').map(Number)
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
@@ -128,7 +129,7 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          date,
+          date: date + 'T12:00:00.000Z',
           description: description.trim() || null,
           startLocation: startLocation.trim(),
           endLocation: endLocation.trim(),

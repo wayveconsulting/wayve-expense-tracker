@@ -16,7 +16,10 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
   const { subdomain } = useTenant()
   
   // Form state
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  })
   const [description, setDescription] = useState('')
   const [startLocation, setStartLocation] = useState<PlaceData>({ address: '', location: null })
   const [endLocation, setEndLocation] = useState<PlaceData>({ address: '', location: null })
@@ -185,7 +188,8 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
   // Reset form when sheet closes
   useEffect(() => {
     if (!isOpen) {
-      setDate(new Date().toISOString().split('T')[0])
+      const now = new Date()
+      setDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`)
       setDescription('')
       setStartLocation({ address: '', location: null })
       setEndLocation({ address: '', location: null })
@@ -247,7 +251,7 @@ export function AddMileageSheet({ isOpen, onClose, onSuccess }: AddMileageSheetP
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          date,
+          date: date + 'T12:00:00.000Z',
           description: description.trim() || null,
           startLocation: startAddr.trim(),
           endLocation: endAddr.trim(),

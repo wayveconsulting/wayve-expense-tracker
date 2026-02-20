@@ -60,9 +60,10 @@ export default function MileagePage() {
   // Format miles (stored as miles * 100)
   const formatMiles = (miles: number) => (miles / 100).toFixed(1)
 
-  // Format date
+  // Format date (timezone-safe)
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const [year, month, day] = dateStr.substring(0, 10).split('-').map(Number)
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
     })
@@ -81,8 +82,9 @@ export default function MileagePage() {
 
   // Group trips by month
   const tripsByMonth = filteredTrips.reduce((acc, trip) => {
-    const date = new Date(trip.date)
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    const [yr, mo, dy] = trip.date.substring(0, 10).split('-').map(Number)
+    const date = new Date(yr, mo - 1, dy)
+    const monthKey = `${yr}-${String(mo).padStart(2, '0')}`
     const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     
     if (!acc[monthKey]) {

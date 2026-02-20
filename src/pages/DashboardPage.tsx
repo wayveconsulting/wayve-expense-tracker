@@ -179,9 +179,10 @@ export default function DashboardPage() {
   // Format miles (stored as miles * 100)
   const formatMiles = (miles: number) => (miles / 100).toFixed(1)
 
-  // Format date
+  // Format date (timezone-safe)
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const [year, month, day] = dateStr.substring(0, 10).split('-').map(Number)
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
     })
