@@ -207,13 +207,12 @@
 }
 
 .drawer__nav-item--active {
-  background: var(--color-primary-light, rgba(42, 157, 143, 0.1));
-  color: var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
   font-weight: 500;
 }
-
 .drawer__nav-item--active:hover {
-  background: var(--color-primary-light, rgba(42, 157, 143, 0.15));
+  background: var(--color-primary-hover);
 }
 
 .drawer__nav-item svg {
