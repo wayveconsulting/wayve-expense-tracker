@@ -29,6 +29,8 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
       date: expenses.date,
       categoryId: expenses.categoryId,
       expenseType: expenses.expenseType,
+      isHomeOffice: expenses.isHomeOffice,
+      homeOfficePercent: expenses.homeOfficePercent,
     })
     .from(expenses)
     .where(and(
@@ -73,6 +75,12 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
   }
 
   const totalSpent = yearExpenses.reduce((sum, e) => sum + e.amount, 0)
+  const totalDeductible = yearExpenses.reduce((sum, e) => {
+    if (e.isHomeOffice && e.homeOfficePercent) {
+      return sum + Math.round(e.amount * (e.homeOfficePercent / 100))
+    }
+    return sum + e.amount
+  }, 0)
 
   const categoryBreakdown = Array.from(categoryTotals.entries())
     .map(([catId, data]) => {
@@ -109,6 +117,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
     year,
     summary: {
       totalSpent,
+      totalDeductible,
       expenseCount,
       activeMonths,
       averagePerMonth,
