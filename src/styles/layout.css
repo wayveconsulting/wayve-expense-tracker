@@ -1242,8 +1242,8 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-primary);
-  background: var(--color-primary-light, rgba(42, 157, 143, 0.1));
+  color: #fff;
+  background: var(--color-primary);
   padding: 4px 8px;
   border-radius: var(--radius-sm);
 }
