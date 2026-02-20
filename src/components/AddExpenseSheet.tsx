@@ -37,7 +37,10 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
   const [amount, setAmount] = useState('')
   const [vendor, setVendor] = useState('')
   const [description, setDescription] = useState('')
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  })
   const [categoryId, setCategoryId] = useState('')
   const [expenseType, setExpenseType] = useState<'operating' | 'cogs'>('operating')
   const [isHomeOffice, setIsHomeOffice] = useState(false)
@@ -105,7 +108,8 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
         setAmount('')
         setVendor('')
         setDescription('')
-        setDate(new Date().toISOString().split('T')[0])
+        const now = new Date()
+        setDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`)
         setCategoryId(preselectedCategoryId || '')
         setExpenseType('operating')
         setIsHomeOffice(false)
@@ -219,7 +223,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: amountCents,
-          date: new Date(date).toISOString(),
+          date: date + 'T12:00:00.000Z',
           categoryId,
           vendor: vendor.trim() || null,
           description: description.trim() || null,
