@@ -256,8 +256,11 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
   }
 
   // Format date for display
+  // Parse YYYY-MM-DD directly to avoid timezone shift —
+  // new Date("2026-01-03") parses as UTC midnight, which shifts backward in US timezones
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const [year, month, day] = dateStr.substring(0, 10).split('-').map(Number)
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
