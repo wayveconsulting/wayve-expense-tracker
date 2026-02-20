@@ -136,7 +136,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
           const response = await fetch(`/api/categories?tenant=${subdomain}`)
           if (response.ok) {
             const data = await response.json()
-            setCategories(data.categories)
+            setCategories([...data.categories].sort((a: Category, b: Category) => a.name.localeCompare(b.name)))
           }
         } catch (err) {
           console.error('Error fetching categories:', err)
