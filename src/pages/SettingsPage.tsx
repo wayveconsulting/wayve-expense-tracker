@@ -1,11 +1,66 @@
+import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useTenant } from '../hooks/useTenant'
 import { useSettings } from '../hooks/useSettings'
 
+interface Category {
+  id: string
+  name: string
+  emoji: string
+}
+
 export default function SettingsPage() {
   const { user, logout } = useAuth()
-  const { tenant } = useTenant()
+  const { tenant, subdomain } = useTenant()
   const { darkMode, setDarkMode, showFab, setShowFab } = useSettings()
+
+  // Default category state
+  const [categories, setCategories] = useState<Category[]>([])
+  const [defaultCategoryId, setDefaultCategoryId] = useState<string>('')
+  const [savingDefault, setSavingDefault] = useState(false)
+  const [defaultSaved, setDefaultSaved] = useState(false)
+
+  // Fetch categories and current default on mount
+  useEffect(() => {
+    if (!subdomain) return
+    async function fetchData() {
+      try {
+        const response = await fetch(`/api/categories?tenant=${subdomain}`)
+        if (!response.ok) return
+        const data = await response.json()
+        setCategories(
+          [...data.categories]
+            .sort((a: Category, b: Category) => a.name.localeCompare(b.name))
+        )
+        setDefaultCategoryId(data.homeOfficeSettings?.defaultCategoryId || '')
+      } catch (err) {
+        console.error('Error fetching categories:', err)
+      }
+    }
+    fetchData()
+  }, [subdomain])
+
+  // Save default category
+  async function handleDefaultCategoryChange(categoryId: string) {
+    setDefaultCategoryId(categoryId)
+    setDefaultSaved(false)
+    setSavingDefault(true)
+    try {
+      const response = await fetch(`/api/categories/default-category?tenant=${subdomain}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ defaultCategoryId: categoryId || null }),
+      })
+      if (response.ok) {
+        setDefaultSaved(true)
+        setTimeout(() => setDefaultSaved(false), 2000)
+      }
+    } catch (err) {
+      console.error('Error saving default category:', err)
+    } finally {
+      setSavingDefault(false)
+    }
+  }
 
   return (
     <div className="page settings-page">
@@ -41,7 +96,7 @@ export default function SettingsPage() {
               </div>
               <span className="settings-row__value">{tenant.name}</span>
             </div>
-            <div className="settings-row">
+            <div className="settings-row settings-row--last">
               <div className="settings-row__label">
                 <span className="settings-row__title">Subdomain</span>
               </div>
@@ -55,12 +110,34 @@ export default function SettingsPage() {
       <section className="settings-section">
         <h2 className="settings-section__title">Preferences</h2>
         <div className="card">
+          {/* Default Category */}
+          <div className="settings-row">
+            <div className="settings-row__label">
+              <span className="settings-row__title">Default Category</span>
+              <span className="settings-row__description">
+                Pre-select this category when adding expenses
+                {defaultSaved && <span className="settings-row__saved"> — Saved!</span>}
+              </span>
+            </div>
+            <select
+              className="form-input settings-row__select"
+              value={defaultCategoryId}
+              onChange={(e) => handleDefaultCategoryChange(e.target.value)}
+              disabled={savingDefault}
+            >
+              <option value="">None (require selection)</option>
+              {categories.map(c => (
+                <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
+              ))}
+            </select>
+          </div>
+          {/* Dark Mode */}
           <div className="settings-row">
             <div className="settings-row__label">
               <span className="settings-row__title">Dark Mode</span>
               <span className="settings-row__description">Use dark theme throughout the app</span>
             </div>
-            <button 
+            <button
               className={`toggle ${darkMode ? 'toggle--active' : ''}`}
               onClick={() => setDarkMode(!darkMode)}
               role="switch"
@@ -69,6 +146,7 @@ export default function SettingsPage() {
               <span className="toggle__slider" />
             </button>
           </div>
+          {/* Email Notifications */}
           <div className="settings-row">
             <div className="settings-row__label">
               <span className="settings-row__title">Email Notifications</span>
@@ -78,12 +156,13 @@ export default function SettingsPage() {
               <span className="toggle__slider" />
             </button>
           </div>
+          {/* Quick Add Button */}
           <div className="settings-row settings-row--last">
             <div className="settings-row__label">
               <span className="settings-row__title">Quick Add Button</span>
               <span className="settings-row__description">Show floating button to add expenses</span>
             </div>
-            <button 
+            <button
               className={`toggle ${showFab ? 'toggle--active' : ''}`}
               onClick={() => setShowFab(!showFab)}
               role="switch"
@@ -95,7 +174,7 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Danger Zone */}
+      {/* Account Section */}
       <section className="settings-section">
         <h2 className="settings-section__title">Account</h2>
         <div className="card">

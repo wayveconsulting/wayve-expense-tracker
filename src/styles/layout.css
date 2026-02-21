@@ -1365,6 +1365,14 @@
   color: var(--color-text-secondary);
   text-align: right;
 }
+.settings-row__select {
+  max-width: 200px;
+  font-size: 0.875rem;
+}
+.settings-row__saved {
+  color: var(--color-success, #16a34a);
+  font-weight: 500;
+}
 
 /* Toggle Switch */
 .toggle {

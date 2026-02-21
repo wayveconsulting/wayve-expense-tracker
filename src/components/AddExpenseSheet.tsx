@@ -86,14 +86,16 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
         const data = await response.json()
         setCategories([...data.categories].sort((a: Category, b: Category) => a.name.localeCompare(b.name)))
 
-        // Set preselected category if provided, otherwise default to first
+        // Priority: URL preselect > name preselect > tenant default > blank
         if (preselectedCategoryId) {
           setCategoryId(preselectedCategoryId)
         } else if (preselectedCategoryName) {
           const match = data.categories.find((c: Category) => c.name === preselectedCategoryName)
           if (match) setCategoryId(match.id)
-        } else if (data.categories.length > 0 && !categoryId) {
-          setCategoryId(data.categories[0].id)
+        } else if (data.homeOfficeSettings?.defaultCategoryId) {
+          setCategoryId(data.homeOfficeSettings.defaultCategoryId)
+        } else {
+          setCategoryId('')
         }
       } catch (err) {
         console.error('Error fetching categories:', err)
@@ -114,7 +116,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
         setDescription('')
         const now = new Date()
         setDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`)
-        setCategoryId(preselectedCategoryId || '')
+        setCategoryId('')
         setExpenseType('operating')
         setIsHomeOffice(false)
         setExtractedText(null)

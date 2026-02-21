@@ -24,6 +24,7 @@ export const tenants = pgTable('tenants', {
   homeOfficeIgnored: boolean('home_office_ignored').default(false).notNull(), // user explicitly dismissed home office setup
   
   // Settings
+  defaultCategoryId: uuid('default_category_id'), // user-configured default for Add Expense
   isActive: boolean('is_active').default(true).notNull(),
   
   // Billing attribution - who created this tenant?
