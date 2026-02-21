@@ -27,9 +27,10 @@ interface AddExpenseSheetProps {
   onClose: () => void
   onSuccess: () => void
   preselectedCategoryId?: string | null
+  preselectedCategoryName?: string | null
 }
 
-export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategoryId }: AddExpenseSheetProps) {
+export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategoryId, preselectedCategoryName }: AddExpenseSheetProps) {
   const { subdomain } = useTenant()
   const { scanResult, isScanning, scanError, scanReceipt, clearScan } = useScanReceipt()
 
@@ -88,6 +89,9 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
         // Set preselected category if provided, otherwise default to first
         if (preselectedCategoryId) {
           setCategoryId(preselectedCategoryId)
+        } else if (preselectedCategoryName) {
+          const match = data.categories.find((c: Category) => c.name === preselectedCategoryName)
+          if (match) setCategoryId(match.id)
         } else if (data.categories.length > 0 && !categoryId) {
           setCategoryId(data.categories[0].id)
         }

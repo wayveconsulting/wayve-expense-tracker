@@ -173,6 +173,7 @@ export function Layout({ children }: LayoutProps) {
         isOpen={expenseSheetOpen}
         onClose={() => setExpenseSheetOpen(false)}
         onSuccess={handleExpenseAdded}
+        preselectedCategoryName={new URLSearchParams(window.location.search).get('category')}
       />
 
       {/* Global Add Mileage Sheet */}
