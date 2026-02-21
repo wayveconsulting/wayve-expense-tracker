@@ -21,6 +21,7 @@ interface Category {
 interface HomeOfficeSettings {
   homeTotalSqft: number | null
   homeOfficeSqft: number | null
+  homeOfficeIgnored: boolean
   deductionPercent: number | null
 }
 
@@ -35,6 +36,7 @@ export default function CategoriesPage() {
   const [homeOfficeSettings, setHomeOfficeSettings] = useState<HomeOfficeSettings>({
     homeTotalSqft: null,
     homeOfficeSqft: null,
+    homeOfficeIgnored: false,
     deductionPercent: null,
   })
   const [loading, setLoading] = useState(true)
@@ -56,8 +58,23 @@ export default function CategoriesPage() {
   const [hoSaving, setHoSaving] = useState(false)
   const [hoError, setHoError] = useState<string | null>(null)
 
+  // Home Office ignore confirmation state
+  const [showIgnoreConfirm, setShowIgnoreConfirm] = useState(false)
+  const [ignoreSaving, setIgnoreSaving] = useState(false)
+
   // Local refresh key for category changes that don't affect expenses
   const [categoryKey, setCategoryKey] = useState(0)
+
+  // ============================================
+  // DERIVED STATE
+  // ============================================
+  const homeOfficeComplete = homeOfficeSettings.homeTotalSqft !== null && homeOfficeSettings.homeOfficeSqft !== null
+  const homeOfficeIgnored = homeOfficeSettings.homeOfficeIgnored
+  const hasHomeOfficeCategories = categories.some(c => c.homeOfficeEligible)
+  // Show above categories when: has eligible categories, NOT complete, NOT ignored
+  const showHomeOfficeAbove = hasHomeOfficeCategories && !homeOfficeComplete && !homeOfficeIgnored
+  // Show below categories when: has eligible categories AND (complete OR ignored)
+  const showHomeOfficeBelow = hasHomeOfficeCategories && (homeOfficeComplete || homeOfficeIgnored)
 
   // ============================================
   // FETCH CATEGORIES WITH SPENDING DATA
@@ -111,7 +128,6 @@ export default function CategoriesPage() {
 
   const totalSpent = categories.reduce((sum, cat) => sum + cat.total, 0)
   const totalCount = categories.reduce((sum, cat) => sum + cat.count, 0)
-  const hasHomeOfficeCategories = categories.some(c => c.homeOfficeEligible)
 
   // ============================================
   // ADD / EDIT HANDLERS
@@ -218,6 +234,228 @@ export default function CategoriesPage() {
   }
 
   // ============================================
+  // HOME OFFICE IGNORE HANDLERS
+  // ============================================
+  async function handleIgnoreConfirm() {
+    try {
+      setIgnoreSaving(true)
+
+      const response = await fetch(`/api/categories/home-office?tenant=${subdomain}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ homeOfficeIgnored: true }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to save')
+      }
+
+      const result = await response.json()
+      setHomeOfficeSettings(result.homeOfficeSettings)
+      setShowIgnoreConfirm(false)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setIgnoreSaving(false)
+    }
+  }
+
+  async function handleUnignore() {
+    try {
+      setIgnoreSaving(true)
+
+      const response = await fetch(`/api/categories/home-office?tenant=${subdomain}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ homeOfficeIgnored: false }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to save')
+      }
+
+      const result = await response.json()
+      setHomeOfficeSettings(result.homeOfficeSettings)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setIgnoreSaving(false)
+    }
+  }
+
+  // ============================================
+  // RENDER: HOME OFFICE SECTION (reusable)
+  // ============================================
+  function renderHomeOfficeSection(position: 'above' | 'below') {
+    return (
+      <div className="home-office-config">
+        <div className="home-office-config__header">
+          <div>
+            <h2 className="home-office-config__title">🏡 Home Office Deduction</h2>
+            <p className="home-office-config__desc">
+              Set your home dimensions to calculate the deduction percentage applied to eligible categories.
+            </p>
+          </div>
+          {!editingHomeOffice && homeOfficeComplete && (
+            <button
+              className="btn btn--secondary btn--sm"
+              onClick={() => setEditingHomeOffice(true)}
+            >
+              Edit
+            </button>
+          )}
+          {!editingHomeOffice && !homeOfficeComplete && (
+            <button
+              className="btn btn--secondary btn--sm"
+              onClick={() => setEditingHomeOffice(true)}
+            >
+              Set Up
+            </button>
+          )}
+        </div>
+
+        {/* Ignore checkbox — show when incomplete (above position) or when ignored (below position) */}
+        {(!homeOfficeComplete) && (
+          <label className="home-office-config__ignore-label">
+            <input
+              type="checkbox"
+              checked={homeOfficeIgnored}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setShowIgnoreConfirm(true)
+                } else {
+                  handleUnignore()
+                }
+              }}
+              disabled={ignoreSaving}
+            />
+            <span>I don't have a home office</span>
+          </label>
+        )}
+
+        {editingHomeOffice ? (
+          <div className="home-office-config__form">
+            {hoError && <div className="form-error">{hoError}</div>}
+            <div className="home-office-config__inputs">
+              <div className="form-group">
+                <label htmlFor="hoTotal" className="form-label">Total Home (sq ft)</label>
+                <input
+                  type="number"
+                  id="hoTotal"
+                  className="form-input"
+                  placeholder="e.g., 1500"
+                  min="0"
+                  max="100000"
+                  value={hoTotalSqft}
+                  onChange={(e) => setHoTotalSqft(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="hoOffice" className="form-label">Office Space (sq ft)</label>
+                <input
+                  type="number"
+                  id="hoOffice"
+                  className="form-input"
+                  placeholder="e.g., 200"
+                  min="0"
+                  max="100000"
+                  value={hoOfficeSqft}
+                  onChange={(e) => setHoOfficeSqft(e.target.value)}
+                />
+              </div>
+            </div>
+            {hoTotalSqft && hoOfficeSqft && parseInt(hoOfficeSqft) <= parseInt(hoTotalSqft) && (
+              <div className="home-office-config__preview">
+                Deduction Rate: <strong>{((parseInt(hoOfficeSqft) / parseInt(hoTotalSqft)) * 100).toFixed(1)}%</strong>
+              </div>
+            )}
+            <div className="home-office-config__actions">
+              <button
+                className="btn btn--secondary btn--sm"
+                onClick={() => {
+                  setEditingHomeOffice(false)
+                  setHoError(null)
+                  // Reset to saved values
+                  setHoTotalSqft(homeOfficeSettings.homeTotalSqft?.toString() || '')
+                  setHoOfficeSqft(homeOfficeSettings.homeOfficeSqft?.toString() || '')
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn--primary btn--sm"
+                onClick={handleHomeOfficeSave}
+                disabled={hoSaving}
+              >
+                {hoSaving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        ) : homeOfficeComplete ? (
+          <div className="home-office-config__display">
+            <div className="home-office-config__stat">
+              <span className="home-office-config__stat-label">Total Home</span>
+              <span className="home-office-config__stat-value">
+                {homeOfficeSettings.homeTotalSqft!.toLocaleString()} sq ft
+              </span>
+            </div>
+            <div className="home-office-config__stat">
+              <span className="home-office-config__stat-label">Office Space</span>
+              <span className="home-office-config__stat-value">
+                {homeOfficeSettings.homeOfficeSqft?.toLocaleString() || '—'} sq ft
+              </span>
+            </div>
+            <div className="home-office-config__stat home-office-config__stat--highlight">
+              <span className="home-office-config__stat-label">Deduction Rate</span>
+              <span className="home-office-config__stat-value">
+                {homeOfficeSettings.deductionPercent !== null
+                  ? `${homeOfficeSettings.deductionPercent}%`
+                  : '—'}
+              </span>
+            </div>
+          </div>
+        ) : !homeOfficeIgnored ? (
+          <div className="home-office-config__empty">
+            Set your home and office dimensions to see your deduction rate.
+          </div>
+        ) : null}
+
+        {/* Home Office Warnings */}
+        {homeOfficeSettings.homeTotalSqft && homeOfficeSettings.homeOfficeSqft && (
+          <div className="home-office-config__warnings">
+            {homeOfficeSettings.homeOfficeSqft > 300 && (
+              <div className="home-office-config__warning">
+                <span className="home-office-config__warning-icon">💡</span>
+                <span>Your office exceeds 300 sq ft — the IRS simplified method caps at 300 sq ft ($1,500 max deduction). You're using the regular method, which has no cap, but keep documentation handy.</span>
+              </div>
+            )}
+            {homeOfficeSettings.deductionPercent !== null && homeOfficeSettings.deductionPercent > 33 && (
+              <div className="home-office-config__warning home-office-config__warning--caution">
+                <span className="home-office-config__warning-icon">⚠️</span>
+                <span>Claiming over 33% of your home as office space may increase audit scrutiny. Make sure you have documentation (photos, floor plan) to support your claim.</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Eligible categories list */}
+        {homeOfficeSettings.deductionPercent !== null && (
+          <div className="home-office-config__eligible">
+            <span className="home-office-config__eligible-label">Eligible categories:</span>
+            {categories.filter(c => c.homeOfficeEligible).map(c => (
+              <span key={c.id} className="home-office-config__eligible-tag">
+                {c.emoji} {c.name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ============================================
   // RENDER
   // ============================================
   if (loading) {
@@ -263,6 +501,14 @@ export default function CategoriesPage() {
         <span className="categories-page__dot">·</span>
         <span>{formatMoney(totalSpent)} total</span>
       </div>
+
+      {/* Home Office ABOVE categories (incomplete + not ignored) */}
+      {showHomeOfficeAbove && (
+        <>
+          {renderHomeOfficeSection('above')}
+          <div className="categories-page__divider" />
+        </>
+      )}
 
       {/* Category Cards */}
       {sortedCategories.length === 0 ? (
@@ -359,147 +605,46 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* ============================================
-         HOME OFFICE CONFIG SECTION
-         ============================================ */}
-      {hasHomeOfficeCategories && (
+      {/* Home Office BELOW categories (complete OR ignored) */}
+      {showHomeOfficeBelow && (
         <>
           <div className="categories-page__divider" />
+          {renderHomeOfficeSection('below')}
+        </>
+      )}
 
-          <div className="home-office-config">
-            <div className="home-office-config__header">
-              <div>
-                <h2 className="home-office-config__title">🏡 Home Office Deduction</h2>
-                <p className="home-office-config__desc">
-                  Set your home dimensions to calculate the deduction percentage applied to eligible categories.
-                </p>
-              </div>
-              {!editingHomeOffice && (
-                <button
-                  className="btn btn--secondary btn--sm"
-                  onClick={() => setEditingHomeOffice(true)}
-                >
-                  {homeOfficeSettings.homeTotalSqft ? 'Edit' : 'Set Up'}
-                </button>
-              )}
+      {/* ============================================
+         IGNORE CONFIRMATION MODAL
+         ============================================ */}
+      {showIgnoreConfirm && (
+        <>
+          <div className="sheet-backdrop sheet-backdrop--open" onClick={() => setShowIgnoreConfirm(false)} />
+          <div className="delete-modal">
+            <h3 className="delete-modal__title">Ignore Home Office Deduction?</h3>
+            <div className="delete-modal__body">
+              <p>
+                This setting is for businesses that <strong>do not claim a home office deduction</strong> on their taxes.
+              </p>
+              <p>
+                You can re-enable this at any time from the Home Office section at the bottom of the Categories page.
+              </p>
             </div>
-
-            {editingHomeOffice ? (
-              <div className="home-office-config__form">
-                {hoError && <div className="form-error">{hoError}</div>}
-                <div className="home-office-config__inputs">
-                  <div className="form-group">
-                    <label htmlFor="hoTotal" className="form-label">Total Home (sq ft)</label>
-                    <input
-                      type="number"
-                      id="hoTotal"
-                      className="form-input"
-                      placeholder="e.g., 1500"
-                      min="0"
-                      max="100000"
-                      value={hoTotalSqft}
-                      onChange={(e) => setHoTotalSqft(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="hoOffice" className="form-label">Office Space (sq ft)</label>
-                    <input
-                      type="number"
-                      id="hoOffice"
-                      className="form-input"
-                      placeholder="e.g., 200"
-                      min="0"
-                      max="100000"
-                      value={hoOfficeSqft}
-                      onChange={(e) => setHoOfficeSqft(e.target.value)}
-                    />
-                  </div>
-                </div>
-                {hoTotalSqft && hoOfficeSqft && parseInt(hoOfficeSqft) <= parseInt(hoTotalSqft) && (
-                  <div className="home-office-config__preview">
-                    Deduction Rate: <strong>{((parseInt(hoOfficeSqft) / parseInt(hoTotalSqft)) * 100).toFixed(1)}%</strong>
-                  </div>
-                )}
-                <div className="home-office-config__actions">
-                  <button
-                    className="btn btn--secondary btn--sm"
-                    onClick={() => {
-                      setEditingHomeOffice(false)
-                      setHoError(null)
-                      // Reset to saved values
-                      setHoTotalSqft(homeOfficeSettings.homeTotalSqft?.toString() || '')
-                      setHoOfficeSqft(homeOfficeSettings.homeOfficeSqft?.toString() || '')
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="btn btn--primary btn--sm"
-                    onClick={handleHomeOfficeSave}
-                    disabled={hoSaving}
-                  >
-                    {hoSaving ? 'Saving...' : 'Save'}
-                  </button>
-                </div>
-              </div>
-            ) : homeOfficeSettings.homeTotalSqft ? (
-              <div className="home-office-config__display">
-                <div className="home-office-config__stat">
-                  <span className="home-office-config__stat-label">Total Home</span>
-                  <span className="home-office-config__stat-value">
-                    {homeOfficeSettings.homeTotalSqft.toLocaleString()} sq ft
-                  </span>
-                </div>
-                <div className="home-office-config__stat">
-                  <span className="home-office-config__stat-label">Office Space</span>
-                  <span className="home-office-config__stat-value">
-                    {homeOfficeSettings.homeOfficeSqft?.toLocaleString() || '—'} sq ft
-                  </span>
-                </div>
-                <div className="home-office-config__stat home-office-config__stat--highlight">
-                  <span className="home-office-config__stat-label">Deduction Rate</span>
-                  <span className="home-office-config__stat-value">
-                    {homeOfficeSettings.deductionPercent !== null
-                      ? `${homeOfficeSettings.deductionPercent}%`
-                      : '—'}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="home-office-config__empty">
-                Set your home and office dimensions to see your deduction rate.
-              </div>
-            )}
-
-            {/* Home Office Warnings */}
-            {homeOfficeSettings.homeTotalSqft && homeOfficeSettings.homeOfficeSqft && (
-              <div className="home-office-config__warnings">
-                {homeOfficeSettings.homeOfficeSqft > 300 && (
-                  <div className="home-office-config__warning">
-                    <span className="home-office-config__warning-icon">💡</span>
-                    <span>Your office exceeds 300 sq ft — the IRS simplified method caps at 300 sq ft ($1,500 max deduction). You're using the regular method, which has no cap, but keep documentation handy.</span>
-                  </div>
-                )}
-                {homeOfficeSettings.deductionPercent !== null && homeOfficeSettings.deductionPercent > 33 && (
-                  <div className="home-office-config__warning home-office-config__warning--caution">
-                    <span className="home-office-config__warning-icon">⚠️</span>
-                    <span>Claiming over 33% of your home as office space may increase audit scrutiny. Make sure you have documentation (photos, floor plan) to support your claim.</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Eligible categories list */}
-            {homeOfficeSettings.deductionPercent !== null && (
-              <div className="home-office-config__eligible">
-                <span className="home-office-config__eligible-label">Eligible categories:</span>
-                {categories.filter(c => c.homeOfficeEligible).map(c => (
-                  <span key={c.id} className="home-office-config__eligible-tag">
-                    {c.emoji} {c.name}
-                  </span>
-                ))}
-              </div>
-            )}
+            <div className="delete-modal__actions">
+              <button
+                className="btn btn--secondary"
+                onClick={() => setShowIgnoreConfirm(false)}
+                disabled={ignoreSaving}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn--primary"
+                onClick={handleIgnoreConfirm}
+                disabled={ignoreSaving}
+              >
+                {ignoreSaving ? 'Saving...' : 'Yes, Ignore'}
+              </button>
+            </div>
           </div>
         </>
       )}
