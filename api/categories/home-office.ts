@@ -21,7 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const { tenantId } = auth
-    const { homeTotalSqft, homeOfficeSqft } = req.body
+    const { homeTotalSqft, homeOfficeSqft, homeOfficeIgnored } = req.body
 
     // Validation
     const errors: string[] = []
@@ -62,6 +62,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (homeOfficeSqft !== undefined) {
       updates.homeOfficeSqft = homeOfficeSqft === null ? null : Math.round(Number(homeOfficeSqft))
     }
+    if (homeOfficeIgnored !== undefined) {
+      updates.homeOfficeIgnored = Boolean(homeOfficeIgnored)
+    }
 
     const [updated] = await db
       .update(tenants)
@@ -70,6 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .returning({
         homeTotalSqft: tenants.homeTotalSqft,
         homeOfficeSqft: tenants.homeOfficeSqft,
+        homeOfficeIgnored: tenants.homeOfficeIgnored,
       })
 
     const deductionPercent = (updated.homeTotalSqft && updated.homeOfficeSqft)
@@ -80,6 +84,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       homeOfficeSettings: {
         homeTotalSqft: updated.homeTotalSqft,
         homeOfficeSqft: updated.homeOfficeSqft,
+        homeOfficeIgnored: updated.homeOfficeIgnored,
         deductionPercent,
       },
     })
