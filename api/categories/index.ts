@@ -76,6 +76,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
         .select({
           homeTotalSqft: tenants.homeTotalSqft,
           homeOfficeSqft: tenants.homeOfficeSqft,
+          homeOfficeIgnored: tenants.homeOfficeIgnored,
         })
         .from(tenants)
         .where(eq(tenants.id, tenantId))
@@ -90,6 +91,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
         homeOfficeSettings: {
           homeTotalSqft: tenant?.homeTotalSqft ?? null,
           homeOfficeSqft: tenant?.homeOfficeSqft ?? null,
+          homeOfficeIgnored: tenant?.homeOfficeIgnored ?? false,
           deductionPercent: (tenant?.homeTotalSqft && tenant?.homeOfficeSqft)
             ? Math.round((tenant.homeOfficeSqft / tenant.homeTotalSqft) * 10000) / 100
             : null,
