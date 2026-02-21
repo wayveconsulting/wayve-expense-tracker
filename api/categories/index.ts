@@ -119,10 +119,21 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
       ))
       .orderBy(asc(categories.sortOrder), asc(categories.name))
 
+    // Fetch tenant settings (for defaultCategoryId)
+    const [tenant] = await db
+      .select({
+        defaultCategoryId: tenants.defaultCategoryId,
+      })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1)
+
     return res.status(200).json({
       categories: categoryList,
+      homeOfficeSettings: {
+        defaultCategoryId: tenant?.defaultCategoryId ?? null,
+      },
     })
-
   } catch (error) {
     console.error('Error fetching categories:', error)
     return res.status(500).json({ error: 'Internal server error' })
