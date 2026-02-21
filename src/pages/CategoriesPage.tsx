@@ -288,7 +288,7 @@ export default function CategoriesPage() {
   // ============================================
   // RENDER: HOME OFFICE SECTION (reusable)
   // ============================================
-  function renderHomeOfficeSection(position: 'above' | 'below') {
+  function renderHomeOfficeSection() {
     return (
       <div className="home-office-config">
         <div className="home-office-config__header">
@@ -505,7 +505,7 @@ export default function CategoriesPage() {
       {/* Home Office ABOVE categories (incomplete + not ignored) */}
       {showHomeOfficeAbove && (
         <>
-          {renderHomeOfficeSection('above')}
+          {renderHomeOfficeSection()}
           <div className="categories-page__divider" />
         </>
       )}
@@ -609,7 +609,7 @@ export default function CategoriesPage() {
       {showHomeOfficeBelow && (
         <>
           <div className="categories-page__divider" />
-          {renderHomeOfficeSection('below')}
+          {renderHomeOfficeSection()}
         </>
       )}
 
