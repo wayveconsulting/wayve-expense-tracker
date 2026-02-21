@@ -1,6 +1,6 @@
 {
   "name": "Wayve Expense Tracker",
-  "short_name": "Wayve Expenses",
+  "short_name": "Expenses",
   "description": "Expense tracking for small businesses",
   "start_url": "/",
   "display": "standalone",
