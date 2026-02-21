@@ -278,6 +278,9 @@ export default function CategoriesPage() {
 
       const result = await response.json()
       setHomeOfficeSettings(result.homeOfficeSettings)
+
+      // Scroll to top so user sees the section in its new position
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
