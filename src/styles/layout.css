@@ -3992,6 +3992,24 @@
   line-height: 1.4;
 }
 
+/* Ignore checkbox */
+.home-office-config__ignore-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  margin-bottom: var(--spacing-md);
+}
+
+.home-office-config__ignore-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
 /* Edit form */
 .home-office-config__form {
   display: flex;
