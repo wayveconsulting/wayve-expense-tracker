@@ -21,6 +21,7 @@ export const tenants = pgTable('tenants', {
   // Home Office settings (tenant-level — applies to all home_office categories equally)
   homeTotalSqft: integer('home_total_sqft'), // total home square footage
   homeOfficeSqft: integer('home_office_sqft'), // dedicated office square footage
+  homeOfficeIgnored: boolean('home_office_ignored').default(false).notNull(), // user explicitly dismissed home office setup
   
   // Settings
   isActive: boolean('is_active').default(true).notNull(),
