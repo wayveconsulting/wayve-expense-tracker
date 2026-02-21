@@ -1588,6 +1588,11 @@
   font-weight: 500;
   color: var(--color-text-primary);
 }
+.form-label__status {
+  font-weight: normal;
+  color: var(--color-text-secondary);
+  font-size: 0.85em;
+}
 
 .form-input {
   width: 100%;
