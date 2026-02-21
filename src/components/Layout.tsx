@@ -155,7 +155,7 @@ export function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Global FAB - Context Aware */}
-      {showFab && (
+      {showFab && !expenseSheetOpen && !mileageSheetOpen && (
         <button 
           className={`fab ${isOnMileagePage ? 'fab--mileage' : ''}`}
           onClick={handleFabClick}

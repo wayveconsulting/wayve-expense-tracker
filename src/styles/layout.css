@@ -1430,6 +1430,10 @@
    FLOATING ACTION BUTTON (FAB)
    ============================================ */
 
+.main-content:has(.home-office-config__form) ~ .fab {
+  display: none;
+}
+
 .fab {
   position: fixed;
   bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
