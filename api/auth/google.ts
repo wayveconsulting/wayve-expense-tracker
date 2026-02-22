@@ -28,7 +28,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
-  return res.redirect(googleAuthUrl);
+  res.setHeader('Cache-Control', 'no-store');
+return res.redirect(googleAuthUrl);
 }
 
 function getRedirectUri(req: VercelRequest): string {
