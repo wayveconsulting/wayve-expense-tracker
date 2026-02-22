@@ -202,7 +202,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
       .returning();
 
     // --- 4. Send invite email ---
-    const inviteUrl = `https://wayveconsulting.app/invite?token=${token}`;
+    const inviteUrl = `https://wayveexpenses.app/invite?token=${token}`;
     const expiryDate = expiresAt.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',

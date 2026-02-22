@@ -193,7 +193,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'SameSite=Lax',
       `Max-Age=${30 * 24 * 60 * 60}`, // 30 days in seconds
       isProduction ? 'Secure' : '',
-      isProduction ? `Domain=.wayveconsulting.app` : '',
+      isProduction ? `Domain=.wayveexpenses.app` : '',
     ].filter(Boolean).join('; ');
 
     res.setHeader('Set-Cookie', cookieOptions);
@@ -270,8 +270,8 @@ function getRedirectUri(req: VercelRequest): string {
   
   // For subdomains, we need to use the main domain for OAuth callback
   // Google OAuth redirect URI must match exactly what's configured
-  if (host.includes('wayveconsulting.app')) {
-    return 'https://wayveconsulting.app/api/auth/callback/google';
+  if (host.includes('wayveexpenses.app')) {
+    return 'https://wayveexpenses.app/api/auth/callback/google';
   }
   if (host.includes('vercel.app')) {
     return `https://${host}/api/auth/callback/google`;

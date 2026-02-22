@@ -110,7 +110,7 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
       }
 
       const data = await response.json()
-      setSuccess(`Invite sent to ${email} for ${businessName} (${data.tenant.subdomain}.wayveconsulting.app)`)
+      setSuccess(`Invite sent to ${email} for ${businessName} (${data.tenant.subdomain}.wayveexpenses.app)`)
 
       setFirstName('')
       setLastName('')
@@ -189,7 +189,7 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
               onChange={e => handleSubdomainChange(e.target.value)}
               placeholder="joesplumbing"
             />
-            <span className="admin-form__subdomain-suffix">.wayveconsulting.app</span>
+            <span className="admin-form__subdomain-suffix">.wayveexpenses.app</span>
           </div>
         </div>
 
@@ -296,7 +296,7 @@ function InviteList({ refreshKey }: { refreshKey: number }) {
                 )}
                 <div className="admin-invite-card__row">
                   <span className="admin-invite-card__label">Subdomain</span>
-                  <span className="admin-invite-card__value">{invite.tenantSubdomain}.wayveconsulting.app</span>
+                  <span className="admin-invite-card__value">{invite.tenantSubdomain}.wayveexpenses.app</span>
                 </div>
                 <div className="admin-invite-card__row">
                   <span className="admin-invite-card__label">Sent</span>

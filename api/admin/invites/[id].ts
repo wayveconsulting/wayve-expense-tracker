@@ -87,7 +87,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const businessName = tenant?.name || 'your business';
 
     // Send email
-    const inviteUrl = `https://wayveconsulting.app/invite?token=${newToken}`;
+    const inviteUrl = `https://wayveexpenses.app/invite?token=${newToken}`;
     const expiryDate = newExpiresAt.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',

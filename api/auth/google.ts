@@ -35,8 +35,8 @@ function getRedirectUri(req: VercelRequest): string {
   const host = req.headers.host || 'localhost:5173';
   
   // For subdomains, OAuth callback goes to main domain
-  if (host.includes('wayveconsulting.app')) {
-    return 'https://wayveconsulting.app/api/auth/callback/google';
+  if (host.includes('wayveexpenses.app')) {
+    return 'https://wayveexpenses.app/api/auth/callback/google';
   }
   if (host.includes('vercel.app')) {
     // Use the specific Vercel deployment URL

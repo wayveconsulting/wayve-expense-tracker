@@ -100,7 +100,7 @@ export default function SettingsPage() {
               <div className="settings-row__label">
                 <span className="settings-row__title">Subdomain</span>
               </div>
-              <span className="settings-row__value">{tenant.subdomain}.wayveconsulting.app</span>
+              <span className="settings-row__value">{tenant.subdomain}.wayveexpenses.app</span>
             </div>
           </div>
         </section>

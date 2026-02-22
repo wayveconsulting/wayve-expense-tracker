@@ -42,10 +42,10 @@ function getSubdomainFromHost(hostname: string): string | null {
     return params.get('tenant');
   }
 
-  // Handle production subdomains (e.g., izrgrooming.wayveconsulting.app)
+  // Handle production subdomains (e.g., izrgrooming.wayveexpenses.app)
   const parts = hostname.split('.');
   
-  // Expected format: subdomain.wayveconsulting.app (3 parts)
+  // Expected format: subdomain.wayveexpenses.app (3 parts)
   // or subdomain.domain.com (3 parts)
   if (parts.length >= 3) {
     const subdomain = parts[0];
@@ -58,7 +58,7 @@ function getSubdomainFromHost(hostname: string): string | null {
     return subdomain;
   }
 
-  // Fallback: check query param for root domain (e.g., wayveconsulting.app?tenant=sandbox)
+  // Fallback: check query param for root domain (e.g., wayveexpenses.app?tenant=sandbox)
   const params = new URLSearchParams(window.location.search);
   return params.get('tenant');
 }

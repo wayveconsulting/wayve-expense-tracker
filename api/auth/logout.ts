@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     'SameSite=Lax',
     'Max-Age=0', // Expire immediately
     isProduction ? 'Secure' : '',
-    isProduction ? 'Domain=.wayveconsulting.app' : '',
+    isProduction ? 'Domain=.wayveexpenses.app' : '',
   ].filter(Boolean).join('; ');
 
   res.setHeader('Set-Cookie', cookieOptions);
