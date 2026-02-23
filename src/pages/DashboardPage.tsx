@@ -17,6 +17,8 @@ interface Expense {
   categoryName: string | null
   categoryEmoji: string | null
   expenseType?: string
+  isHomeOffice?: boolean
+  homeOfficePercent?: number | null
 }
 
 interface CategoryBreakdown {
@@ -268,7 +270,7 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="donut-center">
-                <span className="donut-center__amount">{formatMoney(summary.totalAmount)}</span>
+                <span className="donut-center__amount">{formatMoney(summary.totalDeductible)}</span>
                 <span className="donut-center__label">Total</span>
               </div>
             </div>
@@ -317,12 +319,11 @@ export default function DashboardPage() {
             }
           }}
         >
+
           <span className="summary-card__label">Total Expenses</span>
           <span className="summary-card__value">{formatMoney(summary.totalDeductible)}</span>
           <span className="summary-card__sub">
-            {summary.totalDeductible !== summary.totalAmount
-              ? `${formatMoney(summary.totalAmount)} spent`
-              : `${summary.year}`}
+            {summary.year}
           </span>
         </div>
         <div 
@@ -391,7 +392,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <span className="expense-list__amount">
-                    {formatMoney(expense.amount)}
+                      {formatMoney(expense.isHomeOffice && expense.homeOfficePercent ? Math.round(expense.amount * (expense.homeOfficePercent / 100)) : expense.amount)}
                   </span>
                 </li>
               ))}

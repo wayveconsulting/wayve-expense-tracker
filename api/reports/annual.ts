@@ -48,11 +48,19 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
   const categoryMap = new Map(tenantCategories.map((c) => [c.id, c]))
 
   // ---- Monthly Spending ----
+  // Helper: get effective (deductible) amount for an expense
+  function getEffectiveAmount(e: { amount: number; isHomeOffice?: boolean | null; homeOfficePercent?: number | null }): number {
+    if (e.isHomeOffice && e.homeOfficePercent) {
+      return Math.round(e.amount * e.homeOfficePercent / 100)
+    }
+    return e.amount
+  }
+
   const monthlyTotals = new Array(12).fill(0)
   const monthlyCounts = new Array(12).fill(0)
   for (const exp of yearExpenses) {
     const month = new Date(exp.date).getMonth()
-    monthlyTotals[month] += exp.amount
+    monthlyTotals[month] += getEffectiveAmount(exp)
     monthlyCounts[month] += 1
   }
 
@@ -69,12 +77,12 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
   for (const exp of yearExpenses) {
     const catId = exp.categoryId || 'uncategorized'
     const existing = categoryTotals.get(catId) || { amount: 0, count: 0 }
-    existing.amount += exp.amount
+    existing.amount += getEffectiveAmount(exp)
     existing.count += 1
     categoryTotals.set(catId, existing)
   }
 
-  const totalSpent = yearExpenses.reduce((sum, e) => sum + e.amount, 0)
+  const totalSpent = yearExpenses.reduce((sum, e) => sum + getEffectiveAmount(e), 0)
   const totalDeductible = yearExpenses.reduce((sum, e) => {
     if (e.isHomeOffice && e.homeOfficePercent) {
       return sum + Math.round(e.amount * (e.homeOfficePercent / 100))

@@ -1802,6 +1802,14 @@
   color: var(--color-text-primary);
 }
 
+.detail-hero__ho-context {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-xs);
+  text-align: center;
+}
+
 .detail-list {
   display: flex;
   flex-direction: column;

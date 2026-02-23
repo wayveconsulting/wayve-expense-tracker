@@ -51,8 +51,16 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
     .orderBy(desc(expenses.date), desc(expenses.createdAt))
     .limit(limit)
 
+  // Helper: get effective (deductible) amount for an expense
+  function getEffectiveAmount(e: { amount: number; isHomeOffice?: boolean | null; homeOfficePercent?: number | null }): number {
+    if (e.isHomeOffice && e.homeOfficePercent) {
+      return Math.round(e.amount * e.homeOfficePercent / 100)
+    }
+    return e.amount
+  }
+
   // Calculate summary stats
-  const totalAmount = filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
+  const totalAmount = filteredExpenses.reduce((sum, e) => sum + getEffectiveAmount(e), 0)
   const totalDeductible = filteredExpenses.reduce((sum, e) => {
     if (e.isHomeOffice && e.homeOfficePercent) {
       return sum + Math.round(e.amount * (e.homeOfficePercent / 100))
@@ -68,13 +76,13 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
     const key = expense.categoryId || 'uncategorized'
     const existing = categoryTotals.get(key)
     if (existing) {
-      existing.total += expense.amount
+      existing.total += getEffectiveAmount(expense)
       existing.count += 1
     } else {
       categoryTotals.set(key, {
         name: expense.categoryName || 'Uncategorized',
         emoji: expense.categoryEmoji,
-        total: expense.amount,
+        total: getEffectiveAmount(expense),
         count: 1,
       })
     }

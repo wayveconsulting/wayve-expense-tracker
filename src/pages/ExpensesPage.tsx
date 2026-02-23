@@ -113,7 +113,7 @@ export default function ExpensesPage() {
       acc[monthKey] = { label: monthLabel, expenses: [], total: 0 }
     }
     acc[monthKey].expenses.push(expense)
-    acc[monthKey].total += expense.amount
+    acc[monthKey].total += (expense.isHomeOffice && expense.homeOfficePercent ? Math.round(expense.amount * (expense.homeOfficePercent / 100)) : expense.amount)
     return acc
   }, {} as Record<string, { label: string; expenses: Expense[]; total: number }>)
 
@@ -219,7 +219,7 @@ export default function ExpensesPage() {
         {categoryFilter && ` in ${categoryFilter}`}
         {searchTerm && ` matching "${searchTerm}"`}
         {' · '}
-        {formatMoney(filteredExpenses.reduce((sum, e) => sum + e.amount, 0))} total
+        {formatMoney(filteredExpenses.reduce((sum, e) => sum + (e.isHomeOffice && e.homeOfficePercent ? Math.round(e.amount * (e.homeOfficePercent / 100)) : e.amount), 0))} total
       </p>
 
       {/* Expense List by Month */}
@@ -271,7 +271,7 @@ export default function ExpensesPage() {
                     </span>
                   </div>
                   <span className="expense-row__amount">
-                    {formatMoney(expense.amount)}
+                    {formatMoney(expense.isHomeOffice && expense.homeOfficePercent ? Math.round(expense.amount * (expense.homeOfficePercent / 100)) : expense.amount)}
                     {expense.isHomeOffice && <span className="expense-row__home-icon" title="Home Office Expense">🏡</span>}
                     {Number(expense.attachmentCount) > 0 && <span className="attachment-indicator" title="Has attachments">📎</span>}
                   </span>

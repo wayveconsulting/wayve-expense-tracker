@@ -412,11 +412,6 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
 
   if (!expense) return null
 
-  // Calculate deductible amount for display
-  const deductibleAmount = (expense.isHomeOffice && expense.homeOfficePercent)
-    ? Math.round(expense.amount * expense.homeOfficePercent / 100)
-    : null
-
   return (
     <>
       {/* Backdrop */}
@@ -515,23 +510,19 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
               {/* Amount - Hero Display */}
               <div className="detail-hero">
                 <span className="detail-hero__emoji">{expense.categoryEmoji || '📁'}</span>
-                <span className="detail-hero__amount">{formatMoney(expense.amount)}</span>
+                <span className="detail-hero__amount">
+                  {formatMoney(
+                    expense.isHomeOffice && expense.homeOfficePercent
+                      ? Math.round(expense.amount * expense.homeOfficePercent / 100)
+                      : expense.amount
+                  )}
+                </span>
+                {expense.isHomeOffice && expense.homeOfficePercent && (
+                  <span className="detail-hero__ho-context">
+                    {expense.homeOfficePercent}% of total spent ({formatMoney(expense.amount)})
+                  </span>
+                )}
               </div>
-
-              {/* Home Office Deduction Callout */}
-              {expense.isHomeOffice && deductibleAmount !== null && (
-                <div className="home-office-deduction-callout">
-                  <span className="home-office-deduction-callout__icon">🏡</span>
-                  <div className="home-office-deduction-callout__details">
-                    <span className="home-office-deduction-callout__amount">
-                      {formatMoney(deductibleAmount)} deductible
-                    </span>
-                    <span className="home-office-deduction-callout__rate">
-                      {expense.homeOfficePercent}% home office rate
-                    </span>
-                  </div>
-                </div>
-              )}
 
               {/* Details List */}
               <div className="detail-list">

@@ -51,7 +51,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
           isSystem: categories.isSystem,
           sortOrder: categories.sortOrder,
           isActive: categories.isActive,
-          total: sql<number>`coalesce(sum(${expenses.amount}), 0)`.as('total'),
+          total: sql<number>`coalesce(sum(CASE WHEN ${expenses.isHomeOffice} = true AND ${expenses.homeOfficePercent} IS NOT NULL THEN ROUND(${expenses.amount} * ${expenses.homeOfficePercent} / 100) ELSE ${expenses.amount} END), 0)`.as('total'),
           count: sql<number>`count(${expenses.id})`.as('count'),
         })
         .from(categories)

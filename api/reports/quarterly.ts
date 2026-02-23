@@ -36,6 +36,8 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
       categoryId: expenses.categoryId,
       categoryName: categories.name,
       categoryEmoji: categories.emoji,
+      isHomeOffice: expenses.isHomeOffice,
+      homeOfficePercent: expenses.homeOfficePercent,
     })
     .from(expenses)
     .leftJoin(categories, eq(expenses.categoryId, categories.id))
@@ -56,6 +58,14 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
     q3: number
     q4: number
     total: number
+  }
+
+  // Helper: get effective (deductible) amount for an expense
+  function getEffectiveAmount(e: { amount: number; isHomeOffice?: boolean | null; homeOfficePercent?: number | null }): number {
+    if (e.isHomeOffice && e.homeOfficePercent) {
+      return Math.round(e.amount * e.homeOfficePercent / 100)
+    }
+    return e.amount
   }
 
   const matrix = new Map<string, QuarterlyRow>()
@@ -79,8 +89,8 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
 
     const row = matrix.get(key)!
     const qKey = `q${quarter}` as 'q1' | 'q2' | 'q3' | 'q4'
-    row[qKey] += expense.amount
-    row.total += expense.amount
+    row[qKey] += getEffectiveAmount(expense)
+    row.total += getEffectiveAmount(expense)
   }
 
   // Sort by total descending
