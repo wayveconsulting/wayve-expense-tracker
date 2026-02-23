@@ -317,7 +317,7 @@ export default function DashboardPage() {
             }
           }}
         >
-          <span className="summary-card__label">Total Deductible</span>
+          <span className="summary-card__label">Total Expenses</span>
           <span className="summary-card__value">{formatMoney(summary.totalDeductible)}</span>
           <span className="summary-card__sub">
             {summary.totalDeductible !== summary.totalAmount
