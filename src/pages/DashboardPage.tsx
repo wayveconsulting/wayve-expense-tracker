@@ -246,7 +246,7 @@ export default function DashboardPage() {
       {/* ==================== DONUT CHART ==================== */}
       {chartData.length > 0 && (
         <div className="card donut-card">
-          <h2 className="card__title">Spending by Category</h2>
+          <h2 className="card__title">Expenses by Category</h2>
           <div className="donut-container">
             <div className="donut-chart">
               <ResponsiveContainer width="100%" height={200}>
