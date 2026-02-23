@@ -42,6 +42,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         description: expenses.description,
         expenseType: expenses.expenseType,
         categoryName: categories.name,
+        isHomeOffice: expenses.isHomeOffice,
+        homeOfficePercent: expenses.homeOfficePercent,
         createdAt: expenses.createdAt,
       })
       .from(expenses)
@@ -56,17 +58,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'Description',
       'Category',
       'Expense Type',
-      'Amount',
+      'Home Office',
+      'Total Spend',
+      'Expensable Amount',
     ]
 
-    const csvRows = expenseData.map(expense => [
-      new Date(expense.date).toISOString().split('T')[0],
-      escapeCsvField(expense.vendor || ''),
-      escapeCsvField(expense.description || ''),
-      escapeCsvField(expense.categoryName || 'Uncategorized'),
-      expense.expenseType || 'operating',
-      (expense.amount / 100).toFixed(2),
-    ])
+    const csvRows = expenseData.map(expense => {
+      const isHO = expense.isHomeOffice && expense.homeOfficePercent
+      const totalSpend = (expense.amount / 100).toFixed(2)
+      const expensableAmount = isHO
+        ? (Math.round(expense.amount * expense.homeOfficePercent! / 100) / 100).toFixed(2)
+        : totalSpend
+
+      return [
+        new Date(expense.date).toISOString().split('T')[0],
+        escapeCsvField(expense.vendor || ''),
+        escapeCsvField(expense.description || ''),
+        escapeCsvField(expense.categoryName || 'Uncategorized'),
+        expense.expenseType || 'operating',
+        isHO ? `Yes (${expense.homeOfficePercent}%)` : 'No',
+        totalSpend,
+        expensableAmount,
+      ]
+    })
 
     const csvContent = [
       csvHeaders.join(','),
