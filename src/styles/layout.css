@@ -1016,6 +1016,16 @@
   color: var(--color-text-secondary);
 }
 
+.category-card__type-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
 @media (min-width: 640px) {
   .category-grid {
     grid-template-columns: repeat(2, 1fr);

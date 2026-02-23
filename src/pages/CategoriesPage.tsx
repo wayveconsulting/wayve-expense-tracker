@@ -483,10 +483,6 @@ export default function CategoriesPage() {
   // Categories sorted alphabetically by name
   const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name))
 
-  const maxTotal = sortedCategories.length > 0
-    ? Math.max(...sortedCategories.map(c => c.total))
-    : 0
-
   return (
     <div className="page categories-page">
       <div className="categories-page__header">
@@ -547,6 +543,10 @@ export default function CategoriesPage() {
                     <span className="category-card__badge category-card__badge--system" title="System category">🔒</span>
                   )}
                 </span>
+                <span className="category-card__type-label">
+                  {category.expenseType === 'cogs' ? 'COGS' :
+                   category.expenseType === 'home_office' ? 'Home Office' : 'Operating'}
+                </span>
                 <div className="category-card__actions">
                   <button
                     className="category-card__action-btn"
@@ -584,25 +584,6 @@ export default function CategoriesPage() {
                     : 'No expenses'}
                 </div>
               </div>
-              {category.total > 0 && maxTotal > 0 && (
-                <>
-                  <div className="category-card__bar-container">
-                    <div
-                      className="category-card__bar"
-                      style={{ width: `${(category.total / maxTotal) * 100}%` }}
-                    />
-                  </div>
-                  <div className="category-card__percent">
-                    {((category.total / totalSpent) * 100).toFixed(1)}% of total
-                  </div>
-                </>
-              )}
-              {category.total === 0 && (
-                <div className="category-card__type-badge">
-                  {category.expenseType === 'cogs' ? 'COGS' :
-                   category.expenseType === 'home_office' ? 'Home Office' : 'Operating'}
-                </div>
-              )}
             </div>
           ))}
         </div>
