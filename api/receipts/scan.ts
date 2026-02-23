@@ -52,7 +52,9 @@ If a field is completely unreadable or not present, set value to null and confid
 
 For the date: If the year is not visible, assume the current year. If the date format is ambiguous (e.g., 03/04/2025 could be March 4 or April 3), prefer MM/DD/YYYY format (US standard) and set confidence to 0.7.
 
-For the total: Use the FINAL total including tax, not the subtotal. If multiple total-like numbers appear, use the largest one and note the ambiguity in confidence.`
+For the total: Use the FINAL total including tax, not the subtotal. If multiple total-like numbers appear, use the largest one and note the ambiguity in confidence.
+
+If this is a multi-page document, look across all pages for receipt information. The total, date, and vendor are typically on the first or last page.`
 
 // ===========================================
 // POST: Scan a receipt image using Claude Vision
@@ -106,11 +108,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const contentType = imageResponse.headers.get('content-type') || ''
-    const supportedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
+    const supportedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
+    const isPdf = contentType.includes('application/pdf')
 
-    if (!supportedTypes.some(t => contentType.includes(t))) {
+    if (!isPdf && !supportedImageTypes.some(t => contentType.includes(t))) {
       return res.status(400).json({
-        error: 'Unsupported file type for scanning. Please use JPEG, PNG, or WebP images.',
+        error: 'Unsupported file type for scanning. Please use JPEG, PNG, WebP images, or PDF documents.',
         fileType: contentType,
       })
     }
@@ -135,16 +138,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [{
           role: 'user',
           content: [
+            isPdf
+              ? {
+                  type: 'document' as const,
+                  source: {
+                    type: 'base64' as const,
+                    media_type: 'application/pdf' as const,
+                    data: base64Data,
+                  },
+                }
+              : {
+                  type: 'image' as const,
+                  source: {
+                    type: 'base64' as const,
+                    media_type: mediaType,
+                    data: base64Data,
+                  },
+                },
             {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mediaType,
-                data: base64Data,
-              },
-            },
-            {
-              type: 'text',
+              type: 'text' as const,
               text: RECEIPT_SCAN_PROMPT,
             },
           ],

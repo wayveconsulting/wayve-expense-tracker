@@ -858,8 +858,8 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                               PDF
                             </div>
                           )}
-                          {/* Scan button — only for images, not PDFs */}
-                          {att.mimeType.startsWith('image/') && (
+                          {/* Scan button — images and PDFs */}
+                          {(att.mimeType.startsWith('image/') || att.mimeType === 'application/pdf') && (
                             <button
                               type="button"
                               className={`scan-button ${isScanning ? 'scan-button--scanning' : ''}`}
