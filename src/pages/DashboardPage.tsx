@@ -237,7 +237,7 @@ export default function DashboardPage() {
 
       {/* ==================== DONUT CHART ==================== */}
       {chartData.length > 0 && (
-        =<div className="card donut-card" onClick={(e) => { if (!(e.target as HTMLElement).closest('.recharts-pie')) setActiveDonutIndex(null) }}>
+        <div className="card donut-card" onClick={(e) => { if (!(e.target as HTMLElement).closest('.recharts-pie')) setActiveDonutIndex(null) }}>
           <h2 className="card__title">Expenses by Category</h2>
           <div className="donut-container">
             <div className="donut-chart">
