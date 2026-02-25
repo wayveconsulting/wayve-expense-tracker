@@ -408,8 +408,8 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
                       </svg>
                     </button>
                     <span className="add-expense-attachments__file-size">{formatFileSize(att.fileSize)}</span>
-                    {/* Scan button — only for images, not PDFs */}
-                    {att.fileType.startsWith('image/') && (
+                    {/* Scan button — images and PDFs */}
+                    {(att.fileType.startsWith('image/') || att.fileType === 'application/pdf') && (
                       <button
                         type="button"
                         className={`scan-button ${isScanning ? 'scan-button--scanning' : ''}`}
