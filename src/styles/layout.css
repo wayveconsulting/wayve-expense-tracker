@@ -1603,6 +1603,7 @@ body:has(.sheet-backdrop--open) {
   color: var(--color-text-primary);
 }
 
+
 .bottom-sheet__form {
   flex: 1;
   overflow-y: auto;
@@ -1610,9 +1611,9 @@ body:has(.sheet-backdrop--open) {
   overscroll-behavior: contain;
   padding: var(--spacing-lg);
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+}
+.bottom-sheet__form > * + * {
+  margin-top: var(--spacing-md);
 }
 
 /* ============================================
