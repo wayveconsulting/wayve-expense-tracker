@@ -135,7 +135,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
 
     // Auto-fill empty fields
     if (!amount && result.total?.value != null) {
-      setAmount(String(result.total.value))
+      setAmount(Number(result.total.value).toFixed(2))
     }
     if (!vendor && result.vendor?.value) {
       setVendor(String(result.vendor.value))

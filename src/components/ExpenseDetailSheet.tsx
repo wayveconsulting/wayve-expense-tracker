@@ -272,7 +272,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
   function applyScanResult(result: ScanResult) {
     setExtractedText(result.rawText || null)
     if (!amount && result.total?.value != null) {
-      setAmount(String(result.total.value))
+      setAmount(Number(result.total.value).toFixed(2))
     }
     if (!vendor && result.vendor?.value) {
       setVendor(String(result.vendor.value))
