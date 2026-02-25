@@ -385,41 +385,45 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
             {pendingAttachments.length > 0 && (
               <div className="add-expense-attachments__preview">
                 {pendingAttachments.map((att, index) => (
-                  <div key={att.blobUrl} className="add-expense-attachments__thumb-wrapper">
-                    {att.fileType.startsWith('image/') ? (
-                      <img
-                        src={att.blobUrl}
-                        alt={att.fileName}
-                        className="add-expense-attachments__thumb"
-                      />
-                    ) : (
-                      <div className="add-expense-attachments__thumb add-expense-attachments__thumb--pdf">
-                        PDF
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      className="add-expense-attachments__remove"
-                      onClick={() => handleRemoveAttachment(index)}
-                      aria-label="Remove attachment"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M18 6 6 18M6 6l12 12" />
-                      </svg>
-                    </button>
-                    <span className="add-expense-attachments__file-size">{formatFileSize(att.fileSize)}</span>
-                    {/* Scan button — images and PDFs */}
-                    {(att.fileType.startsWith('image/') || att.fileType === 'application/pdf') && (
+                  <div key={att.blobUrl} className="add-expense-attachments__item">
+                    <div className="add-expense-attachments__thumb-wrapper">
+                      {att.fileType.startsWith('image/') ? (
+                        <img
+                          src={att.blobUrl}
+                          alt={att.fileName}
+                          className="add-expense-attachments__thumb"
+                        />
+                      ) : (
+                        <div className="add-expense-attachments__thumb add-expense-attachments__thumb--pdf">
+                          PDF
+                        </div>
+                      )}
                       <button
                         type="button"
-                        className={`scan-button ${isScanning ? 'scan-button--scanning' : ''}`}
-                        onClick={() => handleScan(att.blobUrl)}
-                        disabled={isScanning}
-                        aria-label="Scan receipt"
+                        className="add-expense-attachments__remove"
+                        onClick={() => handleRemoveAttachment(index)}
+                        aria-label="Remove attachment"
                       >
-                        {isScanning ? '...' : '🔍'}
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M18 6 6 18M6 6l12 12" />
+                        </svg>
                       </button>
-                    )}
+                    </div>
+                    <div className="add-expense-attachments__item-info">
+                      <span className="add-expense-attachments__file-name">{att.fileName}</span>
+                      <span className="add-expense-attachments__file-size">{formatFileSize(att.fileSize)}</span>
+                      {/* Scan button — images and PDFs */}
+                      {(att.fileType.startsWith('image/') || att.fileType === 'application/pdf') && (
+                        <button
+                          type="button"
+                          className={`scan-button-inline ${isScanning ? 'scan-button-inline--scanning' : ''}`}
+                          onClick={() => handleScan(att.blobUrl)}
+                          disabled={isScanning}
+                        >
+                          {isScanning ? 'Scanning...' : '🔍 Scan Receipt with AI'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

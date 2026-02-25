@@ -4843,13 +4843,59 @@ body:has(.sheet-backdrop--open) {
 
 .add-expense-attachments__preview {
   display: flex;
+  flex-direction: column;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-sm);
 }
-
+.add-expense-attachments__item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
 .add-expense-attachments__thumb-wrapper {
   position: relative;
   flex-shrink: 0;
+}
+.add-expense-attachments__item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.add-expense-attachments__file-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scan-button-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-primary-light, rgba(42, 157, 143, 0.1));
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+.scan-button-inline:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+.scan-button-inline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.scan-button-inline--scanning {
+  animation: scan-pulse 1.2s ease-in-out infinite;
 }
 
 .add-expense-attachments__thumb {
