@@ -92,6 +92,7 @@ export default function DashboardPage() {
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
   const [selectedTrip, setSelectedTrip] = useState<MileageTrip | null>(null)
   const [tripSheetOpen, setTripSheetOpen] = useState(false)
+  const [activeDonutIndex, setActiveDonutIndex] = useState<number | null>(null)
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -225,7 +226,6 @@ export default function DashboardPage() {
   }
 
   const chartData = prepareChartData()
-  const [activeDonutIndex, setActiveDonutIndex] = useState<number | null>(null)
 
   const handleDonutClick = (_: any, index: number) => {
     setActiveDonutIndex((prev) => (prev === index ? null : index))
