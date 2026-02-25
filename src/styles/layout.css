@@ -499,6 +499,14 @@
   padding: var(--spacing-sm) var(--spacing-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+.donut-tooltip--fixed {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 10;
+}
 
 .donut-tooltip__emoji {
   font-size: 1.25rem;

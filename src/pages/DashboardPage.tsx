@@ -265,6 +265,13 @@ export default function DashboardPage() {
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
+              {activeDonutIndex !== null && chartData[activeDonutIndex] && (
+                <div className="donut-tooltip donut-tooltip--fixed">
+                  <span className="donut-tooltip__emoji">{chartData[activeDonutIndex].emoji}</span>
+                  <span className="donut-tooltip__name">{chartData[activeDonutIndex].name}</span>
+                  <span className="donut-tooltip__value">{formatMoney(chartData[activeDonutIndex].value)}</span>
+                </div>
+              )}
               {activeDonutIndex === null && (
                 <div className="donut-center">
                   <span className="donut-center__amount">{formatMoney(summary.totalDeductible)}</span>
