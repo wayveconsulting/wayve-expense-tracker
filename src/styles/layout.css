@@ -3248,8 +3248,13 @@
   margin-bottom: var(--spacing-lg);
 }
 
-.annual-report__chart {
+.annual-report__chart-scroll {
   margin-top: var(--spacing-md);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.annual-report__chart-inner {
+  min-width: 600px;
 }
 
 .annual-chart-tooltip {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useYear } from '../hooks/useYear'
 import { useTenant } from '../hooks/useTenant'
 import { Link } from 'wouter'
@@ -10,6 +10,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Cell,
 } from 'recharts'
 
 interface MonthlySummary {
@@ -73,12 +74,36 @@ function MonthlyTooltip({ active, payload, label }: { active?: boolean; payload?
   )
 }
 
+// Custom bar shape with optional stroke for selected state
+function CustomBar(props: any) {
+  const { x, y, width, height, fill, isSelected } = props
+  if (!height || height <= 0) return null
+  const radius = 4
+  return (
+    <g>
+      <path
+        d={`M${x},${y + height}
+            L${x},${y + radius}
+            Q${x},${y} ${x + radius},${y}
+            L${x + width - radius},${y}
+            Q${x + width},${y} ${x + width},${y + radius}
+            L${x + width},${y + height}
+            Z`}
+        fill={fill}
+        stroke={isSelected ? 'var(--color-text-primary)' : 'none'}
+        strokeWidth={isSelected ? 2 : 0}
+      />
+    </g>
+  )
+}
+
 export default function AnnualSummaryPage() {
   const { year, nextYear, prevYear } = useYear()
   const { subdomain } = useTenant()
   const [data, setData] = useState<AnnualReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeMonth, setActiveMonth] = useState<number | null>(null)
 
   const currentYear = new Date().getFullYear()
 
@@ -107,6 +132,15 @@ export default function AnnualSummaryPage() {
 
     fetchData()
   }, [subdomain, year])
+
+  // Reset selection on year change
+  useEffect(() => {
+    setActiveMonth(null)
+  }, [year])
+
+  const handleBarClick = useCallback((_: any, index: number) => {
+    setActiveMonth((prev) => (prev === index ? null : index))
+  }, [])
 
   // Prepare chart data — always show all 12 months
   const chartData = data
@@ -182,12 +216,10 @@ export default function AnnualSummaryPage() {
               {/* Summary Cards */}
               <div className="annual-report__summary">
                 <div className="annual-report__stat-card annual-report__stat-card--primary">
-                  <span className="annual-report__stat-label">Total Deductible</span>
+                  <span className="annual-report__stat-label">Total Expenses</span>
                   <span className="annual-report__stat-value">{formatDollars(data.summary.totalDeductible)}</span>
                   <span className="annual-report__stat-sub">
-                    {data.summary.totalDeductible !== data.summary.totalSpent
-                      ? `${formatDollars(data.summary.totalSpent)} spent · ${data.summary.expenseCount} transactions`
-                      : `${data.summary.expenseCount} transactions`}
+                    {data.summary.expenseCount} transaction{data.summary.expenseCount !== 1 ? 's' : ''} · {year}
                   </span>
                 </div>
                 <div className="annual-report__stat-card">
@@ -235,32 +267,47 @@ export default function AnnualSummaryPage() {
               {/* Monthly Spending Chart */}
               <div className="card annual-report__chart-card">
                 <h2 className="card__title">Monthly Spending</h2>
-                <div className="annual-report__chart">
-                  <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                      <XAxis
-                        dataKey="name"
-                        tick={{ fontSize: 12, fill: 'var(--color-text-secondary)' }}
-                        axisLine={{ stroke: 'var(--color-border)' }}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        tickFormatter={(v: number) => formatDollarsShort(v)}
-                        tick={{ fontSize: 12, fill: 'var(--color-text-secondary)' }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={55}
-                      />
-                      <Tooltip content={<MonthlyTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
-                      <Bar
-                        dataKey="total"
-                        fill="var(--color-primary)"
-                        radius={[4, 4, 0, 0]}
-                        maxBarSize={40}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <div className="annual-report__chart-scroll">
+                  <div className="annual-report__chart-inner">
+                    <ResponsiveContainer width="100%" height={280}>
+                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} onClick={(_: any, e: any) => { if (!e) setActiveMonth(null) }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fontSize: 12, fill: 'var(--color-text-secondary)' }}
+                          axisLine={{ stroke: 'var(--color-border)' }}
+                          tickLine={false}
+                          interval={0}
+                        />
+                        <YAxis
+                          tickFormatter={(v: number) => formatDollarsShort(v)}
+                          tick={{ fontSize: 12, fill: 'var(--color-text-secondary)' }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={55}
+                        />
+                        <Tooltip
+                          content={<MonthlyTooltip />}
+                          cursor={false}
+                          active={activeMonth !== null}
+                        />
+                        <Bar
+                          dataKey="total"
+                          fill="var(--color-primary)"
+                          radius={[4, 4, 0, 0]}
+                          maxBarSize={40}
+                          onClick={handleBarClick}
+                          shape={(props: any) => (
+                            <CustomBar {...props} isSelected={activeMonth === props.index} />
+                          )}
+                        >
+                          {chartData.map((_, index) => (
+                            <Cell key={`cell-${index}`} cursor="pointer" />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
 
