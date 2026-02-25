@@ -1527,6 +1527,9 @@
   opacity: 1;
   visibility: visible;
 }
+body:has(.sheet-backdrop--open) {
+  overflow: hidden;
+}
 
 .bottom-sheet {
   position: fixed;
@@ -1603,6 +1606,8 @@
 .bottom-sheet__form {
   flex: 1;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: var(--spacing-lg);
   padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
   display: flex;
