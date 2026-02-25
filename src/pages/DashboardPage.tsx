@@ -5,7 +5,7 @@ import { useYear } from '../hooks/useYear'
 import { useRefresh } from '../hooks/useRefresh'
 import { ExpenseDetailSheet } from '../components/ExpenseDetailSheet'
 import { MileageDetailSheet } from '../components/MileageDetailSheet'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 
 interface Expense {
   id: string
@@ -225,20 +225,10 @@ export default function DashboardPage() {
   }
 
   const chartData = prepareChartData()
+  const [activeDonutIndex, setActiveDonutIndex] = useState<number | null>(null)
 
-  // Custom tooltip for donut chart
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; emoji: string } }> }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-      return (
-        <div className="donut-tooltip">
-          <span className="donut-tooltip__emoji">{data.emoji}</span>
-          <span className="donut-tooltip__name">{data.name}</span>
-          <span className="donut-tooltip__value">{formatMoney(data.value)}</span>
-        </div>
-      )
-    }
-    return null
+  const handleDonutClick = (_: any, index: number) => {
+    setActiveDonutIndex((prev) => (prev === index ? null : index))
   }
 
   return (
@@ -261,18 +251,26 @@ export default function DashboardPage() {
                     outerRadius={80}
                     paddingAngle={2}
                     dataKey="value"
+                    onClick={handleDonutClick}
+                    cursor="pointer"
                   >
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                        stroke={activeDonutIndex === index ? 'var(--color-text-primary)' : 'none'}
+                        strokeWidth={activeDonutIndex === index ? 2 : 0}
+                      />
                     ))}
                   </Pie>
-                  <Tooltip content={<CustomTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="donut-center">
-                <span className="donut-center__amount">{formatMoney(summary.totalDeductible)}</span>
-                <span className="donut-center__label">Total</span>
-              </div>
+              {activeDonutIndex === null && (
+                <div className="donut-center">
+                  <span className="donut-center__amount">{formatMoney(summary.totalDeductible)}</span>
+                  <span className="donut-center__label">Total</span>
+                </div>
+              )}
             </div>
             <ul className="donut-legend">
               {chartData.map((entry, index) => (
