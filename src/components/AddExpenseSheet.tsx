@@ -52,10 +52,13 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
+  
   // Attachment state
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([])
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({ status: 'idle' })
+
+  // Home office settings
+  const [homeOfficeConfigured, setHomeOfficeConfigured] = useState(false)
 
   // Derived: selected category properties
   const selectedCategory = categories.find(c => c.id === categoryId)
@@ -86,14 +89,20 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
         const data = await response.json()
         setCategories([...data.categories].sort((a: Category, b: Category) => a.name.localeCompare(b.name)))
 
+        // Check if home office square footage is configured
+        const hoSettings = data.homeOfficeSettings
+        setHomeOfficeConfigured(
+          hoSettings?.homeTotalSqft != null && hoSettings?.homeOfficeSqft != null && !hoSettings?.homeOfficeIgnored
+        )
+
         // Priority: URL preselect > name preselect > tenant default > blank
         if (preselectedCategoryId) {
           setCategoryId(preselectedCategoryId)
         } else if (preselectedCategoryName) {
           const match = data.categories.find((c: Category) => c.name === preselectedCategoryName)
           if (match) setCategoryId(match.id)
-        } else if (data.homeOfficeSettings?.defaultCategoryId) {
-          setCategoryId(data.homeOfficeSettings.defaultCategoryId)
+        } else if (hoSettings?.defaultCategoryId) {
+          setCategoryId(hoSettings.defaultCategoryId)
         } else {
           setCategoryId('')
         }
@@ -525,6 +534,11 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
                   Deduction percentage will be applied to this expense
                 </span>
               </label>
+              {isHomeOffice && !homeOfficeConfigured && (
+                <div className="home-office-warning">
+                  ⚠️ Home office square footage hasn't been set up yet. This expense will be saved, but no deduction percentage will be applied until you <a href="/categories">configure your home office settings</a>.
+                </div>
+              )}
             </div>
           )}
 

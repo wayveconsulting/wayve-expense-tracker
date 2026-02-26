@@ -4256,6 +4256,21 @@ body:has(.sheet-backdrop--open) {
   color: var(--color-text-secondary);
   padding-left: 20px;
 }
+.home-office-warning {
+  font-size: 0.8125rem;
+  color: var(--color-text-primary);
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-top: var(--spacing-sm);
+  line-height: 1.4;
+}
+.home-office-warning a {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: underline;
+}
 
 /* ============================================
    HOME OFFICE DEDUCTION CALLOUT (ExpenseDetail)

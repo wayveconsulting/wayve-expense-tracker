@@ -88,6 +88,9 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
   // Attachment state
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [loadingAttachments, setLoadingAttachments] = useState(false)
+
+  // Home office settings
+  const [homeOfficeConfigured, setHomeOfficeConfigured] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<string | null>(null)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
@@ -137,6 +140,10 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
           if (response.ok) {
             const data = await response.json()
             setCategories([...data.categories].sort((a: Category, b: Category) => a.name.localeCompare(b.name)))
+            const hoSettings = data.homeOfficeSettings
+            setHomeOfficeConfigured(
+              hoSettings?.homeTotalSqft != null && hoSettings?.homeOfficeSqft != null && !hoSettings?.homeOfficeIgnored
+            )
           }
         } catch (err) {
           console.error('Error fetching categories:', err)
@@ -736,6 +743,11 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                       Deduction percentage will be applied to this expense
                     </span>
                   </label>
+                  {isHomeOffice && !homeOfficeConfigured && (
+                    <div className="home-office-warning">
+                      ⚠️ Home office square footage hasn't been set up yet. This expense will be saved, but no deduction percentage will be applied until you <a href="/categories">configure your home office settings</a>.
+                    </div>
+                  )}
                 </div>
               )}
 
