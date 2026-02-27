@@ -270,7 +270,7 @@ export default function AnnualSummaryPage() {
                 <div className="annual-report__chart-scroll">
                   <div className="annual-report__chart-inner">
                     <ResponsiveContainer width="100%" height={280}>
-                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} onClick={(_: any, e: any) => { if (!e) setActiveMonth(null) }} accessibilityLayer={false}>
+                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} onClick={(_: any, e: any) => { if (!e) setActiveMonth(null) }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                         <XAxis
                           dataKey="name"
