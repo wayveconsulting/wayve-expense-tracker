@@ -267,7 +267,7 @@ export default function AnnualSummaryPage() {
               {/* Monthly Spending Chart */}
               <div className="card annual-report__chart-card">
                 <h2 className="card__title">Monthly Spending</h2>
-                <div className="annual-report__chart-scroll">
+                <div className="annual-report__chart-scroll" onMouseDown={(e) => e.preventDefault()}>
                   <div className="annual-report__chart-inner">
                     <ResponsiveContainer width="100%" height={280}>
                       <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} onClick={(_: any, e: any) => { if (!e) setActiveMonth(null) }}>
