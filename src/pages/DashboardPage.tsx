@@ -62,19 +62,20 @@ interface MileageData {
 }
 
 // Color palette for donut chart (colorblind-friendly)
+// Dark-mode-safe palette: all colors have good contrast on both light (#fff) and dark (#1E293B) backgrounds
 const CHART_COLORS = [
-  '#2A9D8F', // teal (primary)
+  '#2EC4B6', // teal (brighter than old #2A9D8F)
   '#E9C46A', // gold
   '#F4A261', // orange
   '#E76F51', // coral
-  '#264653', // dark blue
-  '#8AB17D', // sage
   '#A06CD5', // purple
   '#6B9AC4', // sky blue
+  '#8AB17D', // sage
   '#D4A5A5', // dusty rose
-  '#9DC183', // olive
   '#F0B5B3', // blush
   '#7EB6C4', // teal light
+  '#9DC183', // olive
+  '#E0A458', // amber
 ]
 
 export default function DashboardPage() {

@@ -933,6 +933,19 @@
   white-space: nowrap;
 }
 
+.expense-row__amount-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.expense-row__amount-sub {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
 /* ============================================
    CATEGORIES PAGE
    ============================================ */
@@ -2661,6 +2674,17 @@ body:has(.sheet-backdrop--open) {
 
 .quarterly-table__category-header {
   text-align: left;
+}
+
+.quarterly-table__sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-bg-primary);
+}
+
+.quarterly-table__totals-row .quarterly-table__sticky-col {
+  background: var(--color-bg-secondary, var(--color-bg-primary));
 }
 
 .quarterly-table__quarter-header {

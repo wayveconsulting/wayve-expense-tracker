@@ -58,8 +58,8 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
   const { subdomain } = useTenant()
   const { scanResult, isScanning, scanError, scanReceipt, clearScan } = useScanReceipt()
 
-  // Mode: 'view' or 'edit' (persisted to localStorage)
-  const [mode, setMode] = useState<'view' | 'edit'>(getDefaultMode)
+  // Mode: always open in view mode, persisted preference only used for next manual toggle
+  const [mode, setMode] = useState<'view' | 'edit'>('view')
   
   // Persist mode changes to localStorage
   const handleModeChange = (newMode: 'view' | 'edit') => {
@@ -124,15 +124,15 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
       const type = expense.expenseType === 'home_office' ? 'operating' : expense.expenseType
       setExpenseType((type as 'operating' | 'cogs') || 'operating')
       setIsHomeOffice(expense.isHomeOffice || false)
-      setMode(getDefaultMode())
+      setMode('view')
       setError(null)
       setShowDeleteConfirm(false)
     }
   }, [expense, isOpen])
 
-  // Fetch categories when entering edit mode
+  // Fetch categories when entering edit mode (always re-fetch to get fresh HO settings)
   useEffect(() => {
-    if (mode === 'edit' && categories.length === 0 && subdomain) {
+    if (mode === 'edit' && subdomain) {
       async function fetchCategories() {
         setLoadingCategories(true)
         try {
@@ -526,7 +526,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                 </span>
                 {expense.isHomeOffice && expense.homeOfficePercent && (
                   <span className="detail-hero__ho-context">
-                    {expense.homeOfficePercent}% of total spent ({formatMoney(expense.amount)})
+                    🏡 {expense.homeOfficePercent}% of total spent ({formatMoney(expense.amount)})
                   </span>
                 )}
               </div>

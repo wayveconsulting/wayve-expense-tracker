@@ -33,8 +33,8 @@ interface MileageDetailSheetProps {
 export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }: MileageDetailSheetProps) {
   const { subdomain } = useTenant()
   
-  // Mode: 'view' or 'edit' (persisted to localStorage)
-  const [mode, setMode] = useState<'view' | 'edit'>(getDefaultMode)
+  // Mode: always open in view mode
+  const [mode, setMode] = useState<'view' | 'edit'>('view')
   
   // Persist mode changes to localStorage
   const handleModeChange = (newMode: 'view' | 'edit') => {
@@ -221,7 +221,7 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
       setEndLocation({ address: trip.endLocation, location: null })
       setDistanceMiles(String(trip.distanceMiles / 100))
       setIsRoundTrip(trip.isRoundTrip)
-      setMode(getDefaultMode())
+      setMode('view')
       setError(null)
       setShowDeleteConfirm(false)
     }
