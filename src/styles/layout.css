@@ -3006,6 +3006,13 @@ body:has(.sheet-backdrop--open) {
   white-space: nowrap;
 }
 
+.mileage-table__sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-bg-primary);
+}
+
 .mileage-table__dest-header {
   text-align: left;
 }

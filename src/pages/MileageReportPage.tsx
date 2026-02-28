@@ -215,7 +215,7 @@ export default function MileageReportPage() {
                 <table className="mileage-table">
                   <thead>
                     <tr>
-                      <th className="mileage-table__date-header">Date</th>
+                      <th className="mileage-table__date-header mileage-table__sticky-col">Date</th>
                       <th className="mileage-table__dest-header">Destination</th>
                       <th className="mileage-table__purpose-header">Business Purpose</th>
                       <th className="mileage-table__miles-header">Miles</th>
@@ -224,7 +224,7 @@ export default function MileageReportPage() {
                   <tbody>
                     {data.trips.map((trip) => (
                       <tr key={trip.id} className="mileage-table__row">
-                        <td className="mileage-table__date-cell">
+                        <td className="mileage-table__date-cell mileage-table__sticky-col">
                           <span className="mileage-table__date-full">{formatDate(trip.date)}</span>
                           <span className="mileage-table__date-short">{formatDateShort(trip.date)}</span>
                         </td>
