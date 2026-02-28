@@ -85,6 +85,13 @@ export default function ExpensesPage() {
     })
   }
 
+  // Calculate the effective (deductible) amount for an expense
+  const effectiveAmount = (expense: Expense): number => {
+    return expense.isHomeOffice && expense.homeOfficePercent
+      ? Math.round(expense.amount * (expense.homeOfficePercent / 100))
+      : expense.amount
+  }
+
   // Filter expenses by search term AND category filter
   const filteredExpenses = expenses.filter(expense => {
     // First apply category filter from URL
@@ -113,7 +120,7 @@ export default function ExpensesPage() {
       acc[monthKey] = { label: monthLabel, expenses: [], total: 0 }
     }
     acc[monthKey].expenses.push(expense)
-    acc[monthKey].total += (expense.isHomeOffice && expense.homeOfficePercent ? Math.round(expense.amount * (expense.homeOfficePercent / 100)) : expense.amount)
+    acc[monthKey].total += effectiveAmount(expense)
     return acc
   }, {} as Record<string, { label: string; expenses: Expense[]; total: number }>)
 
@@ -219,7 +226,7 @@ export default function ExpensesPage() {
         {categoryFilter && ` in ${categoryFilter}`}
         {searchTerm && ` matching "${searchTerm}"`}
         {' · '}
-        {formatMoney(filteredExpenses.reduce((sum, e) => sum + (e.isHomeOffice && e.homeOfficePercent ? Math.round(e.amount * (e.homeOfficePercent / 100)) : e.amount), 0))} total
+        {formatMoney(filteredExpenses.reduce((sum, e) => sum + effectiveAmount(e), 0))} total
       </p>
 
       {/* Expense List by Month */}
@@ -245,38 +252,49 @@ export default function ExpensesPage() {
               <span className="expense-month__total">{formatMoney(total)}</span>
             </div>
             <div className="card expense-month__list">
-              {monthExpenses.map((expense) => (
-                <div 
-                  key={expense.id} 
-                  className="expense-row expense-row--clickable"
-                  onClick={() => handleExpenseClick(expense)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      handleExpenseClick(expense)
-                    }
-                  }}
-                >
-                  <div className="expense-row__icon">
-                    {expense.categoryEmoji || '📁'}
+              {monthExpenses.map((expense) => {
+                const isHO = expense.isHomeOffice && expense.homeOfficePercent
+                const deductible = effectiveAmount(expense)
+                return (
+                  <div 
+                    key={expense.id} 
+                    className="expense-row expense-row--clickable"
+                    onClick={() => handleExpenseClick(expense)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        handleExpenseClick(expense)
+                      }
+                    }}
+                  >
+                    <div className="expense-row__icon">
+                      {expense.categoryEmoji || '📁'}
+                    </div>
+                    <div className="expense-row__details">
+                      <span className="expense-row__vendor">
+                        {expense.vendor || expense.description || 'Expense'}
+                      </span>
+                      <span className="expense-row__meta">
+                        {expense.categoryName || 'Uncategorized'} · {formatDate(expense.date)}
+                      </span>
+                    </div>
+                    <div className="expense-row__amount-group">
+                      <span className="expense-row__amount">
+                        {formatMoney(deductible)}
+                        {isHO && <span className="expense-row__home-icon" title="Home Office Expense">🏡</span>}
+                        {Number(expense.attachmentCount) > 0 && <span className="attachment-indicator" title="Has attachments">📎</span>}
+                      </span>
+                      {isHO && (
+                        <span className="expense-row__amount-sub">
+                          {formatMoney(expense.amount)} total
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="expense-row__details">
-                    <span className="expense-row__vendor">
-                      {expense.vendor || expense.description || 'Expense'}
-                    </span>
-                    <span className="expense-row__meta">
-                      {expense.categoryName || 'Uncategorized'} · {formatDate(expense.date)}
-                    </span>
-                  </div>
-                  <span className="expense-row__amount">
-                    {formatMoney(expense.isHomeOffice && expense.homeOfficePercent ? Math.round(expense.amount * (expense.homeOfficePercent / 100)) : expense.amount)}
-                    {expense.isHomeOffice && <span className="expense-row__home-icon" title="Home Office Expense">🏡</span>}
-                    {Number(expense.attachmentCount) > 0 && <span className="attachment-indicator" title="Has attachments">📎</span>}
-                  </span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         ))

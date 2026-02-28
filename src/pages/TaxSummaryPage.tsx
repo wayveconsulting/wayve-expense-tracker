@@ -159,7 +159,7 @@ export default function TaxSummaryPage() {
             </div>
           ) : (
             <>
-              {/* Grand Total */}
+              {/* Grand Total — deductible is the hero */}
               <div className="tax-summary__grand-total">
                 <span className="tax-summary__grand-total-label">Total Deductible</span>
                 <span className="tax-summary__grand-total-value">{formatDollars(data.totalDeductible)}</span>
@@ -204,7 +204,7 @@ export default function TaxSummaryPage() {
                   ))}
               </div>
 
-              {/* Type Sections */}
+              {/* Type Sections — deductible is hero, total spent is subtext */}
               <div className="tax-summary__sections">
                 {data.sections.map((section) => {
                   const isExpanded = expandedSections.has(section.type)
@@ -230,10 +230,10 @@ export default function TaxSummaryPage() {
                         </div>
                         <div className="tax-summary__section-right">
                           <div className="tax-summary__section-stats">
-                            <span className="tax-summary__section-amount">{formatDollars(section.total)}</span>
+                            <span className="tax-summary__section-amount">{formatDollars(section.deductible)}</span>
                             {hasPartialDeduction && (
                               <span className="tax-summary__section-deductible">
-                                {formatDollars(section.deductible)} deductible
+                                {formatDollars(section.total)} total spent
                               </span>
                             )}
                             <span className="tax-summary__section-meta">
@@ -265,12 +265,12 @@ export default function TaxSummaryPage() {
                                   <span className="tax-summary__cat-name">{cat.name}</span>
                                   {catHasPartial && (
                                     <span className="tax-summary__cat-deductible">
-                                      {formatDollars(cat.deductible)} deductible
+                                      {formatDollars(cat.amount)} total spent
                                     </span>
                                   )}
                                 </div>
                                 <span className="tax-summary__cat-count">{cat.count}</span>
-                                <span className="tax-summary__cat-amount">{formatDollars(cat.amount)}</span>
+                                <span className="tax-summary__cat-amount">{formatDollars(cat.deductible)}</span>
                               </div>
                             )
                           })}

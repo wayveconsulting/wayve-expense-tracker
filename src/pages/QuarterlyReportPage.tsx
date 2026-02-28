@@ -36,20 +36,20 @@ interface QuarterlyData {
   }
 }
 
-// Same color palette as dashboard donut chart
+// Dark-mode-safe palette: all colors have good contrast on both light (#fff) and dark (#1E293B) backgrounds
 const CHART_COLORS = [
-  '#2A9D8F', // teal (primary)
+  '#2EC4B6', // teal (brighter than old #2A9D8F)
   '#E9C46A', // gold
   '#F4A261', // orange
   '#E76F51', // coral
-  '#264653', // dark blue
-  '#8AB17D', // sage
   '#A06CD5', // purple
   '#6B9AC4', // sky blue
+  '#8AB17D', // sage
   '#D4A5A5', // dusty rose
-  '#9DC183', // olive
   '#F0B5B3', // blush
   '#7EB6C4', // teal light
+  '#9DC183', // olive
+  '#E0A458', // amber
 ]
 
 function formatDollars(cents: number): string {
@@ -235,7 +235,7 @@ export default function QuarterlyReportPage() {
               {/* Stacked Bar Chart */}
               <div className="card stacked-chart-card">
                 <h2 className="card__title">Quarterly Comparison</h2>
-                <div className="stacked-chart">
+                <div className="stacked-chart" onMouseDown={(e) => e.preventDefault()}>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
                       <CartesianGrid
@@ -281,7 +281,7 @@ export default function QuarterlyReportPage() {
                 <table className="quarterly-table">
                   <thead>
                     <tr>
-                      <th className="quarterly-table__category-header">Category</th>
+                      <th className="quarterly-table__category-header quarterly-table__sticky-col">Category</th>
                       <th className="quarterly-table__quarter-header">Q1</th>
                       <th className="quarterly-table__quarter-header">Q2</th>
                       <th className="quarterly-table__quarter-header">Q3</th>
@@ -292,7 +292,7 @@ export default function QuarterlyReportPage() {
                   <tbody>
                     {data.rows.map((row) => (
                       <tr key={row.categoryId} className="quarterly-table__row">
-                        <td className="quarterly-table__category-cell">
+                        <td className="quarterly-table__category-cell quarterly-table__sticky-col">
                           <span className="quarterly-table__emoji">{row.emoji}</span>
                           <span className="quarterly-table__name">{row.name}</span>
                         </td>
@@ -316,7 +316,7 @@ export default function QuarterlyReportPage() {
                   </tbody>
                   <tfoot>
                     <tr className="quarterly-table__totals-row">
-                      <td className="quarterly-table__category-cell quarterly-table__category-cell--total">TOTAL</td>
+                      <td className="quarterly-table__category-cell quarterly-table__category-cell--total quarterly-table__sticky-col">TOTAL</td>
                       <td className="quarterly-table__amount-cell quarterly-table__amount-cell--total">
                         {formatDollars(data.totals.q1)}
                       </td>
