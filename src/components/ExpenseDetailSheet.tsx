@@ -286,9 +286,9 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
     }
   }
 
-  async function handleScanAttachment(blobUrl: string) {
+  async function handleScanAttachment(blobUrl: string, mimeType?: string) {
     if (!subdomain) return
-    const result = await scanReceipt(blobUrl, subdomain)
+    const result = await scanReceipt(blobUrl, subdomain, mimeType)
     if (result) {
       applyScanResult(result)
     }
@@ -860,7 +860,7 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
                             <button
                               type="button"
                               className={`scan-button ${isScanning ? 'scan-button--scanning' : ''}`}
-                              onClick={() => handleScanAttachment(att.blobUrl)}
+                              onClick={() => handleScanAttachment(att.blobUrl, att.mimeType)}
                               disabled={isScanning}
                               aria-label="Scan receipt"
                             >

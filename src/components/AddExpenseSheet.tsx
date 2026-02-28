@@ -161,9 +161,9 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
   }
 
   // Handle scan button click
-  async function handleScan(blobUrl: string) {
+  async function handleScan(blobUrl: string, fileType?: string) {
     if (!subdomain) return
-    const result = await scanReceipt(blobUrl, subdomain)
+    const result = await scanReceipt(blobUrl, subdomain, fileType)
     if (result) {
       applyScanResult(result)
     }
@@ -426,7 +426,7 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
                         <button
                           type="button"
                           className={`scan-button-inline ${isScanning ? 'scan-button-inline--scanning' : ''}`}
-                          onClick={() => handleScan(att.blobUrl)}
+                          onClick={() => handleScan(att.blobUrl, att.fileType)}
                           disabled={isScanning}
                         >
                           {isScanning ? 'Scanning...' : '🔍 Scan Receipt with AI'}

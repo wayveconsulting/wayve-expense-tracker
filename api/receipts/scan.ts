@@ -104,107 +104,23 @@ For the date: If the year is not visible, assume the current year. If the date f
 For the total: Use the FINAL total including tax, not the subtotal. The total may appear on a different page than the line items.`
 
 // ===========================================
-// PDF rendering helpers (using pdf.js)
+// Fetch and validate a blob URL, return base64 + media type
 // ===========================================
+async function fetchImageAsBase64(blobUrl: string): Promise<{ base64: string; mediaType: string } | null> {
+  if (!blobUrl.includes('.public.blob.vercel-storage.com')) return null
 
-/**
- * Render a single PDF page to a JPEG base64 string.
- * Uses pdf.js with canvas rendering on the server.
- */
-async function renderPdfPageToJpeg(pdfBuffer: ArrayBuffer, pageNum: number, scale: number = 2.0): Promise<string | null> {
-  try {
-    // Dynamic import of pdf.js (server-side, no worker needed)
-    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
+  const response = await fetch(blobUrl)
+  if (!response.ok) return null
 
-    const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(pdfBuffer) })
-    const pdf = await loadingTask.promise
+  const contentType = response.headers.get('content-type') || ''
+  const supportedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
+  if (!supportedTypes.some(t => contentType.includes(t))) return null
 
-    if (pageNum > pdf.numPages) return null
-
-    const page = await pdf.getPage(pageNum)
-    const viewport = page.getViewport({ scale })
-
-    // Create a canvas using the canvas package (server-side)
-    const { createCanvas } = await import('canvas')
-    const canvas = createCanvas(viewport.width, viewport.height)
-    const context = canvas.getContext('2d')
-
-    await page.render({
-      canvasContext: context as any,
-      viewport,
-    }).promise
-
-    // Convert to JPEG base64
-    const jpegBuffer = canvas.toBuffer('image/jpeg', { quality: 0.90 })
-    return jpegBuffer.toString('base64')
-  } catch (err) {
-    console.error(`Failed to render PDF page ${pageNum}:`, err)
-    return null
+  const buffer = await response.arrayBuffer()
+  return {
+    base64: Buffer.from(buffer).toString('base64'),
+    mediaType: contentType.split(';')[0].trim(),
   }
-}
-
-/**
- * Get total page count from a PDF buffer.
- */
-async function getPdfPageCount(pdfBuffer: ArrayBuffer): Promise<number> {
-  try {
-    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
-    const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(pdfBuffer) })
-    const pdf = await loadingTask.promise
-    return pdf.numPages
-  } catch {
-    return 0
-  }
-}
-
-// ===========================================
-// Claude Vision API call helpers
-// ===========================================
-
-async function callClaudeVision(contentBlocks: any[], apiKey: string): Promise<any> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      messages: [{
-        role: 'user',
-        content: contentBlocks,
-      }],
-    }),
-  })
-
-  if (!response.ok) {
-    const errorBody = await response.text()
-    console.error('Anthropic API error:', response.status, errorBody)
-    throw new Error('Receipt scanning service unavailable')
-  }
-
-  const data = await response.json()
-  const textContent = data.content?.find((block: any) => block.type === 'text')
-
-  if (!textContent?.text) {
-    throw new Error('No response from scanning service')
-  }
-
-  // Parse JSON — Claude sometimes wraps in backticks despite instructions
-  const cleanJson = textContent.text
-    .replace(/^```json?\n?/i, '')
-    .replace(/\n?```$/i, '')
-    .trim()
-  return JSON.parse(cleanJson)
-}
-
-function isTotalMissing(scanResult: any): boolean {
-  if (!scanResult?.total) return true
-  if (scanResult.total.value === null || scanResult.total.value === undefined) return true
-  if (typeof scanResult.total.confidence === 'number' && scanResult.total.confidence < 0.5) return true
-  return false
 }
 
 // ===========================================
@@ -217,7 +133,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  // Guard: API key must be configured
   if (!process.env.ANTHROPIC_API_KEY) {
     console.error('ANTHROPIC_API_KEY not configured')
     return res.status(503).json({ error: 'Receipt scanning not configured' })
@@ -241,130 +156,98 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
-    // Validate blobUrl
-    const { blobUrl } = req.body || {}
+    // Validate primary blobUrl
+    const { blobUrl, blobUrl2 } = req.body || {}
 
     if (!blobUrl || typeof blobUrl !== 'string') {
       return res.status(400).json({ error: 'blobUrl is required' })
     }
 
-    if (!blobUrl.includes('.public.blob.vercel-storage.com')) {
-      return res.status(400).json({ error: 'Invalid blob URL' })
-    }
-
-    // Fetch the file
-    const fileResponse = await fetch(blobUrl)
-    if (!fileResponse.ok) {
-      return res.status(400).json({ error: 'Failed to fetch file from storage' })
-    }
-
-    const contentType = fileResponse.headers.get('content-type') || ''
-    const supportedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
-    const isPdf = contentType.includes('application/pdf')
-
-    if (!isPdf && !supportedImageTypes.some(t => contentType.includes(t))) {
+    // Fetch primary image
+    const image1 = await fetchImageAsBase64(blobUrl)
+    if (!image1) {
       return res.status(400).json({
-        error: 'Unsupported file type for scanning. Please use JPEG, PNG, WebP images, or PDF documents.',
-        fileType: contentType,
+        error: 'Failed to fetch image from storage. Only JPEG, PNG, and WebP images are supported.',
       })
     }
 
-    const fileBuffer = await fileResponse.arrayBuffer()
-    const apiKey = process.env.ANTHROPIC_API_KEY!
-    let scanResult: any
+    // Build content blocks for Claude Vision
+    const contentBlocks: any[] = [
+      {
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: image1.mediaType,
+          data: image1.base64,
+        },
+      },
+    ]
 
-    if (!isPdf) {
-      // ==========================================
-      // IMAGE PATH: Direct base64 to Claude Vision
-      // ==========================================
-      const base64Data = Buffer.from(fileBuffer).toString('base64')
-      const mediaType = contentType.split(';')[0].trim()
-
-      const contentBlocks = [
-        {
-          type: 'image' as const,
+    // If second image provided (multi-page PDF fallback), add it
+    let isMultiPage = false
+    if (blobUrl2 && typeof blobUrl2 === 'string') {
+      const image2 = await fetchImageAsBase64(blobUrl2)
+      if (image2) {
+        contentBlocks.push({
+          type: 'image',
           source: {
-            type: 'base64' as const,
-            media_type: mediaType,
-            data: base64Data,
+            type: 'base64',
+            media_type: image2.mediaType,
+            data: image2.base64,
           },
-        },
-        {
-          type: 'text' as const,
-          text: RECEIPT_SCAN_PROMPT,
-        },
-      ]
-
-      scanResult = await callClaudeVision(contentBlocks, apiKey)
-    } else {
-      // ==========================================
-      // PDF PATH: Convert to JPEG, attempt page 1,
-      // then auto-fallback to pages 1+2
-      // ==========================================
-
-      // Attempt 1: Render page 1 as JPEG
-      const page1Jpeg = await renderPdfPageToJpeg(fileBuffer, 1)
-
-      if (!page1Jpeg) {
-        return res.status(400).json({ error: 'Failed to render PDF. The file may be corrupted or password-protected.' })
+        })
+        isMultiPage = true
       }
+    }
 
-      const page1Content = [
-        {
-          type: 'image' as const,
-          source: {
-            type: 'base64' as const,
-            media_type: 'image/jpeg' as const,
-            data: page1Jpeg,
-          },
-        },
-        {
-          type: 'text' as const,
-          text: RECEIPT_SCAN_PROMPT,
-        },
-      ]
+    // Add the appropriate prompt
+    contentBlocks.push({
+      type: 'text',
+      text: isMultiPage ? MULTI_PAGE_PROMPT : RECEIPT_SCAN_PROMPT,
+    })
 
-      scanResult = await callClaudeVision(page1Content, apiKey)
+    // Call Claude Vision API
+    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY!,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: contentBlocks,
+        }],
+      }),
+    })
 
-      // Attempt 2: If total is missing/low-confidence and there's a page 2, send both pages
-      if (isTotalMissing(scanResult)) {
-        const totalPages = await getPdfPageCount(fileBuffer)
+    if (!anthropicResponse.ok) {
+      const errorBody = await anthropicResponse.text()
+      console.error('Anthropic API error:', anthropicResponse.status, errorBody)
+      return res.status(500).json({ error: 'Receipt scanning service unavailable' })
+    }
 
-        if (totalPages >= 2) {
-          const page2Jpeg = await renderPdfPageToJpeg(fileBuffer, 2)
+    const anthropicData = await anthropicResponse.json()
+    const textContent = anthropicData.content?.find((block: any) => block.type === 'text')
 
-          if (page2Jpeg) {
-            console.log(`PDF scan fallback: page 1 total was ${scanResult?.total?.value ?? 'null'} (confidence: ${scanResult?.total?.confidence ?? 'N/A'}). Retrying with pages 1+2.`)
+    if (!textContent?.text) {
+      return res.status(500).json({ error: 'No response from scanning service' })
+    }
 
-            const multiPageContent = [
-              {
-                type: 'image' as const,
-                source: {
-                  type: 'base64' as const,
-                  media_type: 'image/jpeg' as const,
-                  data: page1Jpeg,
-                },
-              },
-              {
-                type: 'image' as const,
-                source: {
-                  type: 'base64' as const,
-                  media_type: 'image/jpeg' as const,
-                  data: page2Jpeg,
-                },
-              },
-              {
-                type: 'text' as const,
-                text: MULTI_PAGE_PROMPT,
-              },
-            ]
-
-            // This counts as a second API call but not a second rate limit hit —
-            // the user initiated one scan action
-            scanResult = await callClaudeVision(multiPageContent, apiKey)
-          }
-        }
-      }
+    // Parse the JSON response
+    let scanResult
+    try {
+      const cleanJson = textContent.text
+        .replace(/^```json?\n?/i, '')
+        .replace(/\n?```$/i, '')
+        .trim()
+      scanResult = JSON.parse(cleanJson)
+    } catch {
+      console.error('Failed to parse scan result:', textContent.text)
+      return res.status(500).json({ error: 'Failed to parse receipt data' })
     }
 
     // Record usage and return
@@ -376,7 +259,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   } catch (error) {
     console.error('Error in receipt scan API:', error)
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return res.status(500).json({ error: message })
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }
