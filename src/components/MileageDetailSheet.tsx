@@ -1,12 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTenant } from '../hooks/useTenant'
 
-// Get saved preference from localStorage
-function getDefaultMode(): 'view' | 'edit' {
-  if (typeof window === 'undefined') return 'view'
-  return (localStorage.getItem('mileageDetailMode') as 'view' | 'edit') || 'view'
-}
-
 interface MileageTrip {
   id: string
   date: string

@@ -9,12 +9,6 @@ import {
   ALLOWED_FILE_ACCEPT,
 } from '../utils/attachment-upload'
 
-// Get saved preference from localStorage
-function getDefaultMode(): 'view' | 'edit' {
-  if (typeof window === 'undefined') return 'view'
-  return (localStorage.getItem('expenseDetailMode') as 'view' | 'edit') || 'view'
-}
-
 interface Category {
   id: string
   name: string
