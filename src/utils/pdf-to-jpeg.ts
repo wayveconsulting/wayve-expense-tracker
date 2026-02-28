@@ -10,8 +10,8 @@ async function loadPdfJs() {
   if (pdfjsLib) return pdfjsLib
   // Dynamic import — only loaded when a PDF scan is triggered
   pdfjsLib = await import('pdfjs-dist')
-  // Use the bundled worker via CDN to avoid webpack/vite worker config issues
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
+  // Use the worker bundled with the pdfjs-dist package (Vite handles the import)
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href
   return pdfjsLib
 }
 
