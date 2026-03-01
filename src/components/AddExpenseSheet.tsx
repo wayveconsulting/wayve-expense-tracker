@@ -149,13 +149,10 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
     if (!vendor && result.vendor?.value) {
       setVendor(String(result.vendor.value))
     }
-    if (!date.trim() || date === new Date().toISOString().split('T')[0]) {
-      // Only auto-fill date if it's still the default (today)
-      if (result.date?.value) {
-        const parsed = result.date.value as string
-        if (/^\d{4}-\d{2}-\d{2}$/.test(parsed)) {
-          setDate(parsed)
-        }
+    if (result.date?.value) {
+      const parsed = result.date.value as string
+      if (/^\d{4}-\d{2}-\d{2}$/.test(parsed)) {
+        setDate(parsed)
       }
     }
   }
