@@ -85,13 +85,14 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
 
   // Home office settings
   const [homeOfficeConfigured, setHomeOfficeConfigured] = useState(false)
+  const [homeOfficeIgnored, setHomeOfficeIgnored] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<string | null>(null)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
   // Derived: is the selected category home-office-eligible?
   const selectedCategory = categories.find(c => c.id === categoryId)
-  const showHomeOfficeCheckbox = selectedCategory?.homeOfficeEligible === true
+  const showHomeOfficeCheckbox = selectedCategory?.homeOfficeEligible === true && !homeOfficeIgnored
 
   // Sync expense type and home office when category changes in edit mode
   // BUT only after categories have loaded — otherwise we'd wipe the saved value
@@ -135,9 +136,10 @@ export function ExpenseDetailSheet({ expense, isOpen, onClose, onUpdate, onDelet
             const data = await response.json()
             setCategories([...data.categories].sort((a: Category, b: Category) => a.name.localeCompare(b.name)))
             const hoSettings = data.homeOfficeSettings
-            setHomeOfficeConfigured(
-              hoSettings?.homeTotalSqft != null && hoSettings?.homeOfficeSqft != null && !hoSettings?.homeOfficeIgnored
-            )
+            const hoIgnored = hoSettings?.homeOfficeIgnored === true
+            const hoSqftSet = hoSettings?.homeTotalSqft != null && hoSettings?.homeOfficeSqft != null
+            setHomeOfficeConfigured(hoIgnored || hoSqftSet)
+            setHomeOfficeIgnored(hoIgnored)
           }
         } catch (err) {
           console.error('Error fetching categories:', err)

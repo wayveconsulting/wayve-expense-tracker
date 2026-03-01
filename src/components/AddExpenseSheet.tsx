@@ -59,10 +59,11 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
 
   // Home office settings
   const [homeOfficeConfigured, setHomeOfficeConfigured] = useState(false)
+  const [homeOfficeIgnored, setHomeOfficeIgnored] = useState(false)
 
   // Derived: selected category properties
   const selectedCategory = categories.find(c => c.id === categoryId)
-  const showHomeOfficeCheckbox = selectedCategory?.homeOfficeEligible === true
+  const showHomeOfficeCheckbox = selectedCategory?.homeOfficeEligible === true && !homeOfficeIgnored
 
   // Sync expense type and home office checkbox when category changes
   useEffect(() => {
@@ -91,9 +92,10 @@ export function AddExpenseSheet({ isOpen, onClose, onSuccess, preselectedCategor
 
         // Check if home office square footage is configured
         const hoSettings = data.homeOfficeSettings
-        setHomeOfficeConfigured(
-          hoSettings?.homeTotalSqft != null && hoSettings?.homeOfficeSqft != null && !hoSettings?.homeOfficeIgnored
-        )
+        const hoIgnored = hoSettings?.homeOfficeIgnored === true
+        const hoSqftSet = hoSettings?.homeTotalSqft != null && hoSettings?.homeOfficeSqft != null
+        setHomeOfficeConfigured(hoIgnored || hoSqftSet)
+        setHomeOfficeIgnored(hoIgnored)
 
         // Priority: URL preselect > name preselect > tenant default > blank
         if (preselectedCategoryId) {
