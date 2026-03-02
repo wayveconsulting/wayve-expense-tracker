@@ -256,7 +256,7 @@ export default function QuarterlyReportPage() {
                         tickLine={false}
                         width={70}
                       />
-                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-bg-hover, rgba(0,0,0,0.04))' }} />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-bg-hover, rgba(0,0,0,0.04))' }} wrapperStyle={{ zIndex: 10 }} />
                       <Legend
                         wrapperStyle={{ fontSize: '0.8125rem', paddingTop: '8px' }}
                         iconType="square"
