@@ -344,9 +344,8 @@ export default function DashboardPage() {
             }
           }}
         >
-          <span className="summary-card__label">Expenses</span>
+          <span className="summary-card__label">Transactions</span>
           <span className="summary-card__value">{summary.expenseCount}</span>
-          <span className="summary-card__sub">transactions</span>
         </div>
       </div>
 
