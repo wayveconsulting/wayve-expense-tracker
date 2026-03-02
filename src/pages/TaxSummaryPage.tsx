@@ -161,7 +161,7 @@ export default function TaxSummaryPage() {
             <>
               {/* Grand Total — deductible is the hero */}
               <div className="tax-summary__grand-total">
-                <span className="tax-summary__grand-total-label">Total Deductible</span>
+                <span className="tax-summary__grand-total-label">Total Expenses</span>
                 <span className="tax-summary__grand-total-value">{formatDollars(data.totalDeductible)}</span>
                 <span className="tax-summary__grand-total-sub">{data.expenseCount} transactions</span>
                 {data.totalDeductible !== data.totalSpent && (
@@ -171,37 +171,47 @@ export default function TaxSummaryPage() {
                 )}
               </div>
 
-              {/* Composition Bar */}
+              {/* Composition Bar — uses deductible amounts, not raw spend */}
               <div className="tax-summary__composition-bar">
                 {data.sections
-                  .filter((s) => s.total > 0)
-                  .map((section) => (
-                    <div
-                      key={section.type}
-                      className="tax-summary__composition-segment"
-                      style={{
-                        width: `${section.percentOfTotal}%`,
-                        backgroundColor: TYPE_COLORS[section.type] || 'var(--color-text-secondary)',
-                      }}
-                      title={`${section.label}: ${section.percentOfTotal}%`}
-                    />
-                  ))}
+                  .filter((s) => s.deductible > 0)
+                  .map((section) => {
+                    const pct = data.totalDeductible > 0
+                      ? Math.round((section.deductible / data.totalDeductible) * 100)
+                      : 0
+                    return (
+                      <div
+                        key={section.type}
+                        className="tax-summary__composition-segment"
+                        style={{
+                          width: `${pct}%`,
+                          backgroundColor: TYPE_COLORS[section.type] || 'var(--color-text-secondary)',
+                        }}
+                        title={`${section.label}: ${pct}%`}
+                      />
+                    )
+                  })}
               </div>
 
-              {/* Composition Legend */}
+              {/* Composition Legend — uses deductible amounts */}
               <div className="tax-summary__composition-legend">
                 {data.sections
-                  .filter((s) => s.total > 0)
-                  .map((section) => (
-                    <div key={section.type} className="tax-summary__legend-item">
-                      <span
-                        className="tax-summary__legend-dot"
-                        style={{ backgroundColor: TYPE_COLORS[section.type] || 'var(--color-text-secondary)' }}
-                      />
-                      <span className="tax-summary__legend-label">{section.label.split('(')[0].trim()}</span>
-                      <span className="tax-summary__legend-pct">{section.percentOfTotal}%</span>
-                    </div>
-                  ))}
+                  .filter((s) => s.deductible > 0)
+                  .map((section) => {
+                    const pct = data.totalDeductible > 0
+                      ? Math.round((section.deductible / data.totalDeductible) * 100)
+                      : 0
+                    return (
+                      <div key={section.type} className="tax-summary__legend-item">
+                        <span
+                          className="tax-summary__legend-dot"
+                          style={{ backgroundColor: TYPE_COLORS[section.type] || 'var(--color-text-secondary)' }}
+                        />
+                        <span className="tax-summary__legend-label">{section.label.split('(')[0].trim()}</span>
+                        <span className="tax-summary__legend-pct">{pct}%</span>
+                      </div>
+                    )
+                  })}
               </div>
 
               {/* Type Sections — deductible is hero, total spent is subtext */}
