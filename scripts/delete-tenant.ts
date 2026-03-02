@@ -5,25 +5,31 @@
  *   npx tsx scripts/delete-tenant.ts <subdomain>
  *   npx tsx scripts/delete-tenant.ts <subdomain> --force   (skip confirmation)
  * 
- * Requires DATABASE_URL in .env or environment.
+ * Requires in .env or environment:
+ *   - DATABASE_URL (Neon connection string)
+ *   - BLOB_READ_WRITE_TOKEN (Vercel Blob access token — optional, blob cleanup skipped without it)
  * 
- * This script deletes in FK-safe order:
- *   1. Leaf tables (rate limits, policies, invites, saved locations, vendor mappings, recurring, sessions)
+ * Blob paths cleaned up:
+ *   - {subdomain}/pending/*       (pre-save attachments on new expenses)
+ *   - {subdomain}/{expenseId}/*   (saved attachments on existing expenses)
+ *   - {subdomain}/temp-scan/*     (temporary JPEGs from PDF-to-image conversion)
+ *   All live under {subdomain}/ so a single prefix covers everything.
+ * 
+ * Database deletion order (FK-safe):
+ *   1. Leaf tables (rate limits, policies, invites, saved locations, vendor mappings, recurring, sessions, mileage)
  *   2. Expense attachments (FK → expenses)
  *   3. Expenses (FK → categories)
  *   4. Categories
  *   5. User tenant access records
  *   6. Users (only those whose primary tenant is this one AND who have no other tenant access)
  *   7. The tenant record itself
- * 
- * NOTE: Vercel Blob files (receipt images) under the tenant's path prefix are NOT deleted.
- *       Clean those up manually from the Vercel Blob dashboard if needed.
  */
 
 import 'dotenv/config'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { neon } from '@neondatabase/serverless'
 import { eq, and, notInArray, sql } from 'drizzle-orm'
+import { list, del } from '@vercel/blob'
 import {
   tenants,
   users,
@@ -51,6 +57,11 @@ if (!DATABASE_URL) {
   process.exit(1)
 }
 
+const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN
+if (!BLOB_TOKEN) {
+  console.warn('⚠️  BLOB_READ_WRITE_TOKEN not set. Blob cleanup will be skipped.')
+}
+
 const client = neon(DATABASE_URL)
 const db = drizzle(client)
 
@@ -61,6 +72,52 @@ if (!subdomain) {
   console.error('❌ Usage: npx tsx scripts/delete-tenant.ts <subdomain> [--force]')
   console.error('   Example: npx tsx scripts/delete-tenant.ts izrgrooming')
   process.exit(1)
+}
+
+// ============================================
+// BLOB HELPERS
+// ============================================
+async function countBlobs(prefix: string): Promise<number> {
+  if (!BLOB_TOKEN) return 0
+
+  let total = 0
+  let cursor: string | undefined
+
+  do {
+    const page = await list({ prefix, limit: 1000, cursor, token: BLOB_TOKEN })
+    total += page.blobs.length
+    cursor = page.hasMore ? page.cursor : undefined
+  } while (cursor)
+
+  return total
+}
+
+async function deleteBlobs(prefix: string): Promise<number> {
+  if (!BLOB_TOKEN) return 0
+
+  let totalDeleted = 0
+  let cursor: string | undefined
+
+  do {
+    const result = await list({ prefix, limit: 1000, cursor, token: BLOB_TOKEN })
+
+    if (result.blobs.length > 0) {
+      const urls = result.blobs.map(b => b.url)
+      await del(urls, { token: BLOB_TOKEN })
+      totalDeleted += urls.length
+    }
+
+    // After deleting, don't use the old cursor — re-list from the start
+    // because del() changes the list. Only continue if we deleted a full page.
+    cursor = result.blobs.length === 1000 ? undefined : undefined
+  } while (false)
+
+  // If we deleted a full page (1000), there might be more. Loop until empty.
+  if (totalDeleted === 1000) {
+    totalDeleted += await deleteBlobs(prefix)
+  }
+
+  return totalDeleted
 }
 
 // ============================================
@@ -85,9 +142,22 @@ async function main() {
   console.log(`   Subdomain: ${tenant.subdomain}`)
   console.log(`   ID:        ${tenantId}`)
 
-  // Step 0b: Count what we're about to delete
+  // Step 0b: Count what we're about to delete (DB + blobs)
   const counts = await getCounts(tenantId)
+  let blobCount = 0
+
+  if (BLOB_TOKEN) {
+    try {
+      blobCount = await countBlobs(`${subdomain}/`)
+    } catch (err) {
+      console.warn(`   ⚠️  Could not count blobs: ${err instanceof Error ? err.message : err}`)
+    }
+  }
+
   console.log(`\n📊 Data to be deleted:`)
+  if (blobCount > 0) {
+    console.log(`   vercel_blobs: ${blobCount} files`)
+  }
   for (const [table, count] of Object.entries(counts)) {
     if (count > 0) {
       console.log(`   ${table}: ${count}`)
@@ -95,13 +165,14 @@ async function main() {
   }
 
   const totalRows = Object.values(counts).reduce((sum, n) => sum + n, 0)
-  if (totalRows === 0) {
-    console.log(`   (no child records — only the tenant row itself)`)
+  if (totalRows === 0 && blobCount === 0) {
+    console.log(`   (no child records or blobs — only the tenant row itself)`)
   }
 
   // Step 0c: Confirmation
   if (!forceFlag) {
     console.log(`\n⚠️  This will permanently delete tenant "${tenant.name}" (${subdomain}) and ALL associated data.`)
+    console.log(`   This includes ${blobCount} blob files and ${totalRows} database rows.`)
     console.log(`   This cannot be undone.\n`)
 
     const readline = await import('readline')
@@ -118,6 +189,21 @@ async function main() {
   }
 
   console.log(`\n🗑️  Deleting...`)
+
+  // Step 0d: Delete Vercel Blob files FIRST (before DB records that reference them)
+  if (BLOB_TOKEN && blobCount > 0) {
+    try {
+      const deleted = await deleteBlobs(`${subdomain}/`)
+      console.log(`   ✓ vercel_blobs (${deleted} files deleted)`)
+    } catch (err) {
+      console.error(`   ❌ Blob cleanup failed: ${err instanceof Error ? err.message : err}`)
+      console.error(`      DB deletion will continue. Clean up blobs manually from Vercel dashboard.`)
+    }
+  } else if (!BLOB_TOKEN) {
+    console.log(`   ⏭ vercel_blobs (skipped — no BLOB_READ_WRITE_TOKEN)`)
+  } else if (blobCount === 0) {
+    console.log(`   ⏭ vercel_blobs (none found)`)
+  }
 
   // Step 1: Leaf tables (no other tables reference these)
   const step1 = [
@@ -154,12 +240,11 @@ async function main() {
   if (counts.user_tenant_access > 0) console.log(`   ✓ user_tenant_access`)
 
   // Step 6: Users whose primary tenant is this one AND who have no other tenant access
-  // Find users who have access to OTHER tenants (don't delete those)
+  // user_tenant_access rows for THIS tenant were already deleted in step 5,
+  // so any remaining rows mean the user has access to another tenant
   const usersWithOtherAccess = db
     .select({ userId: userTenantAccess.userId })
     .from(userTenantAccess)
-    // user_tenant_access rows for THIS tenant were already deleted in step 5,
-    // so any remaining rows mean the user has access to another tenant
 
   const deletedUsers = await db
     .delete(users)
@@ -177,9 +262,7 @@ async function main() {
   await db.delete(tenants).where(eq(tenants.id, tenantId))
   console.log(`   ✓ tenant "${tenant.name}" (${subdomain})`)
 
-  console.log(`\n✅ Done. Tenant "${tenant.name}" and all associated data have been deleted.`)
-  console.log(`\n💡 Reminder: Vercel Blob files under "${subdomain}/" are still there.`)
-  console.log(`   Clean them up from the Vercel dashboard if needed.\n`)
+  console.log(`\n✅ Done. Tenant "${tenant.name}" and all associated data have been permanently deleted.\n`)
 }
 
 // ============================================
