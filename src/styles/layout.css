@@ -3827,20 +3827,6 @@ body:has(.sheet-backdrop--open) {
   display: flex;
   gap: 2px;
   margin-left: auto;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.category-card:hover .category-card__actions,
-.category-card:focus-within .category-card__actions {
-  opacity: 1;
-}
-
-/* Always show on mobile (no hover) */
-@media (hover: none) {
-  .category-card__actions {
-    opacity: 1;
-  }
 }
 
 .category-card__action-btn {
