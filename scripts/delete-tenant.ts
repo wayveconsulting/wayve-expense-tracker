@@ -28,7 +28,7 @@
 import 'dotenv/config'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { neon } from '@neondatabase/serverless'
-import { eq, and, notInArray, sql } from 'drizzle-orm'
+import { eq, and, notInArray, inArray, sql } from 'drizzle-orm'
 import { list, del } from '@vercel/blob'
 import {
   tenants,
@@ -214,7 +214,13 @@ async function main() {
     { name: 'saved_locations', fn: () => db.delete(savedLocations).where(eq(savedLocations.tenantId, tenantId)) },
     { name: 'vendor_category_mappings', fn: () => db.delete(vendorCategoryMappings).where(eq(vendorCategoryMappings.tenantId, tenantId)) },
     { name: 'recurring_expenses', fn: () => db.delete(recurringExpenses).where(eq(recurringExpenses.tenantId, tenantId)) },
-    { name: 'sessions', fn: () => db.delete(sessions).where(eq(sessions.tenantId, tenantId)) },
+    { name: 'sessions', fn: async () => {
+      // Delete sessions by tenant_id AND by user_id for users in this tenant
+      // (sessions.tenantId can be null for super admins, so we need both approaches)
+      await db.delete(sessions).where(eq(sessions.tenantId, tenantId))
+      const tenantUserIds = db.select({ id: users.id }).from(users).where(eq(users.tenantId, tenantId))
+      await db.delete(sessions).where(inArray(sessions.userId, tenantUserIds))
+    }},
     { name: 'mileage_trips', fn: () => db.delete(mileageTrips).where(eq(mileageTrips.tenantId, tenantId)) },
   ]
 
