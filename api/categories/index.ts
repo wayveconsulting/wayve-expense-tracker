@@ -119,10 +119,13 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
       ))
       .orderBy(asc(categories.sortOrder), asc(categories.name))
 
-    // Fetch tenant settings (for defaultCategoryId)
+    // Fetch tenant settings (for defaultCategoryId + home office warning)
     const [tenant] = await db
       .select({
         defaultCategoryId: tenants.defaultCategoryId,
+        homeTotalSqft: tenants.homeTotalSqft,
+        homeOfficeSqft: tenants.homeOfficeSqft,
+        homeOfficeIgnored: tenants.homeOfficeIgnored,
       })
       .from(tenants)
       .where(eq(tenants.id, tenantId))
@@ -132,6 +135,9 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
       categories: categoryList,
       homeOfficeSettings: {
         defaultCategoryId: tenant?.defaultCategoryId ?? null,
+        homeTotalSqft: tenant?.homeTotalSqft ?? null,
+        homeOfficeSqft: tenant?.homeOfficeSqft ?? null,
+        homeOfficeIgnored: tenant?.homeOfficeIgnored ?? false,
       },
     })
   } catch (error) {
