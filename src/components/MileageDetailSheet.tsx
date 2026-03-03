@@ -1,6 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTenant } from '../hooks/useTenant'
 
+// Fire-and-forget usage beacon for API cost tracking
+function logUsage(subdomain: string | null, actionType: 'places_autocomplete' | 'distance_matrix') {
+  if (!subdomain) return
+  fetch(`/api/usage/log?tenant=${subdomain}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ actionType }),
+  }).catch(() => {}) // Silent fail — never block the user
+}
+
 interface MileageTrip {
   id: string
   date: string
@@ -126,6 +137,7 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
         // Distance comes in meters, convert to miles
         const miles = element.distance.value / 1609.344
         setDistanceMiles(miles.toFixed(1))
+        logUsage(subdomain, 'distance_matrix')
       } else {
         setError('Could not calculate distance. Please enter manually.')
       }
@@ -196,6 +208,7 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
               })
               // Flag that a location was changed via autocomplete
               setLocationChanged(true)
+              logUsage(subdomain, 'places_autocomplete')
             }
           })
         }
@@ -220,6 +233,7 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
               })
               // Flag that a location was changed via autocomplete
               setLocationChanged(true)
+              logUsage(subdomain, 'places_autocomplete')
             }
           })
         }
