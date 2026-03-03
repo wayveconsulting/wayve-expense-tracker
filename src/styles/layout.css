@@ -4543,6 +4543,352 @@ body:has(.sheet-backdrop--open) {
 }
 
 /* ============================================
+   PHASE E: ADMIN ENHANCEMENTS — STYLES & POLISH
+   ============================================ */
+
+/* --------------------------------------------
+   E1: Deletion Zone Button (admin page)
+   -------------------------------------------- */
+.admin-section--danger {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.admin-section--danger .btn--danger {
+  width: 100%;
+}
+
+/* --------------------------------------------
+   E2: Soft-Deleted Client Cards
+   -------------------------------------------- */
+.admin-invite-card--deleted {
+  opacity: 0.55;
+  border-style: dashed;
+  border-color: var(--color-error);
+  position: relative;
+}
+
+.admin-invite-card--deleted .admin-invite-card__business,
+.admin-invite-card--deleted .admin-invite-card__label,
+.admin-invite-card--deleted .admin-invite-card__value {
+  color: var(--color-text-secondary);
+}
+
+.admin-invite-card__badge--deleted {
+  background: var(--color-error-light, #fef2f2);
+  color: var(--color-error-dark, #991b1b);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.admin-invite-card__restore {
+  margin-top: var(--spacing-sm);
+  width: 100%;
+  color: var(--color-error);
+  background: transparent;
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-invite-card__restore:hover {
+  background: var(--color-error-light, #fef2f2);
+}
+
+/* Clickable business name & subdomain links */
+.admin-invite-card__business--link,
+.admin-invite-card__value--link {
+  color: var(--color-primary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.admin-invite-card__business--link:hover,
+.admin-invite-card__value--link:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+/* Muted values (e.g. "Never" for last login) */
+.admin-invite-card__value--muted {
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* --------------------------------------------
+   E3: Usage Breakdown Section (within cards)
+   -------------------------------------------- */
+.admin-invite-card__usage {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-border-light);
+  font-size: 0.8125rem;
+}
+
+.admin-invite-card__usage-title {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: var(--spacing-xs);
+}
+
+.admin-invite-card__usage-empty {
+  color: var(--color-text-secondary);
+  font-style: italic;
+  font-size: 0.8125rem;
+}
+
+.admin-invite-card__usage-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+
+.admin-invite-card__usage-label {
+  color: var(--color-text-secondary);
+}
+
+.admin-invite-card__usage-value {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.admin-invite-card__usage-total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-xs);
+  border-top: 1px solid var(--color-border-light);
+  font-weight: 600;
+}
+
+/* --------------------------------------------
+   E4: /admin/delete Page
+   -------------------------------------------- */
+.admin-delete-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.page-title--danger {
+  color: var(--color-error);
+}
+
+.admin-delete-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  margin-bottom: var(--spacing-sm);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.admin-delete-back:hover {
+  color: var(--color-text-primary);
+}
+
+.admin-delete-warning {
+  background: var(--color-error-light, #fef2f2);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  color: var(--color-error-dark, #991b1b);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: var(--spacing-lg);
+}
+
+.admin-delete-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.admin-delete-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-primary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.admin-delete-item:hover {
+  border-color: var(--color-border-light);
+  background: var(--color-bg-secondary, #f9fafb);
+}
+
+.admin-delete-item--selected {
+  border-color: var(--color-error);
+  background: var(--color-error-light, #fef2f2);
+}
+
+.admin-delete-item--selected:hover {
+  border-color: var(--color-error);
+  background: var(--color-error-light, #fef2f2);
+}
+
+.admin-delete-item__checkbox {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--color-error);
+  cursor: pointer;
+}
+
+.admin-delete-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-delete-item__name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-text-primary);
+}
+
+.admin-delete-item__detail {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.admin-delete-btn {
+  width: 100%;
+  color: white;
+  background: var(--color-error);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.admin-delete-btn:hover:not(:disabled) {
+  background: var(--color-error-dark, #991b1b);
+}
+
+.admin-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------
+   E5: Confirmation Modals
+   -------------------------------------------- */
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-md);
+  animation: admin-modal-fade-in 0.15s ease;
+}
+
+.admin-modal {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  max-width: 420px;
+  width: 100%;
+  animation: admin-modal-slide-up 0.2s ease;
+}
+
+.admin-modal--danger {
+  border-color: var(--color-error);
+}
+
+.admin-modal__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--color-text-primary);
+}
+
+.admin-modal--danger .admin-modal__title {
+  color: var(--color-error);
+}
+
+.admin-modal__message {
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.admin-modal__message--final {
+  font-weight: 600;
+  color: var(--color-error-dark, #991b1b);
+}
+
+.admin-modal__list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--spacing-md) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.admin-modal__list li {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-error-light, #fef2f2);
+  border-radius: var(--radius-lg);
+}
+
+.admin-modal__actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.admin-modal__actions .btn {
+  flex: 1;
+}
+
+@keyframes admin-modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes admin-modal-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
    INVITE LANDING PAGE
    ============================================ */
 
