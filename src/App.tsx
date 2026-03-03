@@ -14,6 +14,7 @@ import AnnualSummaryPage from './pages/AnnualSummaryPage'
 import TaxSummaryPage from './pages/TaxSummaryPage'
 import SettingsPage from './pages/SettingsPage'
 import AdminPage from './pages/AdminPage'
+import AdminDeletePage from './pages/AdminDeletePage'
 import InvitePage from './pages/InvitePage'
 
 function App() {
@@ -61,6 +62,7 @@ function App() {
         <Route path="/reports/mileage" component={MileageReportPage} />
         <Route path="/reports/quarterly" component={QuarterlyReportPage} />
         <Route path="/reports" component={ReportsPage} />
+        <Route path="/admin/delete" component={AdminDeletePage} />
         <Route path="/admin" component={AdminPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route>
