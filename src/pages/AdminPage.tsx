@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Link } from 'wouter'
 
-interface Invite {
+interface Client {
   id: string
   email: string
   firstName: string | null
@@ -12,11 +12,15 @@ interface Invite {
   expiresAt: string
   acceptedAt: string | null
   createdAt: string
+  tenantId: string
   tenantName: string
   tenantSubdomain: string
+  tenantDeletedAt: string | null
+  tenantRestoredAt: string | null
   invitedByFirstName: string | null
   invitedByLastName: string | null
   invitedByEmail: string
+  ownerLastLoginAt: string | null
 }
 
 export default function AdminPage() {
@@ -39,7 +43,7 @@ export default function AdminPage() {
     <div className="page">
       <h2 className="page-title">Admin</h2>
       <InviteForm onSuccess={() => setListRefreshKey(k => k + 1)} />
-      <InviteList refreshKey={listRefreshKey} />
+      <ClientList refreshKey={listRefreshKey} onRefresh={() => setListRefreshKey(k => k + 1)} />
     </div>
   )
 }
@@ -206,24 +210,25 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 // ============================================
-// INVITE LIST
+// CLIENT LIST (formerly InviteList)
 // ============================================
-function InviteList({ refreshKey }: { refreshKey: number }) {
-  const [invitesList, setInvitesList] = useState<Invite[]>([])
+function ClientList({ refreshKey, onRefresh }: { refreshKey: number; onRefresh: () => void }) {
+  const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [resending, setResending] = useState<string | null>(null)
+  const [restoring, setRestoring] = useState<string | null>(null)
 
-  const fetchInvites = async () => {
+  const fetchClients = async () => {
     try {
       const response = await fetch('/api/admin/invites', {
         credentials: 'include',
       })
       if (response.ok) {
         const data = await response.json()
-        setInvitesList(data.invites)
+        setClients(data.invites)
       } else {
-        setError('Failed to load invites')
+        setError('Failed to load clients')
       }
     } catch {
       setError('Network error')
@@ -233,7 +238,7 @@ function InviteList({ refreshKey }: { refreshKey: number }) {
   }
 
   useEffect(() => {
-    fetchInvites()
+    fetchClients()
   }, [refreshKey])
 
   const handleResend = async (inviteId: string) => {
@@ -244,7 +249,7 @@ function InviteList({ refreshKey }: { refreshKey: number }) {
         credentials: 'include',
       })
       if (response.ok) {
-        await fetchInvites()
+        await fetchClients()
       }
     } catch {
       // Silent fail — user can try again
@@ -253,10 +258,32 @@ function InviteList({ refreshKey }: { refreshKey: number }) {
     }
   }
 
+  const handleRestore = async (tenantId: string) => {
+    setRestoring(tenantId)
+    try {
+      const response = await fetch('/api/admin/restore', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId }),
+      })
+      if (response.ok) {
+        onRefresh()
+      }
+    } catch {
+      // Silent fail — user can try again
+    } finally {
+      setRestoring(null)
+    }
+  }
+
+  // Count only active (non-deleted) clients for the header
+  const activeCount = clients.filter(c => !c.tenantDeletedAt).length
+
   if (loading) {
     return (
       <div className="admin-section">
-        <h3 className="admin-section__title">Invites</h3>
+        <h3 className="admin-section__title">Clients</h3>
         <p className="admin-section__loading">Loading...</p>
       </div>
     )
@@ -264,66 +291,157 @@ function InviteList({ refreshKey }: { refreshKey: number }) {
 
   return (
     <div className="admin-section">
-      <h3 className="admin-section__title">Invites ({invitesList.length})</h3>
+      <h3 className="admin-section__title">Clients ({activeCount})</h3>
 
       {error && <div className="admin-alert admin-alert--error">{error}</div>}
 
-      {invitesList.length === 0 ? (
-        <p className="admin-section__empty">No invites sent yet.</p>
+      {clients.length === 0 ? (
+        <p className="admin-section__empty">No clients yet.</p>
       ) : (
         <div className="admin-invite-list">
-          {invitesList.map(invite => (
-            <div key={invite.id} className="admin-invite-card">
-              <div className="admin-invite-card__header">
-                <div className="admin-invite-card__business">{invite.tenantName}</div>
-                <span className={`admin-invite-card__badge admin-invite-card__badge--${invite.status}`}>
-                  {invite.status}
-                </span>
-              </div>
-
-              <div className="admin-invite-card__details">
-                <div className="admin-invite-card__row">
-                  <span className="admin-invite-card__label">Email</span>
-                  <span className="admin-invite-card__value">{invite.email}</span>
-                </div>
-                {(invite.firstName || invite.lastName) && (
-                  <div className="admin-invite-card__row">
-                    <span className="admin-invite-card__label">Name</span>
-                    <span className="admin-invite-card__value">
-                      {[invite.firstName, invite.lastName].filter(Boolean).join(' ')}
-                    </span>
-                  </div>
-                )}
-                <div className="admin-invite-card__row">
-                  <span className="admin-invite-card__label">Subdomain</span>
-                  <span className="admin-invite-card__value">{invite.tenantSubdomain}.wayveexpenses.app</span>
-                </div>
-                <div className="admin-invite-card__row">
-                  <span className="admin-invite-card__label">Sent</span>
-                  <span className="admin-invite-card__value">
-                    {new Date(invite.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="admin-invite-card__row">
-                  <span className="admin-invite-card__label">Expires</span>
-                  <span className="admin-invite-card__value">
-                    {new Date(invite.expiresAt).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-
-              {(invite.status === 'pending' || invite.status === 'expired') && (
-                <button
-                  className="btn btn--outline btn--full admin-invite-card__resend"
-                  onClick={() => handleResend(invite.id)}
-                  disabled={resending === invite.id}
-                >
-                  {resending === invite.id ? 'Resending...' : 'Resend Invite'}
-                </button>
-              )}
-            </div>
+          {clients.map(client => (
+            <ClientCard
+              key={client.id}
+              client={client}
+              resending={resending}
+              restoring={restoring}
+              onResend={handleResend}
+              onRestore={handleRestore}
+            />
           ))}
         </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================
+// CLIENT CARD
+// ============================================
+function ClientCard({
+  client,
+  resending,
+  restoring,
+  onResend,
+  onRestore,
+}: {
+  client: Client
+  resending: string | null
+  restoring: string | null
+  onResend: (id: string) => void
+  onRestore: (tenantId: string) => void
+}) {
+  const isDeleted = !!client.tenantDeletedAt
+  const deletionDaysLeft = isDeleted
+    ? Math.max(0, Math.ceil((new Date(client.tenantDeletedAt!).getTime() + 30 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000)))
+    : null
+
+  const tenantUrl = `https://${client.tenantSubdomain}.wayveexpenses.app`
+
+  return (
+    <div className={`admin-invite-card${isDeleted ? ' admin-invite-card--deleted' : ''}`}>
+      <div className="admin-invite-card__header">
+        {/* B2: Tenant name as clickable link */}
+        
+          <a href={tenantUrl}
+          className="admin-invite-card__business admin-invite-card__business--link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {client.tenantName}
+        </a>
+        {isDeleted ? (
+          <span className="admin-invite-card__badge admin-invite-card__badge--deleted">
+            Deleted — permanent in {deletionDaysLeft} day{deletionDaysLeft !== 1 ? 's' : ''}
+          </span>
+        ) : (
+          <span className={`admin-invite-card__badge admin-invite-card__badge--${client.status}`}>
+            {client.status}
+          </span>
+        )}
+      </div>
+
+      <div className="admin-invite-card__details">
+        <div className="admin-invite-card__row">
+          <span className="admin-invite-card__label">Email</span>
+          <span className="admin-invite-card__value">{client.email}</span>
+        </div>
+        {(client.firstName || client.lastName) && (
+          <div className="admin-invite-card__row">
+            <span className="admin-invite-card__label">Name</span>
+            <span className="admin-invite-card__value">
+              {[client.firstName, client.lastName].filter(Boolean).join(' ')}
+            </span>
+          </div>
+        )}
+        {/* B3: Subdomain as clickable link */}
+        <div className="admin-invite-card__row">
+          <span className="admin-invite-card__label">Subdomain</span>
+          
+            <a href={tenantUrl}
+            className="admin-invite-card__value admin-invite-card__value--link"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {client.tenantSubdomain}.wayveexpenses.app
+          </a>
+        </div>
+        {/* B4: "Sent" → "Invite Sent" */}
+        <div className="admin-invite-card__row">
+          <span className="admin-invite-card__label">Invite Sent</span>
+          <span className="admin-invite-card__value">
+            {new Date(client.createdAt).toLocaleDateString()}
+          </span>
+        </div>
+        {/* B5: Conditional invite status display */}
+        <div className="admin-invite-card__row">
+          <span className="admin-invite-card__label">
+            {client.status === 'accepted' ? 'Invite Accepted' : 'Invite Expires'}
+          </span>
+          <span className="admin-invite-card__value">
+            {client.status === 'accepted' && client.acceptedAt
+              ? new Date(client.acceptedAt).toLocaleDateString()
+              : new Date(client.expiresAt).toLocaleDateString()}
+          </span>
+        </div>
+        {/* B6: Last Login */}
+        <div className="admin-invite-card__row">
+          <span className="admin-invite-card__label">Last Login</span>
+          <span className="admin-invite-card__value">
+            {client.ownerLastLoginAt
+              ? new Date(client.ownerLastLoginAt).toLocaleDateString()
+              : '—'}
+          </span>
+        </div>
+        {/* B7 stub: API Usage — wired up in Phase C */}
+        <div className="admin-invite-card__row">
+          <span className="admin-invite-card__label">API Usage</span>
+          <span className="admin-invite-card__value admin-invite-card__value--muted">
+            No usage data yet
+          </span>
+        </div>
+      </div>
+
+      {/* B9: Restore button for soft-deleted clients */}
+      {isDeleted && (
+        <button
+          className="btn btn--outline btn--full admin-invite-card__restore"
+          onClick={() => onRestore(client.tenantId)}
+          disabled={restoring === client.tenantId}
+        >
+          {restoring === client.tenantId ? 'Restoring...' : 'Restore Account'}
+        </button>
+      )}
+
+      {/* Resend button for pending/expired invites (only if not deleted) */}
+      {!isDeleted && (client.status === 'pending' || client.status === 'expired') && (
+        <button
+          className="btn btn--outline btn--full admin-invite-card__resend"
+          onClick={() => onResend(client.id)}
+          disabled={resending === client.id}
+        >
+          {resending === client.id ? 'Resending...' : 'Resend Invite'}
+        </button>
       )}
     </div>
   )
