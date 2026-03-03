@@ -39,11 +39,43 @@ export default function AdminPage() {
     )
   }
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
   return (
     <div className="page">
       <h2 className="page-title">Admin</h2>
       <InviteForm onSuccess={() => setListRefreshKey(k => k + 1)} />
       <ClientList refreshKey={listRefreshKey} onRefresh={() => setListRefreshKey(k => k + 1)} />
+
+      {/* D1: Deletion Zone entry point */}
+      <div className="admin-section admin-section--danger">
+        <button
+          className="btn btn--danger btn--full"
+          onClick={() => setShowDeleteConfirm(true)}
+        >
+          ⚠️ Deletion Zone
+        </button>
+      </div>
+
+      {/* D2: Entry confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="admin-modal-backdrop" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="admin-modal admin-modal--danger" onClick={e => e.stopPropagation()}>
+            <h3 className="admin-modal__title">⚠️ Deletion Zone</h3>
+            <p className="admin-modal__message">
+              You are entering the area where accounts can be deleted. Are you sure you want to proceed?
+            </p>
+            <div className="admin-modal__actions">
+              <button className="btn btn--secondary" onClick={() => setShowDeleteConfirm(false)}>
+                Cancel
+              </button>
+              <Link href="/admin/delete" className="btn btn--danger">
+                Enter Deletion Zone
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
