@@ -120,9 +120,7 @@ export function Layout({ children }: LayoutProps) {
           <NavItem icon="car" label="Mileage" href="/mileage" currentPath={location} onClick={closeDrawer} />
           <NavItem icon="folder" label="Categories" href="/categories" currentPath={location} onClick={closeDrawer} />
           <NavItem icon="chart" label="Reports" href="/reports" currentPath={location} onClick={closeDrawer} />
-          {user?.isSuperAdmin && (
-            <NavItem icon="admin" label="Admin" href="/admin" currentPath={location} onClick={closeDrawer} />
-          )}
+          {user?.isSuperAdmin && <AdminNavLink user={user} currentPath={location} closeDrawer={closeDrawer} />}
           <NavItem icon="settings" label="Settings" href="/settings" currentPath={location} onClick={closeDrawer} />
         </ul>
 
@@ -259,4 +257,28 @@ function NavItem({ icon, label, href, currentPath, onClick }: NavItemProps) {
       </Link>
     </li>
   )
+}
+
+function AdminNavLink({ user, currentPath, closeDrawer }: { user: { primaryTenant: { subdomain: string } | null }; currentPath: string; closeDrawer: () => void }) {
+  const currentSubdomain = window.location.hostname.split('.')[0]
+  const homeSubdomain = user.primaryTenant?.subdomain
+  const isOnForeignTenant = homeSubdomain && currentSubdomain !== homeSubdomain && !window.location.hostname.includes('localhost')
+
+  if (isOnForeignTenant) {
+    return (
+      <li>
+        <a href={`https://${homeSubdomain}.wayveexpenses.app/admin`}
+          className="drawer__nav-item"
+          onClick={closeDrawer}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <span>Admin ↩</span>
+        </a>
+      </li>
+    )
+  }
+
+  return <NavItem icon="admin" label="Admin" href="/admin" currentPath={currentPath} onClick={closeDrawer} />
 }
