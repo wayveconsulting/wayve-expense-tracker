@@ -200,6 +200,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     res.setHeader('Set-Cookie', cookieOptions);
 
+    // Stamp last login time
+    await db
+      .update(users)
+      .set({ lastLoginAt: new Date(), updatedAt: new Date() })
+      .where(eq(users.id, user.id));
+
     // Determine where to redirect based on user type
     let finalRedirect = redirectTo;
     
