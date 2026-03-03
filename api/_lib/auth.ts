@@ -57,12 +57,15 @@ export async function authenticateRequest(
   if (!tenantSubdomain) return null;
 
   const [tenant] = await db
-    .select({ id: tenants.id })
+    .select({ id: tenants.id, deletedAt: tenants.deletedAt })
     .from(tenants)
     .where(eq(tenants.subdomain, tenantSubdomain))
     .limit(1);
 
   if (!tenant) return null;
+
+  // Block soft-deleted tenants
+  if (tenant.deletedAt) return null;
 
   // 5. Verify user has access to this tenant
   const [hasAccess] = await db
