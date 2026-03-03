@@ -52,6 +52,10 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
   const [calculatingDistance, setCalculatingDistance] = useState(false)
   const [googleLoaded, setGoogleLoaded] = useState(false)
 
+  // Recalculate prompt state
+  const [showRecalcPrompt, setShowRecalcPrompt] = useState(false)
+  const [locationChanged, setLocationChanged] = useState(false)
+
   // Refs for autocomplete containers
   const startContainerRef = useRef<HTMLDivElement>(null)
   const endContainerRef = useRef<HTMLDivElement>(null)
@@ -133,12 +137,32 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
     }
   }, [startLocation.location, endLocation.location])
 
-  // Auto-calculate when both locations have geometry
+  // When a location changes via autocomplete, show the recalculate prompt
+  // instead of auto-calculating
   useEffect(() => {
+    if (!locationChanged) return
+    // A location was just updated via autocomplete selection
+    // Show the recalculate prompt
+    setShowRecalcPrompt(true)
+    setLocationChanged(false)
+  }, [locationChanged])
+
+  // Handle recalculate confirmation
+  const handleRecalcConfirm = async () => {
+    setShowRecalcPrompt(false)
+    // If both locations have geometry, calculate immediately
     if (startLocation.location && endLocation.location) {
-      calculateDistance()
+      await calculateDistance()
+    } else {
+      // Only one location has geometry — note this for the user
+      setError('Select both locations from the dropdown to recalculate distance.')
     }
-  }, [startLocation.location, endLocation.location, calculateDistance])
+  }
+
+  const handleRecalcDecline = () => {
+    setShowRecalcPrompt(false)
+    // Keep existing distance — do nothing
+  }
 
   // Initialize autocomplete elements when in edit mode
   useEffect(() => {
@@ -170,6 +194,8 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
                 address: place.formattedAddress || '',
                 location: location ? { lat: location.lat(), lng: location.lng() } : null
               })
+              // Flag that a location was changed via autocomplete
+              setLocationChanged(true)
             }
           })
         }
@@ -192,6 +218,8 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
                 address: place.formattedAddress || '',
                 location: location ? { lat: location.lat(), lng: location.lng() } : null
               })
+              // Flag that a location was changed via autocomplete
+              setLocationChanged(true)
             }
           })
         }
@@ -218,6 +246,8 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
       setMode('view')
       setError(null)
       setShowDeleteConfirm(false)
+      setShowRecalcPrompt(false)
+      setLocationChanged(false)
     }
   }, [trip, isOpen])
 
@@ -228,6 +258,8 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
         setMode('view')
         setError(null)
         setShowDeleteConfirm(false)
+        setShowRecalcPrompt(false)
+        setLocationChanged(false)
         startAutocompleteRef.current = null
         endAutocompleteRef.current = null
       }, 300)
@@ -412,6 +444,29 @@ export function MileageDetailSheet({ trip, isOpen, onClose, onUpdate, onDelete }
           {error && (
             <div className="form-error">
               {error}
+            </div>
+          )}
+
+          {/* Recalculate Distance Prompt */}
+          {showRecalcPrompt && (
+            <div className="recalc-prompt">
+              <p className="recalc-prompt__message">
+                📍 Location changed. Recalculate distance for new route?
+              </p>
+              <div className="recalc-prompt__actions">
+                <button 
+                  className="btn btn--secondary"
+                  onClick={handleRecalcDecline}
+                >
+                  Keep Current
+                </button>
+                <button 
+                  className="btn btn--primary"
+                  onClick={handleRecalcConfirm}
+                >
+                  Recalculate
+                </button>
+              </div>
             </div>
           )}
 

@@ -152,6 +152,7 @@ export const expenses = pgTable('expenses', {
   
   // Receipt
   receiptUrl: text('receipt_url'),
+  receipt2Url: text('receipt2_url'),
   extractedText: text('extracted_text'), // from AI scan, for full-text search
   
   // Recurring expense link
