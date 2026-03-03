@@ -2,12 +2,16 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../../src/db/index.js';
 import { users, sessions, tenants, categories, invites } from '../../../src/db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import { DEFAULT_CATEGORIES, UNCATEGORIZED_CATEGORY } from '../../../src/db/default-categories.js';
 import { escapeHtml } from '../../_lib/utils.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Alias for the tenant owner (separate from the "invited by" user join)
+const ownerUsers = alias(users, 'owner_users');
 
 // Helper: authenticate and verify super admin
 async function authenticateSuperAdmin(req: VercelRequest): Promise<{ user: typeof users.$inferSelect } | null> {
@@ -48,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 // ============================================
-// GET — List all invites
+// GET — List all invites with tenant owner info
 // ============================================
 async function handleGet(req: VercelRequest, res: VercelResponse) {
   const auth = await authenticateSuperAdmin(req);
@@ -66,15 +70,24 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
         expiresAt: invites.expiresAt,
         acceptedAt: invites.acceptedAt,
         createdAt: invites.createdAt,
+        tenantId: invites.tenantId,
         tenantName: tenants.name,
         tenantSubdomain: tenants.subdomain,
+        tenantDeletedAt: tenants.deletedAt,
+        tenantRestoredAt: tenants.restoredAt,
         invitedByFirstName: users.firstName,
         invitedByLastName: users.lastName,
         invitedByEmail: users.email,
+        // Tenant owner's last login (from aliased join)
+        ownerLastLoginAt: ownerUsers.lastLoginAt,
       })
       .from(invites)
       .innerJoin(tenants, eq(invites.tenantId, tenants.id))
       .innerJoin(users, eq(invites.invitedBy, users.id))
+      .leftJoin(ownerUsers, and(
+        eq(ownerUsers.tenantId, tenants.id),
+        eq(ownerUsers.role, 'owner'),
+      ))
       .orderBy(desc(invites.createdAt));
 
     // Auto-expire: if pending and past expiry, mark as expired in response
