@@ -30,6 +30,10 @@ export const tenants = pgTable('tenants', {
   // Billing attribution - who created this tenant?
   createdBy: uuid('created_by'), // references users.id, but can't use FK due to circular dependency
   
+  // Soft delete
+  deletedAt: timestamp('deleted_at'),   // null = active, set = soft deleted
+  restoredAt: timestamp('restored_at'), // audit trail for restore events
+
   // Audit fields
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
