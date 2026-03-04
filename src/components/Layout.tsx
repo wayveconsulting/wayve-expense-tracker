@@ -259,9 +259,10 @@ function NavItem({ icon, label, href, currentPath, onClick }: NavItemProps) {
   )
 }
 
-function AdminNavLink({ user, currentPath, closeDrawer }: { user: { primaryTenant: { subdomain: string } | null }; currentPath: string; closeDrawer: () => void }) {
+function AdminNavLink({ user, currentPath, closeDrawer }: { user: { primaryTenant: { subdomain: string } | null; tenantAccess?: { tenant: { subdomain: string } }[] }; currentPath: string; closeDrawer: () => void }) {
   const currentSubdomain = window.location.hostname.split('.')[0]
-  const homeSubdomain = user.primaryTenant?.subdomain
+  const homeSubdomain = user.primaryTenant?.subdomain 
+    || user.tenantAccess?.find(ta => ta.tenant.subdomain !== currentSubdomain)?.tenant.subdomain
   const isOnForeignTenant = homeSubdomain && currentSubdomain !== homeSubdomain && !window.location.hostname.includes('localhost')
 
   if (isOnForeignTenant) {

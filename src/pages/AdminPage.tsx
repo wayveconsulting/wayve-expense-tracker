@@ -377,8 +377,6 @@ function ClientCard({
         
           <a href={tenantUrl}
           className="admin-invite-card__business admin-invite-card__business--link"
-          target="_blank"
-          rel="noopener noreferrer"
         >
           {client.tenantName}
         </a>
@@ -412,8 +410,6 @@ function ClientCard({
           
             <a href={tenantUrl}
             className="admin-invite-card__value admin-invite-card__value--link"
-            target="_blank"
-            rel="noopener noreferrer"
           >
             {client.tenantSubdomain}.wayveexpenses.app
           </a>
