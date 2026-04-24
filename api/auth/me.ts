@@ -47,6 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         firstName: users.firstName,
         lastName: users.lastName,
         tenantId: users.tenantId,
+        lastTenantId: users.lastTenantId,
         role: users.role,
         isSuperAdmin: users.isSuperAdmin,
         isAccountant: users.isAccountant,
@@ -75,6 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           name: tenants.name,
           subdomain: tenants.subdomain,
           logoUrl: tenants.logoUrl,
+          primaryColor: tenants.primaryColor,
         },
       })
       .from(userTenantAccess)
