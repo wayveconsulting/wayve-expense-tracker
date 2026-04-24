@@ -275,15 +275,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 function getRedirectUri(req: VercelRequest): string {
   const host = req.headers.host || 'localhost:5173';
   const protocol = host.includes('localhost') ? 'http' : 'https';
-  
-  // For subdomains, we need to use the main domain for OAuth callback
-  // Google OAuth redirect URI must match exactly what's configured
+
+  // dev subdomain must be checked before the general wayveexpenses.app check
+  if (host === 'dev.wayveexpenses.app') {
+    return 'https://dev.wayveexpenses.app/api/auth/callback/google';
+  }
   if (host.includes('wayveexpenses.app')) {
     return 'https://wayveexpenses.app/api/auth/callback/google';
   }
   if (host.includes('vercel.app')) {
     return `https://${host}/api/auth/callback/google`;
   }
-  
+
   return `${protocol}://${host}/api/auth/callback/google`;
 }
