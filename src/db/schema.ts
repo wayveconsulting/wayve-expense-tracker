@@ -46,6 +46,10 @@ export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id').references(() => tenants.id), // nullable for super admins who exist outside tenants
   
+  // Multi-tenant: most recently visited tenant (updated on every tenant page load)
+  // Null for super admins or users who haven't visited any tenant yet
+  lastTenantId: uuid('last_tenant_id').references(() => tenants.id, { onDelete: 'set null' }),
+  
   // Auth
   email: varchar('email', { length: 255 }).notNull(),
   passwordHash: varchar('password_hash', { length: 255 }), // nullable - OAuth users won't have one
@@ -362,7 +366,9 @@ export const invites = pgTable('invites', {
   firstName: varchar('first_name', { length: 100 }),
   lastName: varchar('last_name', { length: 100 }),
   
-  // Which tenant they'll own
+  // Primary tenant (kept for backwards compat with single-tenant invites)
+  // For bulk invites, this is set to the FIRST tenant in the list.
+  // Full tenant list is in invite_tenants junction table.
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
   
   // Role to assign on acceptance
@@ -383,6 +389,29 @@ export const invites = pgTable('invites', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+// ============================================
+// INVITE TENANTS (Junction: bulk invite → multiple tenants)
+// ============================================
+// For single-tenant invites, this table is empty for that invite row —
+// the OAuth callback falls back to invites.tenantId in that case.
+// For bulk invites, N rows exist here (one per tenant), and invites.tenantId
+// is set to the first tenant for legacy code path compatibility.
+export const inviteTenants = pgTable('invite_tenants', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  inviteId: uuid('invite_id').notNull().references(() => invites.id, { onDelete: 'cascade' }),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  
+  // Role to grant for this specific tenant (always 'owner' for bulk invites)
+  role: varchar('role', { length: 50 }).default('owner').notNull(),
+  
+  // Audit fields
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  // One row per invite+tenant combination
+  unique('invite_tenant_unique').on(table.inviteId, table.tenantId),
+  index('idx_invite_tenants_invite').on(table.inviteId),
+]);
 
 // ============================================
 // EXPENSE POLICIES (per sub-user rules)
