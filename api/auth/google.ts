@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+\import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -29,21 +29,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
   res.setHeader('Cache-Control', 'no-store');
-return res.redirect(googleAuthUrl);
+  return res.redirect(googleAuthUrl);
 }
 
 function getRedirectUri(req: VercelRequest): string {
   const host = req.headers.host || 'localhost:5173';
-  
-  // For subdomains, OAuth callback goes to main domain
+
+  // dev subdomain must be checked before the general wayveexpenses.app check
+  if (host === 'dev.wayveexpenses.app') {
+    return 'https://dev.wayveexpenses.app/api/auth/callback/google';
+  }
   if (host.includes('wayveexpenses.app')) {
     return 'https://wayveexpenses.app/api/auth/callback/google';
   }
   if (host.includes('vercel.app')) {
-    // Use the specific Vercel deployment URL
     return `https://wayve-expense-tracker.vercel.app/api/auth/callback/google`;
   }
-  
+
   // Local development
   return 'http://localhost:5173/api/auth/callback/google';
 }
