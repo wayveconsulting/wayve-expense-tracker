@@ -14,6 +14,10 @@ export interface AuthResult {
   sessionId: string;
 }
 
+export interface SuperAdminAuthResult {
+  user: typeof users.$inferSelect;
+}
+
 /**
  * Authenticate a request by validating the session cookie,
  * resolving the tenant from ?tenant= query param, and
@@ -84,4 +88,38 @@ export async function authenticateRequest(
     tenantId: tenant.id,
     sessionId: session.id,
   };
+}
+
+/**
+ * Authenticate a request and verify the user is a super admin.
+ * Used by all /api/admin/* endpoints.
+ *
+ * Returns { user } on success, null on failure — caller is responsible
+ * for returning 403 to the client.
+ */
+export async function authenticateSuperAdmin(
+  req: VercelRequest
+): Promise<SuperAdminAuthResult | null> {
+  const cookies = req.headers.cookie || '';
+  const sessionToken = cookies.split(';').map(c => c.trim()).find(c => c.startsWith('session='))?.split('=')[1];
+
+  if (!sessionToken) return null;
+
+  const [session] = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.token, sessionToken))
+    .limit(1);
+
+  if (!session || new Date(session.expiresAt) < new Date()) return null;
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, session.userId))
+    .limit(1);
+
+  if (!user || !user.isSuperAdmin) return null;
+
+  return { user };
 }
