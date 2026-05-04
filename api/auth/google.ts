@@ -34,10 +34,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 function getRedirectUri(req: VercelRequest): string {
   const host = req.headers.host || 'localhost:5173';
-  console.log('OAuth initiator host:', host);
 
-  // dev subdomain must be checked before the general wayveexpenses.app check
-  if (host === 'dev.wayveexpenses.app') {
+  // dev.wayveexpenses.app and any subdomain of it (e.g. sandbox.dev.wayveexpenses.app)
+  if (host === 'dev.wayveexpenses.app' || host.endsWith('.dev.wayveexpenses.app')) {
     return 'https://dev.wayveexpenses.app/api/auth/callback/google';
   }
   if (host.includes('wayveexpenses.app')) {
