@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../../src/db/index.js';
-import { users, tenants, categories, invites } from '../../../src/db/schema.js';
-import { eq, and, desc } from 'drizzle-orm';
+import { users, tenants, categories, invites, inviteTenants } from '../../../src/db/schema.js';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import crypto from 'crypto';
 import { Resend } from 'resend';
@@ -34,6 +34,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
   if (!auth) return res.status(403).json({ error: 'Forbidden' });
 
   try {
+    // Query 1: fetch all invites (one row per invite)
     const allInvites = await db
       .select({
         id: invites.id,
@@ -45,6 +46,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
         expiresAt: invites.expiresAt,
         acceptedAt: invites.acceptedAt,
         createdAt: invites.createdAt,
+        // Legacy single-tenant fields (used as fallback below)
         tenantId: invites.tenantId,
         tenantName: tenants.name,
         tenantSubdomain: tenants.subdomain,
@@ -53,7 +55,6 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
         invitedByFirstName: users.firstName,
         invitedByLastName: users.lastName,
         invitedByEmail: users.email,
-        // Tenant owner's last login (from aliased join)
         ownerLastLoginAt: ownerUsers.lastLoginAt,
       })
       .from(invites)
@@ -65,14 +66,78 @@ async function handleGet(req: VercelRequest, res: VercelResponse) {
       ))
       .orderBy(desc(invites.createdAt));
 
-    // Auto-expire: if pending and past expiry, mark as expired in response
+    if (allInvites.length === 0) {
+      return res.status(200).json({ invites: [] });
+    }
+
+    // Query 2: fetch all invite_tenants rows for these invites in one shot (no N+1)
+    const inviteIds = allInvites.map(i => i.id);
+    const inviteTenantRows = await db
+      .select({
+        inviteId: inviteTenants.inviteId,
+        tenantId: tenants.id,
+        tenantName: tenants.name,
+        tenantSubdomain: tenants.subdomain,
+        tenantDeletedAt: tenants.deletedAt,
+        tenantRestoredAt: tenants.restoredAt,
+        role: inviteTenants.role,
+      })
+      .from(inviteTenants)
+      .innerJoin(tenants, eq(inviteTenants.tenantId, tenants.id))
+      .where(inArray(inviteTenants.inviteId, inviteIds));
+
+    // Group invite_tenants rows by inviteId
+    const tenantsByInviteId = new Map<string, typeof inviteTenantRows>();
+    for (const row of inviteTenantRows) {
+      const existing = tenantsByInviteId.get(row.inviteId) ?? [];
+      existing.push(row);
+      tenantsByInviteId.set(row.inviteId, existing);
+    }
+
+    // Auto-expire and attach tenants[]
     const now = new Date();
-    const enriched = allInvites.map(invite => ({
-      ...invite,
-      status: invite.status === 'pending' && new Date(invite.expiresAt) < now
+    const enriched = allInvites.map(invite => {
+      const status = invite.status === 'pending' && new Date(invite.expiresAt) < now
         ? 'expired'
-        : invite.status,
-    }));
+        : invite.status;
+
+      // Prefer invite_tenants rows; fall back to legacy single-tenant fields
+      const inviteTenantList = tenantsByInviteId.get(invite.id);
+      const tenantList = inviteTenantList && inviteTenantList.length > 0
+        ? inviteTenantList.map(t => ({
+            id: t.tenantId,
+            name: t.tenantName,
+            subdomain: t.tenantSubdomain,
+            deletedAt: t.tenantDeletedAt,
+            restoredAt: t.tenantRestoredAt,
+            role: t.role,
+          }))
+        : [{
+            id: invite.tenantId,
+            name: invite.tenantName,
+            subdomain: invite.tenantSubdomain,
+            deletedAt: invite.tenantDeletedAt,
+            restoredAt: invite.tenantRestoredAt,
+            role: invite.role,
+          }];
+
+      return {
+        id: invite.id,
+        email: invite.email,
+        firstName: invite.firstName,
+        lastName: invite.lastName,
+        role: invite.role,
+        status,
+        expiresAt: invite.expiresAt,
+        acceptedAt: invite.acceptedAt,
+        createdAt: invite.createdAt,
+        invitedByFirstName: invite.invitedByFirstName,
+        invitedByLastName: invite.invitedByLastName,
+        invitedByEmail: invite.invitedByEmail,
+        ownerLastLoginAt: invite.ownerLastLoginAt,
+        tenants: tenantList,
+      };
+    });
 
     return res.status(200).json({ invites: enriched });
   } catch (err) {
