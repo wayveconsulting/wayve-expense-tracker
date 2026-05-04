@@ -42,6 +42,17 @@ function getSubdomainFromHost(hostname: string): string | null {
     return params.get('tenant');
   }
 
+  // Handle dev staging environment (dev.wayveexpenses.app and subdomains)
+  // sandbox.dev.wayveexpenses.app → return 'sandbox'
+  // dev.wayveexpenses.app → fall back to ?tenant= query param
+  if (hostname === 'dev.wayveexpenses.app' || hostname.endsWith('.dev.wayveexpenses.app')) {
+    if (hostname.endsWith('.dev.wayveexpenses.app')) {
+      return hostname.split('.')[0];
+    }
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tenant');
+  }
+
   // Handle production subdomains (e.g., izrgrooming.wayveexpenses.app)
   const parts = hostname.split('.');
   
