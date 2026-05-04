@@ -236,29 +236,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (user.isSuperAdmin) {
       if (allTenantAccess.length === 1) {
-        // Super admin with one tenant — redirect to their business
         finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
       } else if (allTenantAccess.length > 1) {
-        // Super admin with multiple tenants — TODO: tenant picker
-        // For now, default to first tenant
         console.log(`Super admin ${user.id} has ${allTenantAccess.length} tenants, defaulting to first`);
         finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
       } else {
-        // Pure super admin with no tenant — go to admin
         finalRedirect = '/admin';
       }
     } else if (user.isAccountant) {
-      // TODO [MVP - Option B]: Build tenant picker page for accountants
-      // For now, accountants go to dashboard and will need to select a tenant
       finalRedirect = '/dashboard';
     } else {
-      // Regular user
       if (allTenantAccess.length === 0) {
         return res.redirect('/login?error=no_tenant_access');
       } else if (allTenantAccess.length === 1) {
         finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
       } else {
-        // TODO [MVP - Option B]: Multiple tenants - show tenant picker
         console.log(`User ${user.id} has ${allTenantAccess.length} tenants, defaulting to first`);
         finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
       }
@@ -274,10 +266,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 function getRedirectUri(req: VercelRequest): string {
   const host = req.headers.host || 'localhost:5173';
-  const protocol = host.includes('localhost') ? 'http' : 'https';
 
-  // dev subdomain must be checked before the general wayveexpenses.app check
-  if (host === 'dev.wayveexpenses.app') {
+  // dev.wayveexpenses.app and any subdomain of it (e.g. sandbox.dev.wayveexpenses.app)
+  if (host === 'dev.wayveexpenses.app' || host.endsWith('.dev.wayveexpenses.app')) {
     return 'https://dev.wayveexpenses.app/api/auth/callback/google';
   }
   if (host.includes('wayveexpenses.app')) {
@@ -287,5 +278,5 @@ function getRedirectUri(req: VercelRequest): string {
     return `https://${host}/api/auth/callback/google`;
   }
 
-  return `${protocol}://${host}/api/auth/callback/google`;
+  return `http://${host}/api/auth/callback/google`;
 }
