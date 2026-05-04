@@ -1,31 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../src/db/index.js';
-import { users, sessions, tenants } from '../../src/db/schema.js';
-import { eq, inArray } from 'drizzle-orm';
-
-// Helper: authenticate and verify super admin
-async function authenticateSuperAdmin(req: VercelRequest): Promise<boolean> {
-  const cookies = req.headers.cookie || '';
-  const sessionToken = cookies.split(';').map(c => c.trim()).find(c => c.startsWith('session='))?.split('=')[1];
-
-  if (!sessionToken) return false;
-
-  const [session] = await db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.token, sessionToken))
-    .limit(1);
-
-  if (!session || new Date(session.expiresAt) < new Date()) return false;
-
-  const [user] = await db
-    .select({ isSuperAdmin: users.isSuperAdmin })
-    .from(users)
-    .where(eq(users.id, session.userId))
-    .limit(1);
-
-  return !!user?.isSuperAdmin;
-}
+import { tenants } from '../../src/db/schema.js';
+import { inArray } from 'drizzle-orm';
+import { authenticateSuperAdmin } from '../_lib/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
@@ -34,8 +11,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const isAdmin = await authenticateSuperAdmin(req);
-  if (!isAdmin) {
+  const auth = await authenticateSuperAdmin(req);
+  if (!auth) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
