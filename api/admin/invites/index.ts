@@ -1,43 +1,18 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../../src/db/index.js';
-import { users, sessions, tenants, categories, invites } from '../../../src/db/schema.js';
+import { users, tenants, categories, invites } from '../../../src/db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import { DEFAULT_CATEGORIES, UNCATEGORIZED_CATEGORY } from '../../../src/db/default-categories.js';
 import { escapeHtml } from '../../_lib/utils.js';
+import { authenticateSuperAdmin } from '../../_lib/auth.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Alias for the tenant owner (separate from the "invited by" user join)
 const ownerUsers = alias(users, 'owner_users');
-
-// Helper: authenticate and verify super admin
-async function authenticateSuperAdmin(req: VercelRequest): Promise<{ user: typeof users.$inferSelect } | null> {
-  const cookies = req.headers.cookie || '';
-  const sessionToken = cookies.split(';').map(c => c.trim()).find(c => c.startsWith('session='))?.split('=')[1];
-
-  if (!sessionToken) return null;
-
-  const [session] = await db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.token, sessionToken))
-    .limit(1);
-
-  if (!session || new Date(session.expiresAt) < new Date()) return null;
-
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, session.userId))
-    .limit(1);
-
-  if (!user || !user.isSuperAdmin) return null;
-
-  return { user };
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
