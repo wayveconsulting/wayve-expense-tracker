@@ -1,4 +1,4 @@
-\import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -22,8 +22,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     response_type: 'code',
     scope: 'openid email profile',
     state,
-    access_type: 'offline', // Gets refresh token (useful for future features)
-    prompt: 'select_account', // Always show account picker
+    access_type: 'offline',
+    prompt: 'select_account',
   });
 
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
@@ -34,6 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 function getRedirectUri(req: VercelRequest): string {
   const host = req.headers.host || 'localhost:5173';
+  console.log('OAuth initiator host:', host);
 
   // dev subdomain must be checked before the general wayveexpenses.app check
   if (host === 'dev.wayveexpenses.app') {
