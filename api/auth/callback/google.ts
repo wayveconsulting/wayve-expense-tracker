@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../../src/db/index.js';
-import { users, sessions, userTenantAccess, tenants, invites } from '../../../src/db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { users, sessions, userTenantAccess, tenants, invites, inviteTenants } from '../../../src/db/schema.js';
+import { eq, and, inArray } from 'drizzle-orm';
 import crypto from 'crypto';
 
 interface GoogleTokenResponse {
@@ -121,7 +121,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.redirect('/login?error=invite_expired');
       }
 
-      // Invite is valid — create the user
+      // --- B4: Resolve tenant list for this invite ---
+      // Check invite_tenants first (bulk invites). If empty, fall back to
+      // the legacy invites.tenantId (single-tenant invites still in the system).
+      const bulkTenantRows = await db
+        .select({
+          tenantId: inviteTenants.tenantId,
+          subdomain: tenants.subdomain,
+          role: inviteTenants.role,
+        })
+        .from(inviteTenants)
+        .innerJoin(tenants, eq(inviteTenants.tenantId, tenants.id))
+        .where(eq(inviteTenants.inviteId, pendingInvite.id));
+
+      // Build the canonical tenant list for this acceptance.
+      // bulkTenantRows is already ordered by DB insertion order (which matches
+      // the order Amber selected them in the bulk invite form).
+      type TenantEntry = { tenantId: string; subdomain: string; role: string };
+      let tenantList: TenantEntry[];
+
+      if (bulkTenantRows.length > 0) {
+        // Bulk invite — use the junction table rows
+        tenantList = bulkTenantRows;
+      } else {
+        // Legacy single-tenant invite — derive from invites.tenantId
+        const [legacyTenant] = await db
+          .select({ subdomain: tenants.subdomain })
+          .from(tenants)
+          .where(eq(tenants.id, pendingInvite.tenantId))
+          .limit(1);
+
+        if (!legacyTenant) {
+          console.error(`Invite ${pendingInvite.id} has no valid tenant`);
+          return res.redirect('/login?error=invalid_invite');
+        }
+
+        tenantList = [{
+          tenantId: pendingInvite.tenantId,
+          subdomain: legacyTenant.subdomain,
+          role: pendingInvite.role || 'owner',
+        }];
+      }
+
+      const primaryTenant = tenantList[0];
+
+      // Create the new user with primary tenant set
       const [newUser] = await db
         .insert(users)
         .values({
@@ -129,20 +173,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           firstName: googleUser.given_name || pendingInvite.firstName || null,
           lastName: googleUser.family_name || pendingInvite.lastName || null,
           googleId: googleUser.id,
-          tenantId: pendingInvite.tenantId,
-          role: pendingInvite.role || 'owner',
+          tenantId: primaryTenant.tenantId,
+          lastTenantId: primaryTenant.tenantId,
+          role: primaryTenant.role,
           emailVerified: true,
           isSuperAdmin: false,
           isAccountant: false,
         })
         .returning();
 
-      // Create tenant access record
-      await db.insert(userTenantAccess).values({
-        userId: newUser.id,
-        tenantId: pendingInvite.tenantId,
-        role: pendingInvite.role || 'owner',
-      });
+      // Batch-insert all user_tenant_access rows in one query (no N+1)
+      await db.insert(userTenantAccess).values(
+        tenantList.map((t) => ({
+          userId: newUser.id,
+          tenantId: t.tenantId,
+          role: t.role,
+        }))
+      );
 
       // Mark invite as accepted
       await db
@@ -154,15 +201,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         })
         .where(eq(invites.id, pendingInvite.id));
 
-      // Use the newly created user going forward
       user = newUser;
     }
 
-    // Update user's Google ID if not set (first OAuth login)
+    // Update user's Google ID if not set (first OAuth login for existing user)
     if (!user.googleId) {
       await db
         .update(users)
-        .set({ 
+        .set({
           googleId: googleUser.id,
           updatedAt: new Date(),
         })
@@ -206,53 +252,78 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .set({ lastLoginAt: new Date(), updatedAt: new Date() })
       .where(eq(users.id, user.id));
 
-    // Determine where to redirect based on user type
-    let finalRedirect = redirectTo;
-    
-    // Look up tenant access for ALL user types (including super admins)
+    // --- B5: Determine redirect target ---
+    // Look up all tenant access for this user (one JOIN query, no N+1)
     const tenantAccessRecords = await db
       .select({
         tenantId: userTenantAccess.tenantId,
         subdomain: tenants.subdomain,
+        name: tenants.name,
       })
       .from(userTenantAccess)
       .innerJoin(tenants, eq(userTenantAccess.tenantId, tenants.id))
       .where(eq(userTenantAccess.userId, user.id));
 
-    // Also check if user has a primary tenant (legacy/direct assignment)
+    // Also include primary tenant if not already in the access list (legacy users)
     let allTenantAccess = [...tenantAccessRecords];
-    
+
     if (user.tenantId) {
-      const [primaryTenant] = await db
-        .select({ subdomain: tenants.subdomain })
-        .from(tenants)
-        .where(eq(tenants.id, user.tenantId))
-        .limit(1);
-      
-      if (primaryTenant && !allTenantAccess.some(t => t.subdomain === primaryTenant.subdomain)) {
-        allTenantAccess.push({ tenantId: user.tenantId, subdomain: primaryTenant.subdomain });
+      const alreadyIncluded = allTenantAccess.some((t) => t.tenantId === user.tenantId);
+      if (!alreadyIncluded) {
+        const [primaryTenant] = await db
+          .select({ subdomain: tenants.subdomain, name: tenants.name })
+          .from(tenants)
+          .where(eq(tenants.id, user.tenantId))
+          .limit(1);
+
+        if (primaryTenant) {
+          allTenantAccess.push({
+            tenantId: user.tenantId,
+            subdomain: primaryTenant.subdomain,
+            name: primaryTenant.name,
+          });
+        }
       }
     }
+
+    let finalRedirect = redirectTo;
 
     if (user.isSuperAdmin) {
       if (allTenantAccess.length === 1) {
         finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
       } else if (allTenantAccess.length > 1) {
+        // TODO: tenant picker for super admins with multiple tenants
         console.log(`Super admin ${user.id} has ${allTenantAccess.length} tenants, defaulting to first`);
         finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
       } else {
+        // Pure super admin with no tenant
         finalRedirect = '/admin';
       }
     } else if (user.isAccountant) {
+      // TODO [MVP - Option B]: Build tenant picker page for accountants
       finalRedirect = '/dashboard';
     } else {
+      // Regular user — B5 multi-tenant redirect logic
       if (allTenantAccess.length === 0) {
         return res.redirect('/login?error=no_tenant_access');
       } else if (allTenantAccess.length === 1) {
+        // Single tenant — straightforward
         finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
       } else {
-        console.log(`User ${user.id} has ${allTenantAccess.length} tenants, defaulting to first`);
-        finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
+        // Multiple tenants — prefer lastTenantId, fall back to alphabetically first by name
+        const lastVisited = user.lastTenantId
+          ? allTenantAccess.find((t) => t.tenantId === user.lastTenantId)
+          : null;
+
+        if (lastVisited) {
+          finalRedirect = `/?tenant=${lastVisited.subdomain}`;
+        } else {
+          // Sort by tenant name alphabetically and take the first
+          const sorted = [...allTenantAccess].sort((a, b) =>
+            a.name.localeCompare(b.name)
+          );
+          finalRedirect = `/?tenant=${sorted[0].subdomain}`;
+        }
       }
     }
 
@@ -266,17 +337,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 function getRedirectUri(req: VercelRequest): string {
   const host = req.headers.host || 'localhost:5173';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
 
-  // dev.wayveexpenses.app and any subdomain of it (e.g. sandbox.dev.wayveexpenses.app)
-  if (host === 'dev.wayveexpenses.app' || host.endsWith('.dev.wayveexpenses.app')) {
-    return 'https://dev.wayveexpenses.app/api/auth/callback/google';
-  }
-  if (host.includes('wayveexpenses.app')) {
+  // For subdomains, we need to use the main domain for OAuth callback
+  // Google OAuth redirect URI must match exactly what's configured
+  if (host.endsWith('.wayveexpenses.app') || host === 'wayveexpenses.app') {
     return 'https://wayveexpenses.app/api/auth/callback/google';
   }
   if (host.includes('vercel.app')) {
     return `https://${host}/api/auth/callback/google`;
   }
 
-  return `http://${host}/api/auth/callback/google`;
+  return `${protocol}://${host}/api/auth/callback/google`;
 }
