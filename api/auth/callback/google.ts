@@ -61,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         code,
         client_id: process.env.GOOGLE_CLIENT_ID!,
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        redirect_uri: getRedirectUri(req),
+        redirect_uri: getRedirectUri(),
         grant_type: 'authorization_code',
       }),
     });
@@ -335,18 +335,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-function getRedirectUri(req: VercelRequest): string {
-  const host = req.headers.host || 'localhost:5173';
-  const protocol = host.includes('localhost') ? 'http' : 'https';
-
-  // For subdomains, we need to use the main domain for OAuth callback
-  // Google OAuth redirect URI must match exactly what's configured
-  if (host.endsWith('.wayveexpenses.app') || host === 'wayveexpenses.app') {
-    return 'https://wayveexpenses.app/api/auth/callback/google';
-  }
-  if (host.includes('vercel.app')) {
-    return `https://${host}/api/auth/callback/google`;
-  }
-
-  return `${protocol}://${host}/api/auth/callback/google`;
+function getRedirectUri(): string {
+  if (process.env.OAUTH_REDIRECT_URI) return process.env.OAUTH_REDIRECT_URI;
+  return 'http://localhost:5173/api/auth/callback/google';
 }
