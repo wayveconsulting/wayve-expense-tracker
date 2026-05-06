@@ -13,7 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   })).toString('base64');
 
   // Determine the correct redirect URI based on environment
-  const redirectUri = getRedirectUri(req);
+  const redirectUri = getRedirectUri();
 
   // Build Google OAuth URL
   const params = new URLSearchParams({
@@ -32,20 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   return res.redirect(googleAuthUrl);
 }
 
-function getRedirectUri(req: VercelRequest): string {
-  const host = req.headers.host || 'localhost:5173';
-
-  // dev.wayveexpenses.app and any subdomain of it (e.g. sandbox.dev.wayveexpenses.app)
-  if (host === 'dev.wayveexpenses.app' || host.endsWith('.dev.wayveexpenses.app')) {
-    return 'https://dev.wayveexpenses.app/api/auth/callback/google';
-  }
-  if (host.includes('wayveexpenses.app')) {
-    return 'https://wayveexpenses.app/api/auth/callback/google';
-  }
-  if (host.includes('vercel.app')) {
-    return `https://wayve-expense-tracker.vercel.app/api/auth/callback/google`;
-  }
-
-  // Local development
+function getRedirectUri(): string {
+  if (process.env.OAUTH_REDIRECT_URI) return process.env.OAUTH_REDIRECT_URI;
   return 'http://localhost:5173/api/auth/callback/google';
 }
