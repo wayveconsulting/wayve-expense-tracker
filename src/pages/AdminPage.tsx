@@ -23,6 +23,19 @@ interface Client {
   ownerLastLoginAt: string | null
 }
 
+interface ExistingTenant {
+  id: string
+  name: string
+  subdomain: string
+}
+
+interface NewTenantRow {
+  key: number
+  businessName: string
+  subdomain: string
+  subdomainEdited: boolean
+}
+
 export default function AdminPage() {
   const { isSuperAdmin } = useAuth()
   const [listRefreshKey, setListRefreshKey] = useState(0)
@@ -47,7 +60,7 @@ export default function AdminPage() {
       <InviteForm onSuccess={() => setListRefreshKey(k => k + 1)} />
       <ClientList refreshKey={listRefreshKey} onRefresh={() => setListRefreshKey(k => k + 1)} />
 
-      {/* D1: Deletion Zone entry point */}
+      {/* Deletion Zone entry point */}
       <div className="admin-section admin-section--danger">
         <button
           className="btn btn--danger btn--full"
@@ -57,7 +70,7 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* D2: Entry confirmation modal */}
+      {/* Entry confirmation modal */}
       {showDeleteConfirm && (
         <div className="admin-modal-backdrop" onClick={() => setShowDeleteConfirm(false)}>
           <div className="admin-modal admin-modal--danger" onClick={e => e.stopPropagation()}>
@@ -83,50 +96,135 @@ export default function AdminPage() {
 // ============================================
 // INVITE FORM
 // ============================================
+let newTenantKeyCounter = 0
+
 function InviteForm({ onSuccess }: { onSuccess: () => void }) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
-  const [businessName, setBusinessName] = useState('')
-  const [subdomain, setSubdomain] = useState('')
-  const [subdomainEdited, setSubdomainEdited] = useState(false)
+
+  // Existing tenants checklist
+  const [existingTenants, setExistingTenants] = useState<ExistingTenant[]>([])
+  const [selectedTenantIds, setSelectedTenantIds] = useState<Set<string>>(new Set())
+  const [tenantsLoading, setTenantsLoading] = useState(true)
+  const [tenantsError, setTenantsError] = useState<string | null>(null)
+
+  // Inline new tenant rows
+  const [newTenantRows, setNewTenantRows] = useState<NewTenantRow[]>([])
+
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
+  // Fetch existing tenants on mount
   useEffect(() => {
-    if (!subdomainEdited && businessName) {
-      const suggested = businessName
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '')
-        .slice(0, 30)
-      setSubdomain(suggested)
+    async function fetchTenants() {
+      try {
+        const response = await fetch('/api/admin/tenants', { credentials: 'include' })
+        if (response.ok) {
+          const data = await response.json()
+          setExistingTenants(data.tenants)
+        } else {
+          setTenantsError('Failed to load tenants')
+        }
+      } catch {
+        setTenantsError('Network error loading tenants')
+      } finally {
+        setTenantsLoading(false)
+      }
     }
-  }, [businessName, subdomainEdited])
+    fetchTenants()
+  }, [])
 
-  const handleSubdomainChange = (value: string) => {
-    setSubdomain(value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 30))
-    setSubdomainEdited(true)
+  const toggleTenant = (id: string) => {
+    setSelectedTenantIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const addNewTenantRow = () => {
+    setNewTenantRows(prev => [
+      ...prev,
+      { key: newTenantKeyCounter++, businessName: '', subdomain: '', subdomainEdited: false },
+    ])
+  }
+
+  const removeNewTenantRow = (key: number) => {
+    setNewTenantRows(prev => prev.filter(r => r.key !== key))
+  }
+
+  const updateNewTenantRow = (key: number, field: 'businessName' | 'subdomain', value: string) => {
+    setNewTenantRows(prev =>
+      prev.map(r => {
+        if (r.key !== key) return r
+
+        if (field === 'businessName') {
+          const suggested = value
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '')
+            .slice(0, 30)
+          return {
+            ...r,
+            businessName: value,
+            subdomain: r.subdomainEdited ? r.subdomain : suggested,
+          }
+        }
+
+        if (field === 'subdomain') {
+          return {
+            ...r,
+            subdomain: value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 30),
+            subdomainEdited: true,
+          }
+        }
+
+        return r
+      })
+    )
   }
 
   const handleSubmit = async () => {
     setError(null)
     setSuccess(null)
 
-    if (!email || !businessName || !subdomain) {
-      setError('Email, business name, and subdomain are required')
+    if (!email) {
+      setError('Email is required')
       return
     }
 
-    if (subdomain.length < 3) {
-      setError('Subdomain must be at least 3 characters')
+    const tenantIds = [...selectedTenantIds]
+    const newTenants = newTenantRows.map(r => ({
+      businessName: r.businessName.trim(),
+      subdomain: r.subdomain,
+    }))
+
+    if (tenantIds.length === 0 && newTenants.length === 0) {
+      setError('Select at least one tenant or add a new one')
       return
+    }
+
+    // Validate new tenant rows before submitting
+    for (const t of newTenants) {
+      if (!t.businessName) {
+        setError('All new tenants must have a business name')
+        return
+      }
+      if (t.subdomain.length < 3) {
+        setError(`Subdomain "${t.subdomain}" must be at least 3 characters`)
+        return
+      }
     }
 
     setSubmitting(true)
 
     try {
-      const response = await fetch('/api/admin/invites', {
+      const response = await fetch('/api/admin/invites/bulk', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -134,8 +232,8 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
           email: email.trim(),
           firstName: firstName.trim() || null,
           lastName: lastName.trim() || null,
-          businessName: businessName.trim(),
-          subdomain,
+          tenantIds,
+          newTenants,
         }),
       })
 
@@ -146,14 +244,23 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
       }
 
       const data = await response.json()
-      setSuccess(`Invite sent to ${email} for ${businessName} (${data.tenant.subdomain}.wayveexpenses.app)`)
+      const tenantNames = (data.tenants as { name: string }[]).map(t => t.name).join(', ')
+      setSuccess(`Invite sent to ${email.trim()} for: ${tenantNames}`)
 
+      // Reset form
       setFirstName('')
       setLastName('')
       setEmail('')
-      setBusinessName('')
-      setSubdomain('')
-      setSubdomainEdited(false)
+      setSelectedTenantIds(new Set())
+      setNewTenantRows([])
+
+      // Refresh tenant list so newly created tenants appear in the checklist next time
+      const refreshResponse = await fetch('/api/admin/tenants', { credentials: 'include' })
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json()
+        setExistingTenants(refreshData.tenants)
+      }
+
       onSuccess()
     } catch {
       setError('Network error — please try again')
@@ -170,6 +277,7 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
       {success && <div className="admin-alert admin-alert--success">{success}</div>}
 
       <div className="admin-form">
+        {/* Name + Email */}
         <div className="admin-form__row">
           <div className="admin-form__field">
             <label className="admin-form__label">First Name</label>
@@ -204,29 +312,80 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
           />
         </div>
 
+        {/* Tenant selection */}
         <div className="admin-form__field">
-          <label className="admin-form__label">Business Name *</label>
-          <input
-            type="text"
-            className="admin-form__input"
-            value={businessName}
-            onChange={e => setBusinessName(e.target.value)}
-            placeholder="Joe's Plumbing"
-          />
-        </div>
+          <label className="admin-form__label">Tenant(s) *</label>
 
-        <div className="admin-form__field">
-          <label className="admin-form__label">Subdomain *</label>
-          <div className="admin-form__subdomain-wrapper">
-            <input
-              type="text"
-              className="admin-form__input admin-form__input--subdomain"
-              value={subdomain}
-              onChange={e => handleSubdomainChange(e.target.value)}
-              placeholder="joesplumbing"
-            />
-            <span className="admin-form__subdomain-suffix">.wayveexpenses.app</span>
-          </div>
+          {tenantsLoading && (
+            <p className="admin-form__hint">Loading tenants...</p>
+          )}
+
+          {tenantsError && (
+            <p className="admin-form__hint admin-form__hint--error">{tenantsError}</p>
+          )}
+
+          {!tenantsLoading && !tenantsError && (
+            <div className="admin-form__tenant-checklist">
+              {existingTenants.length === 0 && newTenantRows.length === 0 && (
+                <p className="admin-form__hint">No existing tenants — add one below.</p>
+              )}
+
+              {existingTenants.map(tenant => (
+                <label key={tenant.id} className="admin-form__tenant-option">
+                  <input
+                    type="checkbox"
+                    className="admin-form__tenant-checkbox"
+                    checked={selectedTenantIds.has(tenant.id)}
+                    onChange={() => toggleTenant(tenant.id)}
+                  />
+                  <span className="admin-form__tenant-name">{tenant.name}</span>
+                  <span className="admin-form__tenant-subdomain">{tenant.subdomain}.wayveexpenses.app</span>
+                </label>
+              ))}
+
+              {/* Inline new tenant rows */}
+              {newTenantRows.map(row => (
+                <div key={row.key} className="admin-form__new-tenant-row">
+                  <div className="admin-form__new-tenant-fields">
+                    <input
+                      type="text"
+                      className="admin-form__input"
+                      value={row.businessName}
+                      onChange={e => updateNewTenantRow(row.key, 'businessName', e.target.value)}
+                      placeholder="Business Name"
+                    />
+                    <div className="admin-form__subdomain-wrapper">
+                      <input
+                        type="text"
+                        className="admin-form__input admin-form__input--subdomain"
+                        value={row.subdomain}
+                        onChange={e => updateNewTenantRow(row.key, 'subdomain', e.target.value)}
+                        placeholder="subdomain"
+                      />
+                      <span className="admin-form__subdomain-suffix">.wayveexpenses.app</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="admin-form__remove-tenant"
+                    onClick={() => removeNewTenantRow(row.key)}
+                    aria-label="Remove tenant"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+              {/* Add new tenant button */}
+              <button
+                type="button"
+                className="admin-form__add-tenant-btn"
+                onClick={addNewTenantRow}
+              >
+                + Add New Tenant
+              </button>
+            </div>
+          )}
         </div>
 
         <button
@@ -373,9 +532,7 @@ function ClientCard({
   return (
     <div className={`admin-invite-card${isDeleted ? ' admin-invite-card--deleted' : ''}`}>
       <div className="admin-invite-card__header">
-        {/* B2: Tenant name as clickable link */}
-        
-          <a href={tenantUrl}
+        <a href={tenantUrl}
           className="admin-invite-card__business admin-invite-card__business--link"
         >
           {client.tenantName}
@@ -404,24 +561,20 @@ function ClientCard({
             </span>
           </div>
         )}
-        {/* B3: Subdomain as clickable link */}
         <div className="admin-invite-card__row">
           <span className="admin-invite-card__label">Subdomain</span>
-          
-            <a href={tenantUrl}
+          <a href={tenantUrl}
             className="admin-invite-card__value admin-invite-card__value--link"
           >
             {client.tenantSubdomain}.wayveexpenses.app
           </a>
         </div>
-        {/* B4: "Sent" → "Invite Sent" */}
         <div className="admin-invite-card__row">
           <span className="admin-invite-card__label">Invite Sent</span>
           <span className="admin-invite-card__value">
             {new Date(client.createdAt).toLocaleDateString()}
           </span>
         </div>
-        {/* B5: Conditional invite status display */}
         <div className="admin-invite-card__row">
           <span className="admin-invite-card__label">
             {client.status === 'accepted' ? 'Invite Accepted' : 'Invite Expires'}
@@ -432,7 +585,6 @@ function ClientCard({
               : new Date(client.expiresAt).toLocaleDateString()}
           </span>
         </div>
-        {/* B6: Last Login */}
         <div className="admin-invite-card__row">
           <span className="admin-invite-card__label">Last Login</span>
           <span className="admin-invite-card__value">
@@ -441,7 +593,6 @@ function ClientCard({
               : '—'}
           </span>
         </div>
-        {/* B7 stub: API Usage — wired up in Phase C */}
         <div className="admin-invite-card__row">
           <span className="admin-invite-card__label">API Usage</span>
           <span className="admin-invite-card__value admin-invite-card__value--muted">
@@ -450,7 +601,6 @@ function ClientCard({
         </div>
       </div>
 
-      {/* B9: Restore button for soft-deleted clients */}
       {isDeleted && (
         <button
           className="btn btn--outline btn--full admin-invite-card__restore"
@@ -461,7 +611,6 @@ function ClientCard({
         </button>
       )}
 
-      {/* Resend button for pending/expired invites (only if not deleted) */}
       {!isDeleted && (client.status === 'pending' || client.status === 'expired') && (
         <button
           className="btn btn--outline btn--full admin-invite-card__resend"

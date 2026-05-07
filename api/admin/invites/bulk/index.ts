@@ -9,6 +9,11 @@ import { authenticateSuperAdmin } from '../../../_lib/auth.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+interface NewTenantInput {
+  businessName: string;
+  subdomain: string;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
 
@@ -21,24 +26,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const { email, firstName, lastName, tenantIds } = req.body ?? {};
+  const { email, firstName, lastName, tenantIds = [], newTenants = [] } = req.body ?? {};
 
-  // --- Validation ---
+  // --- Validate email ---
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ error: 'email is required' });
-  }
-
-  if (!Array.isArray(tenantIds) || tenantIds.length === 0) {
-    return res.status(400).json({ error: 'tenantIds must be a non-empty array' });
-  }
-
-  if (!tenantIds.every((id: unknown) => typeof id === 'string')) {
-    return res.status(400).json({ error: 'All tenantIds must be strings' });
   }
 
   const cleanEmail = email.toLowerCase().trim();
   if (!cleanEmail.includes('@')) {
     return res.status(400).json({ error: 'Invalid email address' });
+  }
+
+  // --- Validate at least one tenant source ---
+  const hasExistingTenants = Array.isArray(tenantIds) && tenantIds.length > 0;
+  const hasNewTenants = Array.isArray(newTenants) && newTenants.length > 0;
+
+  if (!hasExistingTenants && !hasNewTenants) {
+    return res.status(400).json({ error: 'At least one tenant must be selected or created' });
+  }
+
+  // --- Validate tenantIds are strings ---
+  if (hasExistingTenants && !tenantIds.every((id: unknown) => typeof id === 'string')) {
+    return res.status(400).json({ error: 'All tenantIds must be strings' });
+  }
+
+  // --- Validate newTenants shape ---
+  if (hasNewTenants) {
+    for (const t of newTenants as NewTenantInput[]) {
+      if (!t.businessName || typeof t.businessName !== 'string' || !t.businessName.trim()) {
+        return res.status(400).json({ error: 'Each new tenant must have a businessName' });
+      }
+      if (!t.subdomain || typeof t.subdomain !== 'string') {
+        return res.status(400).json({ error: 'Each new tenant must have a subdomain' });
+      }
+      const cleanSub = t.subdomain.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (cleanSub.length < 3) {
+        return res.status(400).json({ error: `Subdomain "${t.subdomain}" must be at least 3 characters` });
+      }
+    }
   }
 
   // --- Check for duplicate pending invite ---
@@ -52,32 +78,72 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(409).json({ error: 'A pending invite already exists for this email' });
   }
 
-  // --- Verify all tenants exist and are not soft-deleted ---
-  const validTenants = await db
-    .select({ id: tenants.id, name: tenants.name })
-    .from(tenants)
-    .where(inArray(tenants.id, tenantIds));
+  // --- Verify existing tenants exist and are not soft-deleted ---
+  let verifiedExistingTenants: { id: string; name: string }[] = [];
 
-  const validTenantIds = new Set(validTenants.map(t => t.id));
-  const invalidIds = tenantIds.filter((id: string) => !validTenantIds.has(id));
+  if (hasExistingTenants) {
+    verifiedExistingTenants = await db
+      .select({ id: tenants.id, name: tenants.name })
+      .from(tenants)
+      .where(inArray(tenants.id, tenantIds));
 
-  if (invalidIds.length > 0) {
-    return res.status(400).json({
-      error: 'One or more tenantIds are invalid or deleted',
-      invalidIds,
-    });
+    const validTenantIds = new Set(verifiedExistingTenants.map(t => t.id));
+    const invalidIds = tenantIds.filter((id: string) => !validTenantIds.has(id));
+
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        error: 'One or more tenantIds are invalid or deleted',
+        invalidIds,
+      });
+    }
+
+    // Preserve caller-supplied order
+    verifiedExistingTenants = tenantIds.map((id: string) =>
+      verifiedExistingTenants.find(t => t.id === id)!
+    );
   }
 
-  // Preserve the order the caller supplied for the email listing
-  const orderedTenants = tenantIds.map((id: string) =>
-    validTenants.find(t => t.id === id)!
-  );
-
   try {
+    // --- 1. Create new tenants inline ---
+    const createdTenants: { id: string; name: string }[] = [];
+
+    if (hasNewTenants) {
+      for (const t of newTenants as NewTenantInput[]) {
+        const cleanSub = t.subdomain.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 30);
+        const cleanName = t.businessName.trim();
+
+        // Check subdomain uniqueness before inserting
+        const [existing] = await db
+          .select({ id: tenants.id })
+          .from(tenants)
+          .where(eq(tenants.subdomain, cleanSub))
+          .limit(1);
+
+        if (existing) {
+          return res.status(409).json({
+            error: `Subdomain "${cleanSub}" is already taken`,
+          });
+        }
+
+        const [created] = await db
+          .insert(tenants)
+          .values({
+            name: cleanName,
+            subdomain: cleanSub,
+          })
+          .returning({ id: tenants.id, name: tenants.name });
+
+        createdTenants.push(created);
+      }
+    }
+
+    // --- 2. Merge existing + newly created tenants (existing first, preserving order) ---
+    const orderedTenants = [...verifiedExistingTenants, ...createdTenants];
+
+    // --- 3. Create invite row (tenantId = first tenant for legacy compat) ---
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
-    // --- 1. Create invite row (tenantId = first tenant for legacy compat) ---
     const [newInvite] = await db
       .insert(invites)
       .values({
@@ -93,7 +159,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
       .returning();
 
-    // --- 2. Insert invite_tenants rows (one per tenant) ---
+    // --- 4. Insert invite_tenants rows (one per tenant) ---
     await db.insert(inviteTenants).values(
       orderedTenants.map(t => ({
         inviteId: newInvite.id,
@@ -102,7 +168,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }))
     );
 
-    // --- 3. Send invite email ---
+    // --- 5. Send invite email ---
     const inviteUrl = `https://wayveexpenses.app/invite?token=${token}`;
     const expiryDate = expiresAt.toLocaleDateString('en-US', {
       year: 'numeric',

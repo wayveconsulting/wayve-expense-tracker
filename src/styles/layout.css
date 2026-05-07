@@ -4466,6 +4466,118 @@ body:has(.sheet-backdrop--open) {
   white-space: nowrap;
 }
 
+/* Admin Invite Form — Tenant Selection */
+
+.admin-form__tenant-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+  background: var(--color-bg-secondary);
+}
+
+.admin-form__tenant-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+}
+
+.admin-form__tenant-option:hover {
+  background: var(--color-bg-primary);
+}
+
+.admin-form__tenant-checkbox {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.admin-form__tenant-name {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  flex: 1;
+}
+
+.admin-form__tenant-subdomain {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.admin-form__new-tenant-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  margin-top: var(--spacing-xs);
+}
+
+.admin-form__new-tenant-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1;
+}
+
+.admin-form__remove-tenant {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  margin-top: 6px;
+}
+
+.admin-form__remove-tenant:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-danger);
+}
+
+.admin-form__add-tenant-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  margin-top: var(--spacing-xs);
+  align-self: flex-start;
+}
+
+.admin-form__add-tenant-btn:hover {
+  background: var(--color-bg-primary);
+}
+
+.admin-form__hint {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.admin-form__hint--error {
+  color: var(--color-danger);
+}
+
 /* Admin Invite Cards */
 
 .admin-invite-list {
