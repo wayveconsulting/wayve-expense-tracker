@@ -4578,6 +4578,65 @@ body:has(.sheet-backdrop--open) {
   color: var(--color-danger);
 }
 
+/* Admin Invite Card — Tenant Chips */
+
+.admin-invite-card__email {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--color-text-primary);
+}
+
+.admin-invite-card__tenants {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin: var(--spacing-sm) 0;
+}
+
+.admin-invite-card__tenant-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-primary);
+}
+
+.admin-invite-card__tenant-chip--deleted {
+  border-left-color: var(--color-danger);
+  opacity: 0.7;
+}
+
+.admin-invite-card__tenant-chip-main {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.admin-invite-card__tenant-name {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.admin-invite-card__tenant-name:hover {
+  text-decoration: underline;
+  color: var(--color-primary);
+}
+
+.admin-invite-card__tenant-subdomain {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.admin-invite-card__tenant-chip-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: 4px;
+}
+
 /* Admin Invite Cards */
 
 .admin-invite-list {

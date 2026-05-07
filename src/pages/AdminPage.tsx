@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Link } from 'wouter'
 
+interface InviteTenant {
+  id: string
+  name: string
+  subdomain: string
+  deletedAt: string | null
+  restoredAt: string | null
+  role: string
+}
+
 interface Client {
   id: string
   email: string
@@ -12,15 +21,11 @@ interface Client {
   expiresAt: string
   acceptedAt: string | null
   createdAt: string
-  tenantId: string
-  tenantName: string
-  tenantSubdomain: string
-  tenantDeletedAt: string | null
-  tenantRestoredAt: string | null
   invitedByFirstName: string | null
   invitedByLastName: string | null
   invitedByEmail: string
   ownerLastLoginAt: string | null
+  tenants: InviteTenant[]
 }
 
 interface ExistingTenant {
@@ -103,20 +108,17 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
 
-  // Existing tenants checklist
   const [existingTenants, setExistingTenants] = useState<ExistingTenant[]>([])
   const [selectedTenantIds, setSelectedTenantIds] = useState<Set<string>>(new Set())
   const [tenantsLoading, setTenantsLoading] = useState(true)
   const [tenantsError, setTenantsError] = useState<string | null>(null)
 
-  // Inline new tenant rows
   const [newTenantRows, setNewTenantRows] = useState<NewTenantRow[]>([])
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  // Fetch existing tenants on mount
   useEffect(() => {
     async function fetchTenants() {
       try {
@@ -209,7 +211,6 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
       return
     }
 
-    // Validate new tenant rows before submitting
     for (const t of newTenants) {
       if (!t.businessName) {
         setError('All new tenants must have a business name')
@@ -247,14 +248,13 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
       const tenantNames = (data.tenants as { name: string }[]).map(t => t.name).join(', ')
       setSuccess(`Invite sent to ${email.trim()} for: ${tenantNames}`)
 
-      // Reset form
       setFirstName('')
       setLastName('')
       setEmail('')
       setSelectedTenantIds(new Set())
       setNewTenantRows([])
 
-      // Refresh tenant list so newly created tenants appear in the checklist next time
+      // Refresh tenant checklist so newly created tenants appear
       const refreshResponse = await fetch('/api/admin/tenants', { credentials: 'include' })
       if (refreshResponse.ok) {
         const refreshData = await refreshResponse.json()
@@ -277,7 +277,6 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
       {success && <div className="admin-alert admin-alert--success">{success}</div>}
 
       <div className="admin-form">
-        {/* Name + Email */}
         <div className="admin-form__row">
           <div className="admin-form__field">
             <label className="admin-form__label">First Name</label>
@@ -312,7 +311,6 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
           />
         </div>
 
-        {/* Tenant selection */}
         <div className="admin-form__field">
           <label className="admin-form__label">Tenant(s) *</label>
 
@@ -343,7 +341,6 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
                 </label>
               ))}
 
-              {/* Inline new tenant rows */}
               {newTenantRows.map(row => (
                 <div key={row.key} className="admin-form__new-tenant-row">
                   <div className="admin-form__new-tenant-fields">
@@ -376,7 +373,6 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
                 </div>
               ))}
 
-              {/* Add new tenant button */}
               <button
                 type="button"
                 className="admin-form__add-tenant-btn"
@@ -401,7 +397,7 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 // ============================================
-// CLIENT LIST (formerly InviteList)
+// CLIENT LIST
 // ============================================
 function ClientList({ refreshKey, onRefresh }: { refreshKey: number; onRefresh: () => void }) {
   const [clients, setClients] = useState<Client[]>([])
@@ -412,9 +408,7 @@ function ClientList({ refreshKey, onRefresh }: { refreshKey: number; onRefresh: 
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('/api/admin/invites', {
-        credentials: 'include',
-      })
+      const response = await fetch('/api/admin/invites', { credentials: 'include' })
       if (response.ok) {
         const data = await response.json()
         setClients(data.invites)
@@ -439,11 +433,9 @@ function ClientList({ refreshKey, onRefresh }: { refreshKey: number; onRefresh: 
         method: 'PUT',
         credentials: 'include',
       })
-      if (response.ok) {
-        await fetchClients()
-      }
+      if (response.ok) await fetchClients()
     } catch {
-      // Silent fail — user can try again
+      // Silent fail
     } finally {
       setResending(null)
     }
@@ -458,18 +450,16 @@ function ClientList({ refreshKey, onRefresh }: { refreshKey: number; onRefresh: 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tenantId }),
       })
-      if (response.ok) {
-        onRefresh()
-      }
+      if (response.ok) onRefresh()
     } catch {
-      // Silent fail — user can try again
+      // Silent fail
     } finally {
       setRestoring(null)
     }
   }
 
-  // Count only active (non-deleted) clients for the header
-  const activeCount = clients.filter(c => !c.tenantDeletedAt).length
+  // Count cards where at least one tenant is still active
+  const activeCount = clients.filter(c => c.tenants.some(t => !t.deletedAt)).length
 
   if (loading) {
     return (
@@ -522,37 +512,63 @@ function ClientCard({
   onResend: (id: string) => void
   onRestore: (tenantId: string) => void
 }) {
-  const isDeleted = !!client.tenantDeletedAt
-  const deletionDaysLeft = isDeleted
-    ? Math.max(0, Math.ceil((new Date(client.tenantDeletedAt!).getTime() + 30 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000)))
-    : null
-
-  const tenantUrl = `https://${client.tenantSubdomain}.wayveexpenses.app`
+  // Card is styled as deleted only if ALL tenants are deleted
+  const allDeleted = client.tenants.length > 0 && client.tenants.every(t => !!t.deletedAt)
 
   return (
-    <div className={`admin-invite-card${isDeleted ? ' admin-invite-card--deleted' : ''}`}>
+    <div className={`admin-invite-card${allDeleted ? ' admin-invite-card--deleted' : ''}`}>
       <div className="admin-invite-card__header">
-        <a href={tenantUrl}
-          className="admin-invite-card__business admin-invite-card__business--link"
-        >
-          {client.tenantName}
-        </a>
-        {isDeleted ? (
-          <span className="admin-invite-card__badge admin-invite-card__badge--deleted">
-            Deleted — permanent in {deletionDaysLeft} day{deletionDaysLeft !== 1 ? 's' : ''}
-          </span>
-        ) : (
-          <span className={`admin-invite-card__badge admin-invite-card__badge--${client.status}`}>
-            {client.status}
-          </span>
-        )}
+        <span className="admin-invite-card__email">{client.email}</span>
+        <span className={`admin-invite-card__badge admin-invite-card__badge--${client.status}`}>
+          {client.status}
+        </span>
+      </div>
+
+      {/* Tenant chips — one per tenant */}
+      <div className="admin-invite-card__tenants">
+        {client.tenants.map(tenant => {
+          const isDeleted = !!tenant.deletedAt
+          const deletionDaysLeft = isDeleted
+            ? Math.max(0, Math.ceil(
+                (new Date(tenant.deletedAt!).getTime() + 30 * 24 * 60 * 60 * 1000 - Date.now())
+                / (24 * 60 * 60 * 1000)
+              ))
+            : null
+          const url = `https://${tenant.subdomain}.wayveexpenses.app`
+
+          return (
+            <div
+              key={tenant.id}
+              className={`admin-invite-card__tenant-chip${isDeleted ? ' admin-invite-card__tenant-chip--deleted' : ''}`}
+            >
+              <div className="admin-invite-card__tenant-chip-main">
+                <a href={url} className="admin-invite-card__tenant-name">
+                  {tenant.name}
+                </a>
+                <span className="admin-invite-card__tenant-subdomain">
+                  {tenant.subdomain}.wayveexpenses.app
+                </span>
+              </div>
+              {isDeleted && (
+                <div className="admin-invite-card__tenant-chip-meta">
+                  <span className="admin-invite-card__badge admin-invite-card__badge--deleted">
+                    Deleted — permanent in {deletionDaysLeft} day{deletionDaysLeft !== 1 ? 's' : ''}
+                  </span>
+                  <button
+                    className="btn btn--outline btn--sm admin-invite-card__restore"
+                    onClick={() => onRestore(tenant.id)}
+                    disabled={restoring === tenant.id}
+                  >
+                    {restoring === tenant.id ? 'Restoring...' : 'Restore'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <div className="admin-invite-card__details">
-        <div className="admin-invite-card__row">
-          <span className="admin-invite-card__label">Email</span>
-          <span className="admin-invite-card__value">{client.email}</span>
-        </div>
         {(client.firstName || client.lastName) && (
           <div className="admin-invite-card__row">
             <span className="admin-invite-card__label">Name</span>
@@ -561,14 +577,6 @@ function ClientCard({
             </span>
           </div>
         )}
-        <div className="admin-invite-card__row">
-          <span className="admin-invite-card__label">Subdomain</span>
-          <a href={tenantUrl}
-            className="admin-invite-card__value admin-invite-card__value--link"
-          >
-            {client.tenantSubdomain}.wayveexpenses.app
-          </a>
-        </div>
         <div className="admin-invite-card__row">
           <span className="admin-invite-card__label">Invite Sent</span>
           <span className="admin-invite-card__value">
@@ -601,17 +609,7 @@ function ClientCard({
         </div>
       </div>
 
-      {isDeleted && (
-        <button
-          className="btn btn--outline btn--full admin-invite-card__restore"
-          onClick={() => onRestore(client.tenantId)}
-          disabled={restoring === client.tenantId}
-        >
-          {restoring === client.tenantId ? 'Restoring...' : 'Restore Account'}
-        </button>
-      )}
-
-      {!isDeleted && (client.status === 'pending' || client.status === 'expired') && (
+      {!allDeleted && (client.status === 'pending' || client.status === 'expired') && (
         <button
           className="btn btn--outline btn--full admin-invite-card__resend"
           onClick={() => onResend(client.id)}
