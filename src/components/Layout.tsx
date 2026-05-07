@@ -259,16 +259,43 @@ function NavItem({ icon, label, href, currentPath, onClick }: NavItemProps) {
   )
 }
 
-function AdminNavLink({ user, currentPath, closeDrawer }: { user: { primaryTenant: { subdomain: string } | null; tenantAccess?: { tenant: { subdomain: string } }[] }; currentPath: string; closeDrawer: () => void }) {
-  const currentSubdomain = window.location.hostname.split('.')[0]
-  const homeSubdomain = user.primaryTenant?.subdomain 
-    || user.tenantAccess?.find(ta => ta.tenant.subdomain !== currentSubdomain)?.tenant.subdomain
-  const isOnForeignTenant = homeSubdomain && currentSubdomain !== homeSubdomain && !window.location.hostname.includes('localhost')
+function AdminNavLink({
+  user,
+  currentPath,
+  closeDrawer,
+}: {
+  user: { primaryTenant: { subdomain: string } | null; tenantAccess?: { tenant: { subdomain: string } }[] }
+  currentPath: string
+  closeDrawer: () => void
+}) {
+  const baseDomain = import.meta.env.VITE_BASE_DOMAIN || 'localhost'
+  const isLocal = baseDomain === 'localhost'
+
+  // Derive the current subdomain from the hostname
+  // On staging: sandbox.dev.wayveexpenses.app → 'sandbox'
+  // On production: izrgrooming.wayveexpenses.app → 'izrgrooming'
+  // On local: localhost → null
+  const hostname = window.location.hostname
+  const currentSubdomain = isLocal
+    ? null
+    : hostname.replace(`.${baseDomain}`, '')
+
+  const homeSubdomain =
+    user.primaryTenant?.subdomain ||
+    user.tenantAccess?.find(ta => ta.tenant.subdomain !== currentSubdomain)?.tenant.subdomain
+
+  // Show "Admin ↩" link back to home tenant's admin page if on a foreign tenant
+  const isOnForeignTenant =
+    !isLocal &&
+    homeSubdomain &&
+    currentSubdomain !== homeSubdomain
 
   if (isOnForeignTenant) {
+    const adminUrl = `https://${homeSubdomain}.${baseDomain}/admin`
     return (
       <li>
-        <a href={`https://${homeSubdomain}.wayveexpenses.app/admin`}
+        <a
+          href={adminUrl}
           className="drawer__nav-item"
           onClick={closeDrawer}
         >
@@ -281,5 +308,13 @@ function AdminNavLink({ user, currentPath, closeDrawer }: { user: { primaryTenan
     )
   }
 
-  return <NavItem icon="admin" label="Admin" href="/admin" currentPath={currentPath} onClick={closeDrawer} />
+  return (
+    <NavItem
+      icon="admin"
+      label="Admin"
+      href="/admin"
+      currentPath={currentPath}
+      onClick={closeDrawer}
+    />
+  )
 }
