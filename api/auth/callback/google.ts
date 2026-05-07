@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../../src/db/index.js';
 import { users, sessions, userTenantAccess, tenants, invites, inviteTenants } from '../../../src/db/schema.js';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 
 interface GoogleTokenResponse {
@@ -22,6 +22,28 @@ interface GoogleUserInfo {
   picture?: string;
 }
 
+// Returns the base domain for tenant redirects and cookie scoping.
+// Production:  wayveexpenses.app
+// Staging:     dev.wayveexpenses.app
+// Local:       localhost
+function getTenantBaseDomain(): string {
+  return process.env.TENANT_BASE_DOMAIN || 'localhost';
+}
+
+// Builds a full tenant redirect URL for a given subdomain.
+// Production:  https://izrgrooming.wayveexpenses.app/
+// Staging:     https://izrgrooming.dev.wayveexpenses.app/
+function tenantUrl(subdomain: string): string {
+  const base = getTenantBaseDomain();
+  if (base === 'localhost') return `http://localhost:5173/?tenant=${subdomain}`;
+  return `https://${subdomain}.${base}/`;
+}
+
+function getRedirectUri(): string {
+  if (process.env.OAUTH_REDIRECT_URI) return process.env.OAUTH_REDIRECT_URI;
+  return 'http://localhost:5173/api/auth/callback/google';
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -31,7 +53,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { code, state, error } = req.query;
 
-  // Handle OAuth errors
   if (error) {
     console.error('Google OAuth error:', error);
     return res.redirect(`/login?error=${encodeURIComponent(String(error))}`);
@@ -41,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.redirect('/login?error=missing_code');
   }
 
-  // Parse state to get redirect URL (and CSRF token in future)
+  // Parse state to get redirect URL
   let redirectTo = '/';
   if (state && typeof state === 'string') {
     try {
@@ -115,15 +136,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.redirect('/login?error=not_invited');
       }
 
-      // Check if invite is expired
       if (new Date(pendingInvite.expiresAt) < new Date()) {
         console.log(`Expired invite used (Google sub: ${googleUser.id})`);
         return res.redirect('/login?error=invite_expired');
       }
 
       // --- B4: Resolve tenant list for this invite ---
-      // Check invite_tenants first (bulk invites). If empty, fall back to
-      // the legacy invites.tenantId (single-tenant invites still in the system).
       const bulkTenantRows = await db
         .select({
           tenantId: inviteTenants.tenantId,
@@ -134,17 +152,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .innerJoin(tenants, eq(inviteTenants.tenantId, tenants.id))
         .where(eq(inviteTenants.inviteId, pendingInvite.id));
 
-      // Build the canonical tenant list for this acceptance.
-      // bulkTenantRows is already ordered by DB insertion order (which matches
-      // the order Amber selected them in the bulk invite form).
       type TenantEntry = { tenantId: string; subdomain: string; role: string };
       let tenantList: TenantEntry[];
 
       if (bulkTenantRows.length > 0) {
-        // Bulk invite — use the junction table rows
         tenantList = bulkTenantRows;
       } else {
-        // Legacy single-tenant invite — derive from invites.tenantId
+        // Legacy single-tenant invite
         const [legacyTenant] = await db
           .select({ subdomain: tenants.subdomain })
           .from(tenants)
@@ -165,7 +179,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const primaryTenant = tenantList[0];
 
-      // Create the new user with primary tenant set
       const [newUser] = await db
         .insert(users)
         .values({
@@ -182,7 +195,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         })
         .returning();
 
-      // Batch-insert all user_tenant_access rows in one query (no N+1)
       await db.insert(userTenantAccess).values(
         tenantList.map((t) => ({
           userId: newUser.id,
@@ -191,7 +203,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }))
       );
 
-      // Mark invite as accepted
       await db
         .update(invites)
         .set({
@@ -204,24 +215,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       user = newUser;
     }
 
-    // Update user's Google ID if not set (first OAuth login for existing user)
+    // Update Google ID if not set
     if (!user.googleId) {
       await db
         .update(users)
-        .set({
-          googleId: googleUser.id,
-          updatedAt: new Date(),
-        })
+        .set({ googleId: googleUser.id, updatedAt: new Date() })
         .where(eq(users.id, user.id));
     } else if (user.googleId !== googleUser.id) {
-      // Google ID mismatch - potential account takeover attempt
       console.error(`Google ID mismatch for user ${user.id}`);
       return res.redirect('/login?error=account_mismatch');
     }
 
     // Create session
     const sessionToken = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
     await db.insert(sessions).values({
       id: crypto.randomUUID(),
@@ -232,28 +239,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ipAddress: (req.headers['x-forwarded-for'] as string)?.split(',')[0] || null,
     });
 
-    // Set session cookie
-    const isProduction = process.env.NODE_ENV === 'production';
+    // Set session cookie — domain scoped to current base domain
+    const baseDomain = getTenantBaseDomain();
+    const isLocal = baseDomain === 'localhost';
     const cookieOptions = [
       `session=${sessionToken}`,
       'Path=/',
       'HttpOnly',
       'SameSite=Lax',
-      `Max-Age=${30 * 24 * 60 * 60}`, // 30 days in seconds
-      isProduction ? 'Secure' : '',
-      isProduction ? `Domain=.wayveexpenses.app` : '',
+      `Max-Age=${30 * 24 * 60 * 60}`,
+      !isLocal ? 'Secure' : '',
+      !isLocal ? `Domain=.${baseDomain}` : '',
     ].filter(Boolean).join('; ');
 
     res.setHeader('Set-Cookie', cookieOptions);
 
-    // Stamp last login time
+    // Stamp last login
     await db
       .update(users)
       .set({ lastLoginAt: new Date(), updatedAt: new Date() })
       .where(eq(users.id, user.id));
 
     // --- B5: Determine redirect target ---
-    // Look up all tenant access for this user (one JOIN query, no N+1)
     const tenantAccessRecords = await db
       .select({
         tenantId: userTenantAccess.tenantId,
@@ -264,9 +271,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .innerJoin(tenants, eq(userTenantAccess.tenantId, tenants.id))
       .where(eq(userTenantAccess.userId, user.id));
 
-    // Also include primary tenant if not already in the access list (legacy users)
     let allTenantAccess = [...tenantAccessRecords];
 
+    // Include primary tenant for legacy users not yet in user_tenant_access
     if (user.tenantId) {
       const alreadyIncluded = allTenantAccess.some((t) => t.tenantId === user.tenantId);
       if (!alreadyIncluded) {
@@ -286,44 +293,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    let finalRedirect = redirectTo;
+    let finalRedirect: string;
 
     if (user.isSuperAdmin) {
-      if (allTenantAccess.length === 1) {
-        finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
-      } else if (allTenantAccess.length > 1) {
+      if (allTenantAccess.length === 0) {
+        finalRedirect = '/admin';
+      } else if (allTenantAccess.length === 1) {
+        finalRedirect = tenantUrl(allTenantAccess[0].subdomain);
+      } else {
         // TODO: tenant picker for super admins with multiple tenants
         console.log(`Super admin ${user.id} has ${allTenantAccess.length} tenants, defaulting to first`);
-        finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
-      } else {
-        // Pure super admin with no tenant
-        finalRedirect = '/admin';
+        finalRedirect = tenantUrl(allTenantAccess[0].subdomain);
       }
     } else if (user.isAccountant) {
       // TODO [MVP - Option B]: Build tenant picker page for accountants
       finalRedirect = '/dashboard';
     } else {
-      // Regular user — B5 multi-tenant redirect logic
       if (allTenantAccess.length === 0) {
         return res.redirect('/login?error=no_tenant_access');
       } else if (allTenantAccess.length === 1) {
-        // Single tenant — straightforward
-        finalRedirect = `/?tenant=${allTenantAccess[0].subdomain}`;
+        finalRedirect = tenantUrl(allTenantAccess[0].subdomain);
       } else {
-        // Multiple tenants — prefer lastTenantId, fall back to alphabetically first by name
+        // Multiple tenants — prefer lastTenantId, fall back to alphabetically first
         const lastVisited = user.lastTenantId
           ? allTenantAccess.find((t) => t.tenantId === user.lastTenantId)
           : null;
 
-        if (lastVisited) {
-          finalRedirect = `/?tenant=${lastVisited.subdomain}`;
-        } else {
-          // Sort by tenant name alphabetically and take the first
-          const sorted = [...allTenantAccess].sort((a, b) =>
-            a.name.localeCompare(b.name)
-          );
-          finalRedirect = `/?tenant=${sorted[0].subdomain}`;
-        }
+        finalRedirect = lastVisited
+          ? tenantUrl(lastVisited.subdomain)
+          : tenantUrl([...allTenantAccess].sort((a, b) => a.name.localeCompare(b.name))[0].subdomain);
       }
     }
 
@@ -333,9 +331,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('OAuth callback error:', err);
     return res.redirect('/login?error=server_error');
   }
-}
-
-function getRedirectUri(): string {
-  if (process.env.OAUTH_REDIRECT_URI) return process.env.OAUTH_REDIRECT_URI;
-  return 'http://localhost:5173/api/auth/callback/google';
 }
