@@ -3,6 +3,10 @@ import { db } from '../../../../src/db/index.js';
 import { users, tenants, userTenantAccess } from '../../../../src/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { authenticateSuperAdmin } from '../../../_lib/auth.js';
+import { Resend } from 'resend';
+import { escapeHtml } from '../../../_lib/utils.js';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
@@ -38,7 +42,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // --- 1. Verify tenant exists and is not soft-deleted ---
     const [tenant] = await db
-      .select({ id: tenants.id, name: tenants.name, deletedAt: tenants.deletedAt })
+      .select({
+        id: tenants.id,
+        name: tenants.name,
+        subdomain: tenants.subdomain,
+        deletedAt: tenants.deletedAt,
+      })
       .from(tenants)
       .where(eq(tenants.id, tenantId))
       .limit(1);
@@ -96,6 +105,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
       .returning();
 
+    // --- 5. Send notification email ---
+    const tenantUrl = `https://${tenant.subdomain}.wayveexpenses.app/`;
+    const firstName = existingUser.firstName || existingUser.email;
+
+    try {
+      await resend.emails.send({
+        from: 'Wayve Expense Tracker <noreply@wayveconsulting.app>',
+        to: cleanEmail,
+        subject: `You've been added to ${tenant.name} on Wayve Expense Tracker`,
+        text: `Hi ${firstName},\n\nYou've been granted access to ${tenant.name} on Wayve Expense Tracker.\n\nYou can access it directly at: ${tenantUrl}\n\nIf you have any questions, contact your administrator.\n\nWayve Consulting — Expense Tracking Made Simple`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              <h1 style="color: #2A9D8F; margin: 0; font-size: 24px;">Wayve Expense Tracker</h1>
+            </div>
+
+            <p style="font-size: 16px; color: #333; line-height: 1.6;">
+              Hi ${escapeHtml(firstName)},
+            </p>
+
+            <p style="font-size: 16px; color: #333; line-height: 1.6;">
+              You've been granted access to <strong>${escapeHtml(tenant.name)}</strong> on Wayve Expense Tracker.
+            </p>
+
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${tenantUrl}"
+                 style="background: #2A9D8F; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: 600; display: inline-block;">
+                Go to ${escapeHtml(tenant.name)}
+              </a>
+            </div>
+
+            <p style="font-size: 14px; color: #666; line-height: 1.6;">
+              If you have any questions, contact your administrator.
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
+
+            <p style="font-size: 12px; color: #999; text-align: center;">
+              Wayve Consulting &middot; Expense Tracking Made Simple
+            </p>
+          </div>
+        `,
+      });
+    } catch (emailErr) {
+      // Log but don't fail — access is granted, email is secondary
+      console.error('Failed to send access notification email:', emailErr);
+    }
+
     return res.status(201).json({
       access: newAccess,
       user: {
@@ -107,7 +164,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tenant: {
         id: tenant.id,
         name: tenant.name,
+        subdomain: tenant.subdomain,
       },
+      emailSent: true,
     });
 
   } catch (err) {
