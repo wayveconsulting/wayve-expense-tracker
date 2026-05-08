@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Link } from 'wouter'
 
@@ -41,9 +41,64 @@ interface NewTenantRow {
   subdomainEdited: boolean
 }
 
+const BASE_DOMAIN = import.meta.env.VITE_BASE_DOMAIN || 'wayveexpenses.app'
+
 export default function AdminPage() {
   const { isSuperAdmin } = useAuth()
   const [listRefreshKey, setListRefreshKey] = useState(0)
+
+  // Shared tenant list — lifted so both InviteForm and AddExistingUserForm use the same data
+  const [existingTenants, setExistingTenants] = useState<ExistingTenant[]>([])
+  const [tenantsLoading, setTenantsLoading] = useState(true)
+  const [tenantsError, setTenantsError] = useState<string | null>(null)
+
+  // Ref to focus the invite form email field when "Send an invite instead" is clicked
+  const inviteEmailRef = useRef<HTMLInputElement>(null)
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  useEffect(() => {
+    async function fetchTenants() {
+      try {
+        const response = await fetch('/api/admin/tenants', { credentials: 'include' })
+        if (response.ok) {
+          const data = await response.json()
+          setExistingTenants(data.tenants)
+        } else {
+          setTenantsError('Failed to load tenants')
+        }
+      } catch {
+        setTenantsError('Network error loading tenants')
+      } finally {
+        setTenantsLoading(false)
+      }
+    }
+    fetchTenants()
+  }, [])
+
+  const refreshTenants = async () => {
+    try {
+      const response = await fetch('/api/admin/tenants', { credentials: 'include' })
+      if (response.ok) {
+        const data = await response.json()
+        setExistingTenants(data.tenants)
+      }
+    } catch {
+      // Silent — tenant list refresh is best-effort
+    }
+  }
+
+  const handleInviteSuccess = () => {
+    refreshTenants()
+    setListRefreshKey(k => k + 1)
+  }
+
+  const focusInviteEmail = (prefillEmail?: string) => {
+    inviteEmailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    inviteEmailRef.current?.focus()
+    // Prefill is handled by the InviteForm via a callback — just focus for now
+    // Future: could pass prefillEmail down if we add that affordance
+  }
 
   if (!isSuperAdmin) {
     return (
@@ -57,13 +112,28 @@ export default function AdminPage() {
     )
   }
 
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-
   return (
     <div className="page">
       <h2 className="page-title">Admin</h2>
-      <InviteForm onSuccess={() => setListRefreshKey(k => k + 1)} />
+
+      <InviteForm
+        existingTenants={existingTenants}
+        tenantsLoading={tenantsLoading}
+        tenantsError={tenantsError}
+        onTenantsRefresh={refreshTenants}
+        onSuccess={handleInviteSuccess}
+        emailRef={inviteEmailRef}
+      />
+
       <ClientList refreshKey={listRefreshKey} onRefresh={() => setListRefreshKey(k => k + 1)} />
+
+      <AddExistingUserForm
+        existingTenants={existingTenants}
+        tenantsLoading={tenantsLoading}
+        tenantsError={tenantsError}
+        onSuccess={() => setListRefreshKey(k => k + 1)}
+        onSendInviteInstead={focusInviteEmail}
+      />
 
       {/* Deletion Zone entry point */}
       <div className="admin-section admin-section--danger">
@@ -103,40 +173,31 @@ export default function AdminPage() {
 // ============================================
 let newTenantKeyCounter = 0
 
-function InviteForm({ onSuccess }: { onSuccess: () => void }) {
+function InviteForm({
+  existingTenants,
+  tenantsLoading,
+  tenantsError,
+  onTenantsRefresh,
+  onSuccess,
+  emailRef,
+}: {
+  existingTenants: ExistingTenant[]
+  tenantsLoading: boolean
+  tenantsError: string | null
+  onTenantsRefresh: () => Promise<void>
+  onSuccess: () => void
+  emailRef: React.RefObject<HTMLInputElement | null>
+}) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
 
-  const [existingTenants, setExistingTenants] = useState<ExistingTenant[]>([])
   const [selectedTenantIds, setSelectedTenantIds] = useState<Set<string>>(new Set())
-  const [tenantsLoading, setTenantsLoading] = useState(true)
-  const [tenantsError, setTenantsError] = useState<string | null>(null)
-
   const [newTenantRows, setNewTenantRows] = useState<NewTenantRow[]>([])
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-
-  useEffect(() => {
-    async function fetchTenants() {
-      try {
-        const response = await fetch('/api/admin/tenants', { credentials: 'include' })
-        if (response.ok) {
-          const data = await response.json()
-          setExistingTenants(data.tenants)
-        } else {
-          setTenantsError('Failed to load tenants')
-        }
-      } catch {
-        setTenantsError('Network error loading tenants')
-      } finally {
-        setTenantsLoading(false)
-      }
-    }
-    fetchTenants()
-  }, [])
 
   const toggleTenant = (id: string) => {
     setSelectedTenantIds(prev => {
@@ -255,11 +316,7 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
       setNewTenantRows([])
 
       // Refresh tenant checklist so newly created tenants appear
-      const refreshResponse = await fetch('/api/admin/tenants', { credentials: 'include' })
-      if (refreshResponse.ok) {
-        const refreshData = await refreshResponse.json()
-        setExistingTenants(refreshData.tenants)
-      }
+      await onTenantsRefresh()
 
       onSuccess()
     } catch {
@@ -303,6 +360,7 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
         <div className="admin-form__field">
           <label className="admin-form__label">Email *</label>
           <input
+            ref={emailRef}
             type="email"
             className="admin-form__input"
             value={email}
@@ -337,7 +395,7 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
                     onChange={() => toggleTenant(tenant.id)}
                   />
                   <span className="admin-form__tenant-name">{tenant.name}</span>
-                  <span className="admin-form__tenant-subdomain">{tenant.subdomain}.wayveexpenses.app</span>
+                  <span className="admin-form__tenant-subdomain">{tenant.subdomain}.{BASE_DOMAIN}</span>
                 </label>
               ))}
 
@@ -359,7 +417,7 @@ function InviteForm({ onSuccess }: { onSuccess: () => void }) {
                         onChange={e => updateNewTenantRow(row.key, 'subdomain', e.target.value)}
                         placeholder="subdomain"
                       />
-                      <span className="admin-form__subdomain-suffix">.wayveexpenses.app</span>
+                      <span className="admin-form__subdomain-suffix">.{BASE_DOMAIN}</span>
                     </div>
                   </div>
                   <button
@@ -534,7 +592,7 @@ function ClientCard({
                 / (24 * 60 * 60 * 1000)
               ))
             : null
-          const url = `https://${tenant.subdomain}.wayveexpenses.app`
+          const url = `https://${tenant.subdomain}.${BASE_DOMAIN}`
 
           return (
             <div
@@ -546,7 +604,7 @@ function ClientCard({
                   {tenant.name}
                 </a>
                 <span className="admin-invite-card__tenant-subdomain">
-                  {tenant.subdomain}.wayveexpenses.app
+                  {tenant.subdomain}.{BASE_DOMAIN}
                 </span>
               </div>
               {isDeleted && (
@@ -618,6 +676,167 @@ function ClientCard({
           {resending === client.id ? 'Resending...' : 'Resend Invite'}
         </button>
       )}
+    </div>
+  )
+}
+
+// ============================================
+// ADD EXISTING USER FORM
+// ============================================
+function AddExistingUserForm({
+  existingTenants,
+  tenantsLoading,
+  tenantsError,
+  onSuccess,
+  onSendInviteInstead,
+}: {
+  existingTenants: ExistingTenant[]
+  tenantsLoading: boolean
+  tenantsError: string | null
+  onSuccess: () => void
+  onSendInviteInstead: (email?: string) => void
+}) {
+  const [email, setEmail] = useState('')
+  const [tenantId, setTenantId] = useState('')
+  const [role, setRole] = useState('owner')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [notFoundEmail, setNotFoundEmail] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+
+  const handleSubmit = async () => {
+    setError(null)
+    setNotFoundEmail(null)
+    setSuccess(null)
+
+    if (!email.trim()) {
+      setError('Email is required')
+      return
+    }
+    if (!tenantId) {
+      setError('Please select a tenant')
+      return
+    }
+
+    setSubmitting(true)
+
+    try {
+      const response = await fetch('/api/admin/users/add-tenant', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          tenantId,
+          role,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.status === 404) {
+        setNotFoundEmail(email.trim())
+        return
+      }
+
+      if (response.status === 409) {
+        setError('This user already has access to that tenant')
+        return
+      }
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to grant access')
+        return
+      }
+
+      const tenantName = existingTenants.find(t => t.id === tenantId)?.name ?? 'the tenant'
+      setSuccess(`Access granted — ${email.trim()} can now access ${tenantName}. A notification email has been sent.`)
+      setEmail('')
+      setTenantId('')
+      setRole('owner')
+      onSuccess()
+    } catch {
+      setError('Network error — please try again')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="admin-section">
+      <h3 className="admin-section__title">Grant Tenant Access</h3>
+      <p className="admin-section__description">
+        Add an already-registered user to a tenant without sending a new invite email.
+      </p>
+
+      {error && <div className="admin-alert admin-alert--error">{error}</div>}
+
+      {notFoundEmail && (
+        <div className="admin-alert admin-alert--error">
+          No user with the email <strong>{notFoundEmail}</strong> exists.{' '}
+          <button
+            className="admin-alert__link"
+            onClick={() => onSendInviteInstead(notFoundEmail)}
+          >
+            Send an invite instead
+          </button>
+        </div>
+      )}
+
+      {success && <div className="admin-alert admin-alert--success">{success}</div>}
+
+      <div className="admin-form">
+        <div className="admin-form__field">
+          <label className="admin-form__label">Email *</label>
+          <input
+            type="email"
+            className="admin-form__input"
+            value={email}
+            onChange={e => { setEmail(e.target.value); setNotFoundEmail(null) }}
+            placeholder="joe@example.com"
+          />
+        </div>
+
+        <div className="admin-form__row">
+          <div className="admin-form__field">
+            <label className="admin-form__label">Tenant *</label>
+            {tenantsLoading && <p className="admin-form__hint">Loading tenants...</p>}
+            {tenantsError && <p className="admin-form__hint admin-form__hint--error">{tenantsError}</p>}
+            {!tenantsLoading && !tenantsError && (
+              <select
+                className="admin-form__input admin-form__select"
+                value={tenantId}
+                onChange={e => setTenantId(e.target.value)}
+              >
+                <option value="">Select a tenant…</option>
+                {existingTenants.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="admin-form__field">
+            <label className="admin-form__label">Role *</label>
+            <select
+              className="admin-form__input admin-form__select"
+              value={role}
+              onChange={e => setRole(e.target.value)}
+            >
+              <option value="owner">Owner</option>
+              <option value="accountant">Accountant</option>
+            </select>
+          </div>
+        </div>
+
+        <button
+          className="btn btn--primary btn--full"
+          onClick={handleSubmit}
+          disabled={submitting || tenantsLoading}
+        >
+          {submitting ? 'Granting Access...' : 'Grant Access'}
+        </button>
+      </div>
     </div>
   )
 }
