@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'wouter'
 import { useTenant } from '../hooks/useTenant'
 import { useAuth } from '../hooks/useAuth'
@@ -25,7 +25,7 @@ export function Layout({ children }: LayoutProps) {
   const currentYear = new Date().getFullYear()
 
   const appName = tenant?.name || 'Expense Tracker'
-  
+
   // Determine if we're on the mileage page
   const isOnMileagePage = location === '/mileage' || location.startsWith('/mileage/')
 
@@ -47,11 +47,13 @@ export function Layout({ children }: LayoutProps) {
     }
   }
 
+  const isMultiTenant = (user?.tenantAccess?.length ?? 0) > 1
+
   return (
     <div className="layout">
       {/* Header */}
       <header className="header">
-        <button 
+        <button
           className="header__menu-btn"
           onClick={() => setDrawerOpen(true)}
           aria-label="Open menu"
@@ -63,14 +65,18 @@ export function Layout({ children }: LayoutProps) {
           </svg>
         </button>
 
-        <h1 className="header__title">{appName}</h1>
+        {isMultiTenant ? (
+          <TenantSwitcher user={user} tenant={tenant} />
+        ) : (
+          <h1 className="header__title">{appName}</h1>
+        )}
 
         {/* Spacer to center title */}
         <div className="header__spacer" />
       </header>
 
       {/* Navigation Drawer Overlay */}
-      <div 
+      <div
         className={`drawer-overlay ${drawerOpen ? 'drawer-overlay--open' : ''}`}
         onClick={closeDrawer}
       />
@@ -88,10 +94,44 @@ export function Layout({ children }: LayoutProps) {
           <span className="drawer__app-name">{appName}</span>
         </div>
 
+        {/* Tenant Switcher Section in Drawer (multi-tenant only) */}
+        {isMultiTenant && (
+          <div className="drawer__tenant-section">
+            <span className="drawer__tenant-section-label">Your Tenants</span>
+            {user?.tenantAccess?.map((ta) => {
+              const isActive = ta.tenant.id === tenant?.id
+              const baseDomain = import.meta.env.VITE_BASE_DOMAIN || 'localhost'
+              const isLocal = baseDomain === 'localhost'
+              const tenantUrl = isLocal
+                ? `http://localhost:5173`
+                : `https://${ta.tenant.subdomain}.${baseDomain}/`
+              return (
+                <a
+                  key={ta.tenantId}
+                  href={tenantUrl}
+                  className={`drawer__tenant-card ${isActive ? 'drawer__tenant-card--active' : ''}`}
+                  onClick={closeDrawer}
+                >
+                  <TenantAvatar name={ta.tenant.name} logoUrl={ta.tenant.logoUrl} primaryColor={ta.tenant.primaryColor} size={32} />
+                  <div className="drawer__tenant-card-info">
+                    <span className="drawer__tenant-card-name">{ta.tenant.name}</span>
+                    <span className="drawer__tenant-card-sub">{ta.tenant.subdomain}.{baseDomain}</span>
+                  </div>
+                  {isActive && (
+                    <svg className="drawer__tenant-card-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </a>
+              )
+            })}
+          </div>
+        )}
+
         {/* Year Selector */}
         <div className="drawer__year-selector">
-          <button 
-            className="year-selector__btn year-selector__btn--prev" 
+          <button
+            className="year-selector__btn year-selector__btn--prev"
             aria-label="Previous year"
             onClick={prevYear}
             disabled={year <= 2020}
@@ -101,8 +141,8 @@ export function Layout({ children }: LayoutProps) {
             </svg>
           </button>
           <span className="year-selector__year">{year}</span>
-          <button 
-            className="year-selector__btn year-selector__btn--next" 
+          <button
+            className="year-selector__btn year-selector__btn--next"
             aria-label="Next year"
             onClick={nextYear}
             disabled={year >= currentYear}
@@ -154,7 +194,7 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Global FAB - Context Aware */}
       {showFab && !expenseSheetOpen && !mileageSheetOpen && !location.startsWith('/reports') && (
-        <button 
+        <button
           className={`fab ${isOnMileagePage ? 'fab--mileage' : ''}`}
           onClick={handleFabClick}
           aria-label={isOnMileagePage ? 'Add mileage' : 'Add expense'}
@@ -183,6 +223,198 @@ export function Layout({ children }: LayoutProps) {
     </div>
   )
 }
+
+// ─── TenantAvatar ────────────────────────────────────────────────────────────
+// Shared between TenantSwitcher dropdown cards and drawer tenant cards.
+// Shows logoUrl if available; otherwise initials in a circle filled with primaryColor.
+
+interface TenantAvatarProps {
+  name: string
+  logoUrl?: string | null
+  primaryColor?: string | null
+  size?: number
+}
+
+function TenantAvatar({ name, logoUrl, primaryColor, size = 40 }: TenantAvatarProps) {
+  const initials = name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('')
+
+  const bg = primaryColor || '#0d9488' // teal fallback matches app accent
+
+  if (logoUrl) {
+    return (
+      <img
+        src={logoUrl}
+        alt={name}
+        className="tenant-avatar tenant-avatar--img"
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }}
+      />
+    )
+  }
+
+  return (
+    <div
+      className="tenant-avatar tenant-avatar--initials"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        backgroundColor: bg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        fontSize: size * 0.38,
+        fontWeight: 600,
+        color: '#fff',
+        lineHeight: 1,
+      }}
+      aria-hidden="true"
+    >
+      {initials}
+    </div>
+  )
+}
+
+// ─── TenantSwitcher ──────────────────────────────────────────────────────────
+// Renders in the header for multi-tenant users.
+// Single-tenant users never see this — Layout renders a plain h1 instead.
+
+interface TenantSwitcherProps {
+  user: {
+    tenantAccess?: {
+      tenantId: string
+      role: string
+      tenant: {
+        id: string
+        name: string
+        subdomain: string
+        logoUrl?: string | null
+        primaryColor?: string | null
+      }
+    }[]
+  } | null
+  tenant: {
+    id?: string
+    name?: string
+    subdomain?: string
+    logoUrl?: string | null
+    primaryColor?: string | null
+  } | null
+}
+
+function TenantSwitcher({ user, tenant }: TenantSwitcherProps) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const baseDomain = import.meta.env.VITE_BASE_DOMAIN || 'localhost'
+  const isLocal = baseDomain === 'localhost'
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [open])
+
+  const currentName = tenant?.name || 'Select Tenant'
+
+  return (
+    <div className="tenant-switcher" ref={ref}>
+      <button
+        className="tenant-switcher__trigger"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <TenantAvatar
+          name={currentName}
+          logoUrl={tenant?.logoUrl}
+          primaryColor={tenant?.primaryColor}
+          size={24}
+        />
+        <span className="tenant-switcher__name">{currentName}</span>
+        <svg
+          className={`tenant-switcher__chevron ${open ? 'tenant-switcher__chevron--open' : ''}`}
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="tenant-switcher__dropdown" role="listbox" aria-label="Switch tenant">
+          {user?.tenantAccess?.map((ta) => {
+            const isActive = ta.tenant.id === tenant?.id
+            const tenantUrl = isLocal
+              ? `http://localhost:5173`
+              : `https://${ta.tenant.subdomain}.${baseDomain}/`
+            return (
+              <a
+                key={ta.tenantId}
+                href={tenantUrl}
+                className={`tenant-switcher__option ${isActive ? 'tenant-switcher__option--active' : ''}`}
+                role="option"
+                aria-selected={isActive}
+                onClick={() => setOpen(false)}
+              >
+                <TenantAvatar
+                  name={ta.tenant.name}
+                  logoUrl={ta.tenant.logoUrl}
+                  primaryColor={ta.tenant.primaryColor}
+                  size={40}
+                />
+                <div className="tenant-switcher__option-info">
+                  <span className="tenant-switcher__option-name">{ta.tenant.name}</span>
+                  <span className="tenant-switcher__option-sub">
+                    {ta.tenant.subdomain}.{baseDomain}
+                  </span>
+                </div>
+                {isActive && (
+                  <svg
+                    className="tenant-switcher__option-check"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </a>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── NavItem ─────────────────────────────────────────────────────────────────
 
 interface NavItemProps {
   icon: 'dashboard' | 'receipt' | 'car' | 'folder' | 'chart' | 'admin' | 'settings'
@@ -247,8 +479,8 @@ function NavItem({ icon, label, href, currentPath, onClick }: NavItemProps) {
 
   return (
     <li>
-      <Link 
-        href={href} 
+      <Link
+        href={href}
         className={`drawer__nav-item ${isActive ? 'drawer__nav-item--active' : ''}`}
         onClick={onClick}
       >
@@ -258,6 +490,8 @@ function NavItem({ icon, label, href, currentPath, onClick }: NavItemProps) {
     </li>
   )
 }
+
+// ─── AdminNavLink ─────────────────────────────────────────────────────────────
 
 function AdminNavLink({
   user,
