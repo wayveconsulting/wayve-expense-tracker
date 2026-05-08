@@ -93,7 +93,7 @@ export default function AdminPage() {
     setListRefreshKey(k => k + 1)
   }
 
-  const focusInviteEmail = (prefillEmail?: string) => {
+  const focusInviteEmail = (_prefillEmail?: string) => {
     inviteEmailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     inviteEmailRef.current?.focus()
     // Prefill is handled by the InviteForm via a callback — just focus for now
