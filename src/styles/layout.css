@@ -322,7 +322,6 @@
   font-weight: 600;
   cursor: pointer;
   transition: background-color var(--transition-fast);
-  max-width: 220px;
 }
 
 .tenant-switcher__trigger:hover {
@@ -505,6 +504,12 @@
 @media (min-width: 768px) {
   .tenant-switcher__trigger {
     font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .tenant-switcher__trigger {
+    max-width: 220px;
   }
 }
 

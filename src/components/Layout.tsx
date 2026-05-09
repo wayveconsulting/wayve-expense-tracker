@@ -117,11 +117,7 @@ export function Layout({ children }: LayoutProps) {
                     <span className="drawer__tenant-card-name">{ta.tenant.name}</span>
                     <span className="drawer__tenant-card-sub">{ta.tenant.subdomain}.{baseDomain}</span>
                   </div>
-                  {isActive && (
-                    <svg className="drawer__tenant-card-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
+
                 </a>
               )
             })}
@@ -392,19 +388,7 @@ function TenantSwitcher({ user, tenant }: TenantSwitcherProps) {
                     {ta.tenant.subdomain}.{baseDomain}
                   </span>
                 </div>
-                {isActive && (
-                  <svg
-                    className="tenant-switcher__option-check"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
+
               </a>
             )
           })}
