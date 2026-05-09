@@ -67,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // --- Check for duplicate pending invite (pre-transaction — cheap early exit) ---
+  // --- Check for duplicate pending invite (cheap early exit) ---
   const [existingInvite] = await db
     .select({ id: invites.id })
     .from(invites)
@@ -78,7 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(409).json({ error: 'A pending invite already exists for this email' });
   }
 
-  // --- Verify existing tenants exist and are not soft-deleted (pre-transaction) ---
+  // --- Verify existing tenants exist (pre-write check) ---
   let verifiedExistingTenants: { id: string; name: string }[] = [];
 
   if (hasExistingTenants) {
@@ -103,8 +103,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
   }
 
-  // --- Pre-validate subdomain uniqueness before entering transaction ---
-  // Checking here avoids partial writes inside the transaction on a predictable error
+  // --- Pre-validate subdomain uniqueness before any writes ---
   if (hasNewTenants) {
     for (const t of newTenants as NewTenantInput[]) {
       const cleanSub = t.subdomain.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 30);
@@ -122,64 +121,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  // --- Sequential inserts (neon-http does not support transactions) ---
+  // All validation is complete above. Partial-write risk is minimal.
+  // If invite/inviteTenants inserts fail after tenants are created, we
+  // attempt to clean up the newly created tenants before returning 500.
+
+  const createdTenantIds: string[] = [];
+
   try {
-    // --- Atomic transaction: create tenants + invite + invite_tenants rows ---
-    const { orderedTenants, newInvite } = await db.transaction(async (tx) => {
-      // 1. Create new tenants inline
-      const createdTenants: { id: string; name: string }[] = [];
+    // 1. Create new tenants
+    const createdTenants: { id: string; name: string }[] = [];
 
-      if (hasNewTenants) {
-        for (const t of newTenants as NewTenantInput[]) {
-          const cleanSub = t.subdomain.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 30);
-          const cleanName = t.businessName.trim();
+    if (hasNewTenants) {
+      for (const t of newTenants as NewTenantInput[]) {
+        const cleanSub = t.subdomain.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 30);
+        const cleanName = t.businessName.trim();
 
-          const [created] = await tx
-            .insert(tenants)
-            .values({
-              name: cleanName,
-              subdomain: cleanSub,
-            })
-            .returning({ id: tenants.id, name: tenants.name });
+        const [created] = await db
+          .insert(tenants)
+          .values({
+            name: cleanName,
+            subdomain: cleanSub,
+          })
+          .returning({ id: tenants.id, name: tenants.name });
 
-          createdTenants.push(created);
-        }
+        createdTenants.push(created);
+        createdTenantIds.push(created.id);
       }
+    }
 
-      // 2. Merge existing + newly created (existing first, preserving order)
-      const orderedTenants = [...verifiedExistingTenants, ...createdTenants];
+    // 2. Merge existing + newly created (existing first, preserving order)
+    const orderedTenants = [...verifiedExistingTenants, ...createdTenants];
 
-      // 3. Create invite row (tenantId = first tenant for legacy compat)
-      const token = crypto.randomBytes(32).toString('hex');
-      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    // 3. Create invite row (tenantId = first tenant for legacy compat)
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
-      const [newInvite] = await tx
-        .insert(invites)
-        .values({
-          email: cleanEmail,
-          firstName: firstName?.trim() || null,
-          lastName: lastName?.trim() || null,
-          tenantId: orderedTenants[0].id,
-          role: 'owner',
-          invitedBy: auth.user.id,
-          token,
-          status: 'pending',
-          expiresAt,
-        })
-        .returning();
+    const [newInvite] = await db
+      .insert(invites)
+      .values({
+        email: cleanEmail,
+        firstName: firstName?.trim() || null,
+        lastName: lastName?.trim() || null,
+        tenantId: orderedTenants[0].id,
+        role: 'owner',
+        invitedBy: auth.user.id,
+        token,
+        status: 'pending',
+        expiresAt,
+      })
+      .returning();
 
-      // 4. Insert invite_tenants rows (one per tenant)
-      await tx.insert(inviteTenants).values(
-        orderedTenants.map(t => ({
-          inviteId: newInvite.id,
-          tenantId: t.id,
-          role: 'owner' as const,
-        }))
-      );
+    // 4. Insert invite_tenants rows (one per tenant)
+    await db.insert(inviteTenants).values(
+      orderedTenants.map(t => ({
+        inviteId: newInvite.id,
+        tenantId: t.id,
+        role: 'owner' as const,
+      }))
+    );
 
-      return { orderedTenants, newInvite };
-    });
-
-    // --- Send invite email (outside transaction — email failure should not roll back DB writes) ---
+    // --- Send invite email (outside writes — email failure does not roll back DB) ---
     const inviteUrl = `https://wayveexpenses.app/invite?token=${newInvite.token}`;
     const expiryDate = new Date(newInvite.expiresAt).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -237,7 +239,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `,
       });
     } catch (emailErr) {
-      // Log but don't fail — invite is created, email can be resent
+      // Log but don't fail — invite is created, email can be resent manually
       console.error('Failed to send bulk invite email:', emailErr);
       emailSent = false;
     }
@@ -249,6 +251,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
   } catch (err) {
+    // Attempt cleanup of any tenants created before the failure
+    if (createdTenantIds.length > 0) {
+      try {
+        await db
+          .delete(tenants)
+          .where(inArray(tenants.id, createdTenantIds));
+        console.log(`Cleaned up ${createdTenantIds.length} orphaned tenant(s) after invite failure`);
+      } catch (cleanupErr) {
+        console.error('Failed to clean up orphaned tenants:', cleanupErr);
+      }
+    }
+
     console.error('Error creating bulk invite:', err);
     return res.status(500).json({ error: 'Failed to create bulk invite' });
   }
